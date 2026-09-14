@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Staff Login</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="/">
+      <span class="brand-mark">LR</span>
+      <span th:text="${organizationName}">Our Office</span>
+    </a>
+    <nav class="nav">
+      <a href="/">Delivery Kiosk</a>
+    </nav>
+  </div>
+</header>
+<main class="shell">
+  <div class="card login-box">
+    <div class="eyebrow">Staff access</div>
+    <h2>Reception login</h2>
+    <p class="muted">Authorized reception and administration users only.</p>
+    <div th:if="${param.error}" class="alert error">Invalid username/password or the account is disabled.</div>
+    <div th:if="${param.logout}" class="alert success">You have signed out.</div>
+    <form method="post" action="/login" class="grid">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <div class="field">
+        <label>Username</label>
+        <input name="username" autocomplete="username" required autofocus>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn primary" type="submit">Sign in</button>
+    </form>
+  </div>
+</main>
+</body>
+</html>

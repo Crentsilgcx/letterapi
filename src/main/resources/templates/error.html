@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Request Error</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<main class="shell">
+  <div class="card login-box">
+    <div class="eyebrow">Request could not be completed</div>
+    <h2 th:text="${status != null ? 'Error ' + status : 'Something went wrong'}">Error</h2>
+    <p th:text="${message} ?: 'Please return and try again.'"></p>
+    <div class="actions">
+      <a class="btn primary" href="javascript:history.back()">Go back</a>
+      <a class="btn ghost" href="/">Home</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>

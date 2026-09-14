@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title th:text="${organizationName} + ' — Letter Delivery'">Letter Delivery</title>
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="/">
+      <span class="brand-mark">LR</span>
+      <span th:text="${organizationName}">Our Office</span>
+    </a>
+    <nav class="nav">
+      <a href="/track">Track a Letter</a>
+      <a href="/login">Staff Login</a>
+    </nav>
+  </div>
+</header>
+<main class="shell">
+  <div class="hero">
+    <section class="hero-copy">
+      <div class="eyebrow">Incoming correspondence</div>
+      <h1>Deliver a letter without the paper logbook.</h1>
+      <p class="lead">Record who is delivering, where the letter is from and who it is addressed to. Reception will verify the physical letter and confirm receipt.</p>
+      <div class="card soft section">
+        <strong>How it works</strong>
+        <p class="muted">1. Enter the delivery details. &nbsp; 2. Submit the physical letter. &nbsp; 3. Reception confirms it. &nbsp; 4. Use your tracking number as proof.</p>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Letter delivery</h2>
+      <p class="muted">The official delivery time is recorded by the server when you submit.</p>
+      <div id="deliveryError" class="alert error hidden"></div>
+      <form id="deliveryForm" class="grid">
+        <div class="field">
+          <label for="deliveryPersonId">Delivery person</label>
+          <select id="deliveryPersonId">
+            <option value="">+ New delivery person</option>
+            <option th:each="p:${people}"
+                    th:value="${p.id}"
+                    th:text="${p.fullName}"
+                    th:attr="data-name=${p.fullName},data-org-id=${p.organization != null ? p.organization.id : ''}"></option>
+          </select>
+          <small>Returning visitors can select their name. Contact details stay with reception, not on this kiosk.</small>
+        </div>
+        <div id="newPersonFields" class="field">
+          <label for="fullName">Full name</label>
+          <input id="fullName" maxlength="160" autocomplete="name" placeholder="e.g. Kwame Mensah">
+        </div>
+        <div id="contactFields" class="grid two">
+          <div class="field">
+            <label for="phone">Phone number</label>
+            <input id="phone" maxlength="60" autocomplete="tel" placeholder="Optional">
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" maxlength="180" autocomplete="email" placeholder="Optional">
+          </div>
+        </div>
+        <div class="field">
+          <label for="organizationId">Organization the letter is from</label>
+          <select id="organizationId" required>
+            <option value="">Select organization</option>
+            <option th:each="o:${organizations}" th:value="${o.id}" th:text="${o.name}"></option>
+            <option value="other">+ Other / Add new organization</option>
+          </select>
+        </div>
+        <div id="newOrganizationField" class="field hidden">
+          <label for="organizationName">Organization name</label>
+          <input id="organizationName" maxlength="180" placeholder="Enter organization name">
+        </div>
+        <div class="field">
+          <label for="recipientId">Addressed to</label>
+          <select id="recipientId" required>
+            <option value="">Select recipient</option>
+            <option th:each="r:${recipients}" th:value="${r.id}" th:text="${r.displayName}"></option>
+          </select>
+          <small th:if="${#lists.isEmpty(recipients)}" class="danger-text">No recipients are configured yet. An administrator must add at least one.</small>
+        </div>
+        <div class="field">
+          <label for="subject">Letter subject</label>
+          <input id="subject" required maxlength="250" placeholder="Short description of the letter">
+        </div>
+        <div class="field">
+          <label for="referenceNumber">Letter reference number</label>
+          <input id="referenceNumber" maxlength="120" placeholder="Optional">
+        </div>
+        <div class="field">
+          <label for="description">Additional note</label>
+          <textarea id="description" maxlength="5000" placeholder="Optional delivery note"></textarea>
+        </div>
+        <button id="submitDelivery" class="btn gold" type="submit" th:disabled="${#lists.isEmpty(recipients)}">Deliver letter</button>
+      </form>
+    </section>
+  </div>
+  <section id="deliveryResult" class="card section hidden">
+    <div class="eyebrow">Delivery recorded</div>
+    <h2>Keep this tracking number</h2>
+    <div class="receipt">
+      <div class="kicker">Tracking number</div>
+      <div id="resultTracking" class="tracking"></div>
+      <hr>
+      <p><strong>Addressed to:</strong> <span id="resultRecipient"></span></p>
+      <p><strong>Delivered:</strong> <span id="resultTime"></span></p>
+      <span class="status delivered">WAITING FOR RECEPTION</span>
+    </div>
+    <div class="actions section">
+      <a id="resultTrackLink" class="btn primary" href="#">Open tracking receipt</a>
+      <button class="btn ghost" onclick="window.print()">Print</button>
+    </div>
+  </section>
+</main>
+<footer class="footer">Letter Receipt System · Server-generated delivery and receipt timestamps</footer>
+<script src="/js/deliver.js"></script>
+</body>
+</html>

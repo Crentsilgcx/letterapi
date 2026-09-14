@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Administration</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="/reception">
+      <span class="brand-mark">LR</span>
+      <span th:text="${organizationName}">Office</span>
+    </a>
+    <nav class="nav">
+      <a href="/reception">Reception</a>
+      <a href="#recipients">Recipients</a>
+      <a href="#organizations">Organizations</a>
+      <a href="#users">Users</a>
+      <form method="post" action="/logout">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <button>Sign out</button>
+      </form>
+    </nav>
+  </div>
+</header>
+<main class="shell">
+  <div class="eyebrow">System configuration</div>
+  <h1>Administration</h1>
+  <div th:if="${success}" class="alert success" th:text="${success}"></div>
+  <div th:if="${error}" class="alert error" th:text="${error}"></div>
+
+  <section id="recipients" class="card admin-section">
+    <h2>Recipients / “Addressed To”</h2>
+    <p class="muted">These are the internal people visitors can select when delivering a letter.</p>
+    <form method="post" action="/admin/recipients" class="grid three">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <div class="field">
+        <label>Full name</label>
+        <input name="fullName" required maxlength="160">
+      </div>
+      <div class="field">
+        <label>Job title</label>
+        <input name="jobTitle" maxlength="160">
+      </div>
+      <div class="field">
+        <label>Department</label>
+        <input name="department" maxlength="160">
+      </div>
+      <div class="field">
+        <label>Sort order</label>
+        <input name="sortOrder" type="number" value="100">
+      </div>
+      <div class="actions">
+        <button class="btn primary">Add recipient</button>
+      </div>
+    </form>
+    <div class="table-wrap section">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Title</th>
+            <th>Department</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="r:${recipients}">
+            <td colspan="5">
+              <form method="post" th:action="@{/admin/recipients/{id}/edit(id=${r.id})}" class="form-inline">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="field">
+                  <input name="fullName" th:value="${r.fullName}" required maxlength="160">
+                </div>
+                <div class="field">
+                  <input name="jobTitle" th:value="${r.jobTitle}" maxlength="160" placeholder="Job title">
+                </div>
+                <div class="field">
+                  <input name="department" th:value="${r.department}" maxlength="160" placeholder="Department">
+                </div>
+                <input type="hidden" name="sortOrder" th:value="${r.sortOrder}">
+                <input type="hidden" name="active" th:value="${r.active}">
+                <button class="btn ghost small">Save</button>
+              </form>
+              <form method="post" th:action="@{/admin/recipients/{id}/toggle(id=${r.id})}" style="margin-top:6px">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button class="btn ghost small" th:text="${r.active ? 'Disable' : 'Enable'}"></button>
+                <span class="muted" th:text="${r.active ? 'Active' : 'Disabled'}"></span>
+              </form>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="organizations" class="card admin-section section">
+    <h2>External organizations</h2>
+    <p class="muted">Preload organizations for faster entry. Visitors can also create a new organization from the kiosk.</p>
+    <form method="post" action="/admin/organizations" class="form-inline">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <div class="field">
+        <label>Organization name</label>
+        <input name="name" required maxlength="180">
+      </div>
+      <button class="btn primary">Add organization</button>
+    </form>
+    <div class="table-wrap section">
+      <table>
+        <thead>
+          <tr>
+            <th>Organization</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="o:${organizations}">
+            <td colspan="3">
+              <form method="post" th:action="@{/admin/organizations/{id}/edit(id=${o.id})}" class="form-inline">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="field">
+                  <input name="name" th:value="${o.name}" required maxlength="180">
+                </div>
+                <input type="hidden" name="active" th:value="${o.active}">
+                <button class="btn ghost small">Save</button>
+              </form>
+              <form method="post" th:action="@{/admin/organizations/{id}/toggle(id=${o.id})}" style="margin-top:6px">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button class="btn ghost small" th:text="${o.active ? 'Disable' : 'Enable'}"></button>
+                <span class="muted" th:text="${o.active ? 'Active' : 'Disabled'}"></span>
+              </form>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="users" class="card admin-section section">
+    <h2>Staff accounts</h2>
+    <p class="muted">Receptionists can confirm letters. Administrators can also configure the system.</p>
+    <form method="post" action="/admin/users" class="grid three">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <div class="field">
+        <label>Username</label>
+        <input name="username" required maxlength="80">
+      </div>
+      <div class="field">
+        <label>Display name</label>
+        <input name="displayName" required maxlength="160">
+      </div>
+      <div class="field">
+        <label>Role</label>
+        <select name="role">
+          <option value="RECEPTIONIST">Receptionist</option>
+          <option value="ADMIN">Administrator</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Initial password</label>
+        <input name="password" type="password" minlength="12" maxlength="72" required autocomplete="new-password">
+      </div>
+      <div class="actions">
+        <button class="btn primary">Create user</button>
+      </div>
+    </form>
+    <div class="table-wrap section">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Reset password</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="u:${users}">
+            <td th:text="${u.displayName}"></td>
+            <td th:text="${u.username}"></td>
+            <td th:text="${u.role}"></td>
+            <td th:text="${u.active ? 'Active' : 'Disabled'}"></td>
+            <td>
+              <form method="post" th:action="@{/admin/users/{id}/password(id=${u.id})}" class="actions">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <input name="password" type="password" minlength="12" maxlength="72" required placeholder="New password" style="width:180px">
+                <button class="btn ghost small">Reset</button>
+              </form>
+            </td>
+            <td>
+              <form method="post" th:action="@{/admin/users/{id}/toggle(id=${u.id})}">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button class="btn ghost small" th:text="${u.active ? 'Disable' : 'Enable'}"></button>
+              </form>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

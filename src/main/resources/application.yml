@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: letter-receipt-system
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:letter_receipt}?useSSL=${DB_USE_SSL:false}&requireSSL=${DB_REQUIRE_SSL:false}&allowPublicKeyRetrieval=${DB_ALLOW_PUBLIC_KEY_RETRIEVAL:true}&serverTimezone=UTC&connectionTimeZone=SERVER
+    username: ${DB_USER:letter_app}
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: ${DB_POOL_MIN:2}
+      connection-timeout: 20000
+      validation-timeout: 5000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+  flyway:
+    enabled: true
+  thymeleaf:
+    cache: ${THYMELEAF_CACHE:true}
+  mvc:
+    problemdetails:
+      enabled: true
+server:
+  port: ${SERVER_PORT:8080}
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        secure: ${SESSION_COOKIE_SECURE:false}
+        same-site: lax
+      timeout: 30m
+  error:
+    include-message: never
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+app:
+  organization-name: ${APP_ORGANIZATION_NAME:Our Office}
+  timezone: ${APP_TIMEZONE:Africa/Accra}
+  bootstrap:
+    admin-username: ${APP_BOOTSTRAP_ADMIN_USERNAME:admin}
+    admin-password: ${APP_BOOTSTRAP_ADMIN_PASSWORD:}
+    admin-display-name: ${APP_BOOTSTRAP_ADMIN_DISPLAY_NAME:System Administrator}
+  rate-limit:
+    enabled: ${APP_RATE_LIMIT_ENABLED:true}
+    login-per-minute: ${APP_RATE_LIMIT_LOGIN:8}
+    public-post-per-minute: ${APP_RATE_LIMIT_PUBLIC_POST:40}

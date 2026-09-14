@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Letter Detail</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="/reception">
+      <span class="brand-mark">LR</span>
+      <span th:text="${organizationName}">Office</span>
+    </a>
+    <nav class="nav">
+      <a href="/reception">Reception</a>
+      <a href="/reception/deliveries">Register</a>
+      <a sec:authorize="hasRole('ADMIN')" href="/admin">Administration</a>
+    </nav>
+  </div>
+</header>
+<main class="shell">
+  <div class="split-title">
+    <div>
+      <div class="eyebrow">Delivery record</div>
+      <h1 th:text="${delivery.trackingNumber}">Tracking</h1>
+    </div>
+    <span class="status" th:classappend="${delivery.status.name() == 'RECEIVED'} ? ' received' : ' delivered'" th:text="${delivery.status}"></span>
+  </div>
+  <div class="grid two">
+    <section class="card">
+      <h2>Letter</h2>
+      <p><span class="kicker">Subject</span><br><strong th:text="${delivery.subject}"></strong></p>
+      <p><span class="kicker">Reference</span><br><span th:text="${delivery.referenceNumber ?: '—'}"></span></p>
+      <p><span class="kicker">Additional note</span><br><span th:text="${delivery.description ?: '—'}"></span></p>
+      <hr>
+      <p>
+        <span class="kicker">Addressed to</span><br>
+        <strong th:text="${delivery.recipientName}"></strong><br>
+        <span class="muted" th:text="${delivery.recipientTitle}"></span>
+      </p>
+    </section>
+    <section class="card">
+      <h2>Delivery party</h2>
+      <p><span class="kicker">Person</span><br><strong th:text="${delivery.deliveryPersonName}"></strong></p>
+      <p><span class="kicker">Organization</span><br><span th:text="${delivery.organizationName}"></span></p>
+      <p><span class="kicker">Phone</span><br><span th:text="${delivery.deliveryPersonPhone ?: '—'}"></span></p>
+      <p><span class="kicker">Email</span><br><span th:text="${delivery.deliveryPersonEmail ?: '—'}"></span></p>
+    </section>
+  </div>
+  <section class="card section">
+    <h2>Audit timeline</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Actor</th>
+            <th>Time</th>
+            <th>Remarks</th>
+            <th>IP</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="e:${events}">
+            <td th:text="${e.eventType}"></td>
+            <td th:text="${e.actorName}"></td>
+            <td class="nowrap" th:text="${#temporals.format(e.eventAt,'dd MMM yyyy HH:mm:ss')}"></td>
+            <td th:text="${e.remarks}"></td>
+            <td th:text="${e.ipAddress}"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <div class="actions section no-print">
+    <a class="btn ghost" href="/reception/deliveries">← Back to register</a>
+    <a class="btn primary" th:href="@{/track/{tracking}(tracking=${delivery.trackingNumber})}" target="_blank">Public receipt</a>
+  </div>
+</main>
+</body>
+</html>

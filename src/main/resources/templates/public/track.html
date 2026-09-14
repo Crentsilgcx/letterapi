@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Track Letter</title>
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="/">
+      <span class="brand-mark">LR</span>
+      <span th:text="${organizationName}">Our Office</span>
+    </a>
+    <nav class="nav">
+      <a href="/">New Delivery</a>
+      <a href="/login">Staff Login</a>
+    </nav>
+  </div>
+</header>
+<main class="shell">
+  <div class="card" style="max-width:760px;margin:auto">
+    <div class="split-title">
+      <div>
+        <div class="eyebrow">Tracking</div>
+        <h2>Letter receipt status</h2>
+      </div>
+    </div>
+    <form class="form-inline no-print" onsubmit="event.preventDefault(); const v=document.getElementById('tracking').value.trim(); if(v) location.href='/track/'+encodeURIComponent(v)">
+      <div class="field">
+        <label for="tracking">Tracking number</label>
+        <input id="tracking" th:value="${tracking}" placeholder="ABCD-EFGH-JKMN" required>
+      </div>
+      <button class="btn primary">Track</button>
+    </form>
+    <div th:if="${notFound}" class="alert error section">No letter was found with that tracking number.</div>
+    <div th:if="${delivery}" class="receipt section">
+      <div class="kicker">Tracking number</div>
+      <div class="tracking" th:text="${delivery.trackingNumber}">TRACKING</div>
+      <p>
+        <strong>Status:</strong>
+        <span class="status" th:classappend="${delivery.status.name() == 'RECEIVED'} ? ' received' : ' delivered'" th:text="${delivery.status}">DELIVERED</span>
+      </p>
+      <p>
+        <strong>Addressed to:</strong>
+        <span th:text="${delivery.recipientName}"></span>
+        <span th:if="${delivery.recipientTitle}" th:text="' — '+${delivery.recipientTitle}"></span>
+      </p>
+      <p>
+        <strong>Delivered:</strong>
+        <span th:text="${#temporals.format(delivery.deliveredAt,'dd MMM yyyy, HH:mm')}"></span>
+      </p>
+      <p th:if="${delivery.receivedAt}">
+        <strong>Received:</strong>
+        <span th:text="${#temporals.format(delivery.receivedAt,'dd MMM yyyy, HH:mm')}"></span>
+      </p>
+      <p class="muted" th:if="${delivery.status.name() == 'DELIVERED'}">The delivery is recorded and is waiting for reception to verify the physical letter.</p>
+      <p th:if="${delivery.status.name() == 'RECEIVED'}">Reception has confirmed the physical letter as received.</p>
+    </div>
+    <div class="actions section no-print" th:if="${delivery}">
+      <button class="btn ghost" onclick="window.print()">Print receipt</button>
+      <a class="btn primary" href="/">Deliver another letter</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>

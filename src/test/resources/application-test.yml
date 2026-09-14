@@ -1,0 +1,15 @@
+app:
+  bootstrap:
+    admin-username: admin
+    admin-password: test-admin-password-123
+    admin-display-name: System Administrator
+  rate-limit:
+    enabled: false
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false
+spring:
+  thymeleaf:
+    cache: false
