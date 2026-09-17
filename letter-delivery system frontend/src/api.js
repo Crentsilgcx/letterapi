@@ -1,7 +1,9 @@
 const API_BASE = '/api/public';
 const RECEPTION_BASE = '/api/reception';
+const ADMIN_BASE = '/api/admin';
 
 const RECEPTION_AUTH = btoa('admin:SecureAdminPassword123');
+const ADMIN_AUTH = btoa('admin:SecureAdminPassword123');
 
 async function fetchJson(url, options = {}) {
   try {
@@ -41,9 +43,35 @@ export const receptionApi = {
   getPending: () => fetchJson(`${RECEPTION_BASE}/deliveries/pending`, {
     headers: { Authorization: `Basic ${RECEPTION_AUTH}` },
   }),
+  getReceived: () => fetchJson(`${RECEPTION_BASE}/deliveries/received`, {
+    headers: { Authorization: `Basic ${RECEPTION_AUTH}` },
+  }),
   receiveDelivery: (id, remarks) => fetchJson(`${RECEPTION_BASE}/deliveries/${id}/receive`, {
     method: 'POST',
     headers: { Authorization: `Basic ${RECEPTION_AUTH}` },
     body: JSON.stringify({ remarks }),
+  }),
+};
+
+export const adminApi = {
+  getDeliveryPeople: () => fetchJson(`${ADMIN_BASE}/delivery-people`, {
+    headers: { Authorization: `Basic ${ADMIN_AUTH}` },
+  }),
+
+  createDeliveryPerson: (data) => fetchJson(`${ADMIN_BASE}/delivery-people`, {
+    method: 'POST',
+    headers: { Authorization: `Basic ${ADMIN_AUTH}` },
+    body: JSON.stringify(data),
+  }),
+
+  updateDeliveryPerson: (id, data) => fetchJson(`${ADMIN_BASE}/delivery-people/${id}`, {
+    method: 'PUT',
+    headers: { Authorization: `Basic ${ADMIN_AUTH}` },
+    body: JSON.stringify(data),
+  }),
+
+  deleteDeliveryPerson: (id) => fetchJson(`${ADMIN_BASE}/delivery-people/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Basic ${ADMIN_AUTH}` },
   }),
 };

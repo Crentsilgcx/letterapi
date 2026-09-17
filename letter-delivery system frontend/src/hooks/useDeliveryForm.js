@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from './useForm';
-import { deliveryApi } from '../api';
+import { deliveryApi, adminApi } from '../api';
 
 const initialValues = {
   deliveryPersonId: '',
@@ -15,7 +15,7 @@ const initialValues = {
   description: '',
 };
 
-const validate = (values) => {
+const validate = (values, isNewPerson) => {
   const errors = {};
   if (!values.recipientId) errors.recipientId = 'Recipient is required';
   if (!values.subject?.trim()) errors.subject = 'Subject is required';
@@ -27,6 +27,13 @@ const validate = (values) => {
   if (values.subject && values.subject.length > 250) errors.subject = 'Subject too long (max 250)';
   if (values.referenceNumber && values.referenceNumber.length > 120) errors.referenceNumber = 'Reference too long (max 120)';
   if (values.description && values.description.length > 5000) errors.description = 'Description too long (max 5000)';
+  
+  if (isNewPerson) {
+    if (!values.fullName?.trim()) errors.fullName = 'Delivery person name is required';
+    if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+      errors.email = 'Invalid email format';
+    }
+  }
   return errors;
 };
 
@@ -34,30 +41,80 @@ export function useDeliveryForm() {
   const [recipients, setRecipients] = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [deliveryPersons, setDeliveryPersons] = useState([]);
+  const [isCreatingPerson, setIsCreatingPerson] = useState(false);
 
-  const form = useForm(initialValues, validate);
+  const form = useForm(initialValues, (values) => validate(values, isNewPerson(values)));
+
+  const fetchDeliveryPersons = useCallback(() => {
+    deliveryApi.getDeliveryPersons().then(setDeliveryPersons).catch(() => {});
+  }, []);
 
   useEffect(() => {
     deliveryApi.getRecipients().then(setRecipients).catch(() => {});
     deliveryApi.getOrganizations().then(setOrganizations).catch(() => {});
-    deliveryApi.getDeliveryPersons().then(setDeliveryPersons).catch(() => {});
-  }, []);
+    fetchDeliveryPersons();
+  }, [fetchDeliveryPersons]);
+
+  const isNewPerson = useCallback((values = form.values) => {
+    return values.deliveryPersonId === '__new__';
+  }, [form.values]);
+
+  const selectedPerson = useMemo(() => {
+    if (!form.values.deliveryPersonId || form.values.deliveryPersonId === '__new__') return null;
+    return deliveryPersons.find(p => String(p.id) === String(form.values.deliveryPersonId));
+  }, [form.values.deliveryPersonId, deliveryPersons]);
+
+  const isDuplicateName = useMemo(() => {
+    const name = form.values.fullName?.trim().toLowerCase();
+    if (!name || form.values.deliveryPersonId !== '__new__') return false;
+    return deliveryPersons.some(p => p.fullName?.toLowerCase() === name);
+  }, [form.values.fullName, form.values.deliveryPersonId, deliveryPersons]);
 
   const submitDelivery = useCallback(async (values) => {
+    const isNew = values.deliveryPersonId === '__new__';
+    
     const payload = {
-      deliveryPersonId: values.deliveryPersonId ? Number(values.deliveryPersonId) : null,
-      fullName: values.fullName || null,
-      phone: values.phone || null,
-      email: values.email || null,
-      organizationId: values.organizationId ? Number(values.organizationId) : null,
-      organizationName: values.organizationName || null,
+      deliveryPersonId: isNew ? null : (values.deliveryPersonId ? Number(values.deliveryPersonId) : null),
+      fullName: isNew ? values.fullName.trim() : (values.fullName || null),
+      phone: isNew ? (values.phone || null) : (values.phone || null),
+      email: isNew ? (values.email || null) : (values.email || null),
+      organizationId: isNew ? (values.organizationId ? Number(values.organizationId) : null) : (values.organizationId ? Number(values.organizationId) : null),
+      organizationName: isNew ? (values.organizationName || null) : (values.organizationName || null),
       recipientId: Number(values.recipientId),
       subject: values.subject.trim(),
       referenceNumber: values.referenceNumber || null,
       description: values.description || null,
     };
-    await deliveryApi.createDelivery(payload);
+    
+    setIsCreatingPerson(true);
+    try {
+      await deliveryApi.createDelivery(payload);
+    } finally {
+      setIsCreatingPerson(false);
+    }
   }, []);
+
+  const handleDeliveryPersonChange = useCallback((e) => {
+    const value = e.target.value;
+    form.setFieldValue('deliveryPersonId', value);
+    
+    if (value === '__new__') {
+      form.setFieldValue('fullName', '');
+      form.setFieldValue('phone', '');
+      form.setFieldValue('email', '');
+      form.setFieldValue('organizationId', '');
+      form.setFieldValue('organizationName', '');
+    } else if (value) {
+      const person = deliveryPersons.find(p => String(p.id) === String(value));
+      if (person) {
+        form.setFieldValue('fullName', person.fullName || '');
+        form.setFieldValue('phone', person.phone || '');
+        form.setFieldValue('email', person.email || '');
+        form.setFieldValue('organizationId', person.organizationId ? String(person.organizationId) : '');
+        form.setFieldValue('organizationName', person.organizationName || '');
+      }
+    }
+  }, [form, deliveryPersons]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -67,11 +124,23 @@ export function useDeliveryForm() {
       .catch(() => {});
   };
 
+  const handleNewPersonCreated = useCallback(() => {
+    fetchDeliveryPersons();
+    form.setFieldValue('deliveryPersonId', '');
+  }, [fetchDeliveryPersons, form]);
+
   return {
     ...form,
     recipients,
     organizations,
     deliveryPersons,
+    selectedPerson,
+    isNewPerson: isNewPerson(),
+    isDuplicateName,
+    isCreatingPerson,
+    isSubmitting: form.isSubmitting || isCreatingPerson,
+    handleDeliveryPersonChange,
     handleSubmit,
+    handleNewPersonCreated,
   };
 }

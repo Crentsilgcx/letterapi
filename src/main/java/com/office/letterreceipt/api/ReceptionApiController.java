@@ -34,6 +34,13 @@ public class ReceptionApiController {
             .toList();
     }
 
+    @GetMapping("/deliveries/received")
+    public List<DeliveryResponse> received() {
+        return deliveries.findTop100ByStatusOrderByReceivedAtDesc(DeliveryStatus.RECEIVED).stream()
+            .map(DeliveryResponse::full)
+            .toList();
+    }
+
     @PostMapping("/deliveries/{id}/receive")
     public DeliveryResponse receive(
             @PathVariable Long id,
