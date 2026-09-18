@@ -33,7 +33,7 @@ docker compose up -d --build
 
 Open `http://localhost:8081`.
 
-Admin login uses `ADMIN_USERNAME` / `ADMIN_PASSWORD` from `.env` on first startup. The bootstrap password is only used to create the first admin; changing the environment variable later does not overwrite an existing account. If the database has no users and the bootstrap password is missing or shorter than 12 characters, the application refuses to start.
+Admin login uses `ADMIN_USERNAME` / `ADMIN_PASSWORD` from `.env`. `.env` is the source of truth for this account: on every startup, if the stored password differs from `ADMIN_PASSWORD`, it is updated to match (a reset made on the Admin page for this account is overwritten at the next restart, so change `.env` instead). The React dev server (`letter-delivery system frontend`, `npm run dev`) reads the same `.env` and adds these credentials to reception/admin API calls, so after changing the password just restart the backend. If the database has no users and the bootstrap password is missing or shorter than 12 characters, the application refuses to start.
 
 ### First-time configuration
 
