@@ -3,44 +3,41 @@ import { deliveryApi } from '../api';
 import { useStomp } from './useStomp';
 
 export function useDelivery() {
-  const [deliveries, setDeliveries] = useState([]);
+  const [lastCreatedDelivery, setLastCreatedDelivery] = useState(null);
+  const [trackedDelivery, setTrackedDelivery] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  const loadDeliveries = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await deliveryApi.getDeliveries();
-      setDeliveries(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   const createDelivery = useCallback(async (payload) => {
+    setIsLoading(true);
     setError(null);
     setSuccess(null);
     try {
       const delivery = await deliveryApi.createDelivery(payload);
+      setLastCreatedDelivery(delivery);
       setSuccess('Delivery created successfully');
       return delivery;
     } catch (err) {
       setError(err.message);
       throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
   const trackDelivery = useCallback(async (trackingNumber) => {
+    setIsLoading(true);
     setError(null);
     try {
-      return await deliveryApi.trackDelivery(trackingNumber);
+      const delivery = await deliveryApi.trackDelivery(trackingNumber);
+      setTrackedDelivery(delivery);
+      return delivery;
     } catch (err) {
       setError(err.message);
       throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -59,11 +56,12 @@ export function useDelivery() {
       if (type === 'DELIVERY_STATUS_CHANGED' && payload) {
         const { deliveryId, newStatus, delivery } = payload;
         if (delivery) {
-          setDeliveries(prev => {
-            const exists = prev.some(d => d.id === deliveryId);
-            if (!exists) return prev;
-            return prev.map(d => d.id === deliveryId ? delivery : d);
-          });
+          if (lastCreatedDelivery?.id === deliveryId) {
+            setLastCreatedDelivery(delivery);
+          }
+          if (trackedDelivery?.id === deliveryId) {
+            setTrackedDelivery(delivery);
+          }
         }
       }
     });
@@ -71,15 +69,15 @@ export function useDelivery() {
     return () => {
       unsubscribe();
     };
-  }, [isConnected, subscribe]);
+  }, [isConnected, subscribe, lastCreatedDelivery, trackedDelivery]);
 
   return {
-    deliveries,
+    lastCreatedDelivery,
+    trackedDelivery,
     isLoading,
     error,
     success,
     isConnected,
-    loadDeliveries,
     createDelivery,
     trackDelivery,
   };
