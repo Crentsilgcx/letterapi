@@ -18,6 +18,8 @@ public interface LetterDeliveryRepository extends JpaRepository<LetterDelivery, 
 
     List<LetterDelivery> findTop100ByStatusOrderByDeliveredAtAsc(DeliveryStatus status);
 
+    List<LetterDelivery> findTop100ByStatusOrderByReceivedAtDesc(DeliveryStatus status);
+
     List<LetterDelivery> findTop20ByOrderByDeliveredAtDesc();
 
     long countByStatus(DeliveryStatus status);

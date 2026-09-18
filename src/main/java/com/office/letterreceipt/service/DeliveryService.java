@@ -15,6 +15,7 @@ import com.office.letterreceipt.repository.LetterDeliveryRepository;
 import com.office.letterreceipt.repository.OrganizationRepository;
 import com.office.letterreceipt.repository.RecipientRepository;
 import com.office.letterreceipt.repository.UserAccountRepository;
+import com.office.letterreceipt.websocket.WebSocketEventPublisher;
 import jakarta.servlet.http.HttpServletRequest;
 import java.security.SecureRandom;
 import java.time.Clock;
@@ -42,6 +43,7 @@ public class DeliveryService {
     private final DeliveryEventRepository events;
     private final UserAccountRepository users;
     private final Clock clock;
+    private final WebSocketEventPublisher wsPublisher;
 
     public DeliveryService(
             LetterDeliveryRepository deliveries,
@@ -50,7 +52,8 @@ public class DeliveryService {
             RecipientRepository recipients,
             DeliveryEventRepository events,
             UserAccountRepository users,
-            Clock clock) {
+            Clock clock,
+            WebSocketEventPublisher wsPublisher) {
         this.deliveries = deliveries;
         this.people = people;
         this.organizations = organizations;
@@ -58,6 +61,7 @@ public class DeliveryService {
         this.events = events;
         this.users = users;
         this.clock = clock;
+        this.wsPublisher = wsPublisher;
     }
 
     @Transactional
@@ -93,6 +97,7 @@ public class DeliveryService {
         delivery = deliveries.save(delivery);
         addEvent(delivery, DeliveryEventType.DELIVERED, person.getFullName(),
             "Letter submitted for receipt confirmation", servletRequest, now);
+        wsPublisher.notifyDeliveryCreated(delivery);
         return delivery;
     }
 
@@ -117,6 +122,7 @@ public class DeliveryService {
         addEvent(delivery, DeliveryEventType.RECEIVED, receiver.getDisplayName(),
             StringUtils.hasText(remarks) ? clean(remarks, 500) : "Physical letter verified and received",
             servletRequest, now);
+        wsPublisher.notifyDeliveryReceived(delivery);
         return delivery;
     }
 
