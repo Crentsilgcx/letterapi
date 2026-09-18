@@ -15,6 +15,16 @@ public class SecurityConfig {
 
     @Bean
     @Order(1)
+    SecurityFilterChain websocketSecurity(HttpSecurity http) throws Exception {
+        http
+            .securityMatcher("/ws/**")
+            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+            .csrf(csrf -> csrf.disable());
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
     SecurityFilterChain staffApiSecurity(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
         http
             .securityMatcher("/api/reception/**", "/api/admin/**")
@@ -30,7 +40,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(2)
+    @Order(3)
     SecurityFilterChain webSecurity(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
         http
             .userDetailsService(userDetailsService)
@@ -41,8 +51,6 @@ public class SecurityConfig {
                     "/track",
                     "/track/**",
                     "/api/public/**",
-                    "/ws",
-                    "/ws/**",
                     "/css/**",
                     "/js/**",
                     "/favicon.svg",
