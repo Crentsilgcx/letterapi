@@ -41,6 +41,8 @@ public class SecurityConfig {
                     "/track",
                     "/track/**",
                     "/api/public/**",
+                    "/ws",
+                    "/ws/**",
                     "/css/**",
                     "/js/**",
                     "/favicon.svg",

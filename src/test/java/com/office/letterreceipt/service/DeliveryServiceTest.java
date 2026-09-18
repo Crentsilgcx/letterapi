@@ -14,6 +14,7 @@ import com.office.letterreceipt.repository.LetterDeliveryRepository;
 import com.office.letterreceipt.repository.OrganizationRepository;
 import com.office.letterreceipt.repository.RecipientRepository;
 import com.office.letterreceipt.repository.UserAccountRepository;
+import com.office.letterreceipt.websocket.WebSocketEventPublisher;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Clock;
 import java.time.Instant;
@@ -42,6 +43,7 @@ class DeliveryServiceTest {
         RecipientRepository recipients = mock(RecipientRepository.class);
         DeliveryEventRepository events = mock(DeliveryEventRepository.class);
         UserAccountRepository users = mock(UserAccountRepository.class);
+        WebSocketEventPublisher wsPublisher = mock(WebSocketEventPublisher.class);
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
         Clock clock = Clock.fixed(Instant.parse("2026-09-14T10:47:21Z"), ZoneId.of("Africa/Accra"));
@@ -70,7 +72,7 @@ class DeliveryServiceTest {
         });
 
         DeliveryService service = new DeliveryService(
-            deliveries, people, organizations, recipients, events, users, clock);
+            deliveries, people, organizations, recipients, events, users, clock, wsPublisher);
         LetterDelivery delivery = service.create(
             new CreateDeliveryRequest(
                 null, "Kwame Mensah", "0200000000", null, 3L, null, 7L,
@@ -84,6 +86,7 @@ class DeliveryServiceTest {
         assertEquals(DeliveryStatus.DELIVERED, delivery.getStatus());
         verify(events).save(argThat(event ->
             event.getEventType() == DeliveryEventType.DELIVERED && event.getActorName().equals("Kwame Mensah")));
+        verify(wsPublisher).notifyDeliveryCreated(delivery);
     }
 
     @Test
@@ -94,6 +97,7 @@ class DeliveryServiceTest {
         RecipientRepository recipients = mock(RecipientRepository.class);
         DeliveryEventRepository events = mock(DeliveryEventRepository.class);
         UserAccountRepository users = mock(UserAccountRepository.class);
+        WebSocketEventPublisher wsPublisher = mock(WebSocketEventPublisher.class);
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
         Clock clock = Clock.fixed(Instant.parse("2026-09-14T10:49:00Z"), ZoneId.of("Africa/Accra"));
@@ -112,10 +116,11 @@ class DeliveryServiceTest {
         when(deliveries.save(any(LetterDelivery.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         DeliveryService service = new DeliveryService(
-            deliveries, people, organizations, recipients, events, users, clock);
+            deliveries, people, organizations, recipients, events, users, clock, wsPublisher);
         LetterDelivery received = service.receive(42L, "reception", null, request);
         assertEquals(DeliveryStatus.RECEIVED, received.getStatus());
         assertSame(receiver, received.getReceivedBy());
         assertEquals(LocalDateTime.of(2026, 9, 14, 10, 49), received.getReceivedAt());
+        verify(wsPublisher).notifyDeliveryReceived(received);
     }
 }

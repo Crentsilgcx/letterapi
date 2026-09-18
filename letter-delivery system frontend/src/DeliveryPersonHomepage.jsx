@@ -79,8 +79,8 @@ function DeliveryPersonHomepage() {
   }, []);
 
   useEffect(() => {
-    if (!lastSubmittedDeliveryId) return;
-    
+    if (!lastSubmittedDeliveryId || !isConnected) return;
+
     const unsubscribe = subscribe('/topic/deliveries', (event) => {
       const { type, deliveryId, status } = event;
       
@@ -96,7 +96,7 @@ function DeliveryPersonHomepage() {
     });
 
     return unsubscribe;
-  }, [lastSubmittedDeliveryId, subscribe]);
+  }, [lastSubmittedDeliveryId, isConnected, subscribe]);
 
   const selectedPerson = deliveryPersons.find(p => p.id === Number(values.deliveryPersonId));
   const isNewPerson = isNewDeliveryPerson(values.deliveryPersonId);

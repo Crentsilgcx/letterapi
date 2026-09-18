@@ -111,7 +111,6 @@ public class DeliveryService {
         UserAccount receiver = users.findByUsernameIgnoreCase(username)
             .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Authenticated user not found."));
         LocalDateTime now = LocalDateTime.now(clock);
-        DeliveryStatus oldStatus = delivery.getStatus();
         delivery.setStatus(DeliveryStatus.RECEIVED);
         delivery.setReceivedAt(now);
         delivery.setReceivedBy(receiver);
@@ -124,7 +123,6 @@ public class DeliveryService {
             StringUtils.hasText(remarks) ? clean(remarks, 500) : "Physical letter verified and received",
             servletRequest, now);
         wsPublisher.notifyDeliveryReceived(delivery);
-        wsPublisher.notifyStatusChanged(delivery, oldStatus);
         return delivery;
     }
 
