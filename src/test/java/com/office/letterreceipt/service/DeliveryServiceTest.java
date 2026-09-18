@@ -1,5 +1,6 @@
 package com.office.letterreceipt.service;
 
+import com.office.letterreceipt.websocket.WebSocketEventPublisher;
 import com.office.letterreceipt.dto.CreateDeliveryRequest;
 import com.office.letterreceipt.model.DeliveryEventType;
 import com.office.letterreceipt.model.DeliveryStatus;
@@ -70,7 +71,7 @@ class DeliveryServiceTest {
         });
 
         DeliveryService service = new DeliveryService(
-            deliveries, people, organizations, recipients, events, users, clock);
+            deliveries, people, organizations, recipients, events, users, clock, mock(WebSocketEventPublisher.class));
         LetterDelivery delivery = service.create(
             new CreateDeliveryRequest(
                 null, "Kwame Mensah", "0200000000", null, 3L, null, 7L,
@@ -112,7 +113,7 @@ class DeliveryServiceTest {
         when(deliveries.save(any(LetterDelivery.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         DeliveryService service = new DeliveryService(
-            deliveries, people, organizations, recipients, events, users, clock);
+            deliveries, people, organizations, recipients, events, users, clock, mock(WebSocketEventPublisher.class));
         LetterDelivery received = service.receive(42L, "reception", null, request);
         assertEquals(DeliveryStatus.RECEIVED, received.getStatus());
         assertSame(receiver, received.getReceivedBy());

@@ -6,65 +6,106 @@ const WS_URL = 'ws://localhost:8080/ws';
 export function useStomp() {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState(null);
+
   const clientRef = useRef(null);
   const messageHandlersRef = useRef(new Map());
 
   const connect = useCallback(() => {
-    if (clientRef.current?.connected) return;
+    // Prevent duplicate connections
+    if (clientRef.current?.active) {
+      return;
+    }
 
     const client = new Client({
-      brokerURL: WS_URL,
+  
+      webSocketFactory: () => {
+        console.log('Connecting STOMP WebSocket to:', WS_URL);
+        return new WebSocket(WS_URL);
+      },
+
       reconnectDelay: 5000,
+
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
 
-      onConnect: () => {
+      debug: (message) => {
+        console.log('[STOMP]', message);
+      },
+
+      onConnect: (frame) => {
+        console.log('STOMP connected:', frame);
         setIsConnected(true);
         setError(null);
       },
 
       onStompError: (frame) => {
         console.error('STOMP error:', frame);
-        setError(frame.headers.message || 'STOMP error');
+        setError(
+          frame.headers?.message || 'STOMP broker error'
+        );
       },
 
-      onWebSocketError: (err) => {
-        console.error('WebSocket error:', err);
+      onWebSocketError: (event) => {
+        console.error('WebSocket error:', event);
+        setIsConnected(false);
         setError('WebSocket connection error');
       },
 
-      onDisconnect: () => {
+      onWebSocketClose: (event) => {
+        console.log(
+          'WebSocket closed:',
+          event.code,
+          event.reason
+        );
+
         setIsConnected(false);
-      }
+      },
+
+      onDisconnect: () => {
+        console.log('STOMP disconnected');
+        setIsConnected(false);
+      },
     });
 
     clientRef.current = client;
     client.activate();
   }, []);
 
-  const disconnect = useCallback(() => {
+  const disconnect = useCallback(async () => {
     if (clientRef.current) {
-      clientRef.current.deactivate();
+      await clientRef.current.deactivate();
       clientRef.current = null;
     }
+
     setIsConnected(false);
     messageHandlersRef.current.clear();
   }, []);
 
   const subscribe = useCallback((destination, handler) => {
     const client = clientRef.current;
+
     if (!client?.connected) {
+      console.warn(
+        'Cannot subscribe. STOMP is not connected:',
+        destination
+      );
       return () => {};
     }
 
-    const subscription = client.subscribe(destination, (message) => {
-      try {
-        const event = JSON.parse(message.body);
-        handler(event);
-      } catch (err) {
-        console.error('Failed to parse STOMP message:', err);
+    const subscription = client.subscribe(
+      destination,
+      (message) => {
+        try {
+          const event = JSON.parse(message.body);
+          handler(event);
+        } catch (err) {
+          console.error(
+            'Failed to parse STOMP message:',
+            err
+          );
+        }
       }
-    });
+    );
 
     return () => {
       subscription.unsubscribe();
@@ -73,7 +114,10 @@ export function useStomp() {
 
   useEffect(() => {
     connect();
-    return () => disconnect();
+
+    return () => {
+      disconnect();
+    };
   }, [connect, disconnect]);
 
   return {
@@ -84,3 +128,4 @@ export function useStomp() {
     disconnect,
   };
 }
+

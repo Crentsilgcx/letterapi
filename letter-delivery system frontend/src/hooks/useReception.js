@@ -85,25 +85,32 @@ export function useReception() {
   useEffect(() => {
     if (!isConnected) return;
 
-    const unsubscribe = subscribe('/topic/deliveries', (event) => {
-      const { type, deliveryId, status, delivery } = event;
+    const unsubscribe = subscribe('/topic/reception/deliveries', (event) => {
+      const { type, payload } = event;
 
-      if (type === 'DELIVERY_CREATED' && delivery) {
+      if (type === 'DELIVERY_CREATED' && payload) {
         setPending(prev => {
-          if (prev.some(d => d.id === delivery.id)) return prev;
-          return [delivery, ...prev];
+          if (prev.some(d => d.id === payload.id)) return prev;
+          return [payload, ...prev];
         });
       }
 
-      if (type === 'DELIVERY_STATUS_CHANGED') {
-        if (status === 'RECEIVED') {
+      if (type === 'DELIVERY_RECEIVED' && payload) {
+        setPending(prev => prev.filter(d => d.id !== payload.id));
+        setReceived(prev => {
+          if (prev.some(d => d.id === payload.id)) return prev;
+          return [payload, ...prev];
+        });
+      }
+
+      if (type === 'DELIVERY_STATUS_CHANGED' && payload) {
+        const { deliveryId, newStatus, delivery } = payload;
+        if (newStatus === 'RECEIVED' && delivery) {
           setPending(prev => prev.filter(d => d.id !== deliveryId));
-          if (delivery) {
-            setReceived(prev => {
-              if (prev.some(d => d.id === deliveryId)) return prev;
-              return [delivery, ...prev];
-            });
-          }
+          setReceived(prev => {
+            if (prev.some(d => d.id === deliveryId)) return prev;
+            return [delivery, ...prev];
+          });
         }
       }
     });

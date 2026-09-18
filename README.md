@@ -31,7 +31,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Open `http://localhost:8080`.
+Open `http://localhost:8081`.
 
 Admin login uses `ADMIN_USERNAME` / `ADMIN_PASSWORD` from `.env` on first startup. The bootstrap password is only used to create the first admin; changing the environment variable later does not overwrite an existing account. If the database has no users and the bootstrap password is missing or shorter than 12 characters, the application refuses to start.
 
