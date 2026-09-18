@@ -37,6 +37,8 @@ export const deliveryApi = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
+
+  trackDelivery: (trackingNumber) => fetchJson(`${API_BASE}/deliveries/${trackingNumber}`),
 };
 
 export const receptionApi = {
