@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 
-const WS_URL = 'ws://localhost:8080/ws';
+// Same-origin so it goes through the Vite /ws proxy in dev and the reverse proxy in production.
+const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
 
 export function useStomp() {
   const [isConnected, setIsConnected] = useState(false);

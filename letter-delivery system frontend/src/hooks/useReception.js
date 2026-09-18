@@ -85,33 +85,24 @@ export function useReception() {
   useEffect(() => {
     if (!isConnected) return;
 
+    // The public topic only carries ids/status, so reload full details from the authenticated API.
     const unsubscribe = subscribe('/topic/deliveries', (event) => {
-      const { type, deliveryId, status, delivery } = event;
+      const { type, deliveryId, status } = event;
 
-      if (type === 'DELIVERY_CREATED' && delivery) {
-        setPending(prev => {
-          if (prev.some(d => d.id === delivery.id)) return prev;
-          return [delivery, ...prev];
-        });
+      if (type === 'DELIVERY_CREATED') {
+        loadPending();
       }
 
-      if (type === 'DELIVERY_STATUS_CHANGED') {
-        if (status === 'RECEIVED') {
-          setPending(prev => prev.filter(d => d.id !== deliveryId));
-          if (delivery) {
-            setReceived(prev => {
-              if (prev.some(d => d.id === deliveryId)) return prev;
-              return [delivery, ...prev];
-            });
-          }
-        }
+      if (type === 'DELIVERY_STATUS_CHANGED' && status === 'RECEIVED') {
+        setPending(prev => prev.filter(d => d.id !== deliveryId));
+        loadReceived();
       }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [isConnected, subscribe]);
+  }, [isConnected, subscribe, loadPending, loadReceived]);
 
   return {
     pending,
