@@ -2,25 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { deliveryApi } from './api';
 import { useStomp } from './hooks/useStomp';
 
-const JOB_ROLES = [
-  'CEO',
-  'CTO',
-  'CFO',
-  'COO',
-  'Managing Director',
-  'Director',
-  'Manager',
-  'Supervisor',
-  'HR Manager',
-  'Administrator',
-];
-
 const NEW_DELIVERY_PERSON_ID = '__new__';
 
 const initialValues = {
   deliveryPersonId: '',
   deliveryPersonName: '',
-  recipientJobRole: '',
+  recipientId: '',
   organisation: '',
   phone: '',
   email: '',
@@ -38,7 +25,7 @@ const validate = (values, isNewPerson) => {
     if (values.phone && values.phone.length > 60) errors.phone = 'Phone too long (max 60)';
     if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) errors.email = 'Enter a valid email address';
   }
-  if (!values.recipientJobRole) errors.recipientJobRole = 'Recipient job role is required';
+  if (!values.recipientId) errors.recipientId = 'Recipient is required';
   if (!values.organisation) errors.organisation = 'Organisation is required';
   if (!values.from?.trim()) errors.from = 'From address is required';
   if (!values.to?.trim()) errors.to = 'To address is required';
@@ -132,7 +119,6 @@ function DeliveryPersonHomepage() {
     setDeliveryStatus(null);
 
     try {
-      const recipient = recipients.find(r => r.title === values.recipientJobRole) || recipients[0];
       const organization = organizations.find(o => o.name === values.organisation) || organizations[0];
       const deliveryPerson = isNew ? null : deliveryPersons.find(p => p.id === Number(values.deliveryPersonId));
 
@@ -143,8 +129,8 @@ function DeliveryPersonHomepage() {
         email: isNew ? (values.email || null) : null,
         organizationId: organization?.id || null,
         organizationName: values.organisation,
-        recipientId: recipient?.id || 1,
-        subject: `Delivery to ${values.recipientJobRole} - ${values.from} to ${values.to}`,
+        recipientId: Number(values.recipientId),
+        subject: `Delivery to ${recipients.find(r => r.id === Number(values.recipientId))?.name || 'Recipient'} - ${values.from} to ${values.to}`,
         referenceNumber: null,
         description: `From: ${values.from}\nTo: ${values.to}`,
       };
@@ -205,21 +191,43 @@ function DeliveryPersonHomepage() {
             </div>
 
             <div className="field">
-              <label htmlFor="recipientJobRole">Recipient Job Role *</label>
-              <select
-                id="recipientJobRole"
-                name="recipientJobRole"
-                value={values.recipientJobRole}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                required
-              >
-                <option value="" disabled>Select job role</option>
-                {JOB_ROLES.map(role => (
-                  <option key={role} value={role}>{role}</option>
-                ))}
-              </select>
-              {errors.recipientJobRole && <span className="field-error">{errors.recipientJobRole}</span>}
+              <label htmlFor="recipientId">Recipient *</label>
+              {recipients.length === 0 ? (
+                <>
+                  <select
+                    id="recipientId"
+                    name="recipientId"
+                    disabled
+                    required
+                  >
+                    <option value="" disabled selected>
+                      No recipients configured - add them in Administration
+                    </option>
+                  </select>
+                  <span className="field-error">
+                    No recipients available. Please add recipients in the Administration panel first.
+                  </span>
+                </>
+              ) : (
+                <>
+                  <select
+                    id="recipientId"
+                    name="recipientId"
+                    value={values.recipientId || ''}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    required
+                  >
+                    <option value="" disabled>Select recipient</option>
+                    {recipients.map(r => (
+                      <option key={r.id} value={r.id}>
+                        {r.name} {r.title && `— ${r.title}`} {r.department && `(${r.department})`}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.recipientId && <span className="field-error">{errors.recipientId}</span>}
+                </>
+              )}
             </div>
           </div>
 
