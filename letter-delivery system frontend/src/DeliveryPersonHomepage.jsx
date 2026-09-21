@@ -11,8 +11,6 @@ const initialValues = {
   organisation: '',
   phone: '',
   email: '',
-  from: '',
-  to: '',
 };
 
 const isNewDeliveryPerson = (id) => id === NEW_DELIVERY_PERSON_ID;
@@ -27,8 +25,6 @@ const validate = (values, isNewPerson) => {
   }
   if (!values.recipientId) errors.recipientId = 'Recipient is required';
   if (!values.organisation) errors.organisation = 'Organisation is required';
-  if (!values.from?.trim()) errors.from = 'From address is required';
-  if (!values.to?.trim()) errors.to = 'To address is required';
   return errors;
 };
 
@@ -122,6 +118,7 @@ function DeliveryPersonHomepage() {
       const organization = organizations.find(o => o.name === values.organisation) || organizations[0];
       const deliveryPerson = isNew ? null : deliveryPersons.find(p => p.id === Number(values.deliveryPersonId));
 
+      const selectedRecipient = recipients.find(r => r.id === Number(values.recipientId));
       const payload = {
         deliveryPersonId: deliveryPerson ? deliveryPerson.id : null,
         fullName: isNew ? values.deliveryPersonName : (deliveryPerson ? deliveryPerson.name : null),
@@ -130,9 +127,9 @@ function DeliveryPersonHomepage() {
         organizationId: organization?.id || null,
         organizationName: values.organisation,
         recipientId: Number(values.recipientId),
-        subject: `Delivery to ${recipients.find(r => r.id === Number(values.recipientId))?.name || 'Recipient'} - ${values.from} to ${values.to}`,
+        subject: `Delivery to ${selectedRecipient?.name || 'Recipient'}`,
         referenceNumber: null,
-        description: `From: ${values.from}\nTo: ${values.to}`,
+        description: `Organisation: ${values.organisation}\nRecipient: ${selectedRecipient?.name || ''}${selectedRecipient?.title ? ' — ' + selectedRecipient.title : ''}${selectedRecipient?.department ? ' (' + selectedRecipient.department + ')' : ''}`,
       };
 
       const response = await deliveryApi.createDelivery(payload);
@@ -314,40 +311,6 @@ function DeliveryPersonHomepage() {
               </div>
             </div>
           )}
-
-          <div className="form-row">
-            <div className="field">
-              <label htmlFor="from">From *</label>
-              <input
-                type="text"
-                id="from"
-                name="from"
-                value={values.from}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Sender address/location"
-                maxLength={250}
-                required
-              />
-              {errors.from && <span className="field-error">{errors.from}</span>}
-            </div>
-
-            <div className="field">
-              <label htmlFor="to">To *</label>
-              <input
-                type="text"
-                id="to"
-                name="to"
-                value={values.to}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Recipient address/location"
-                maxLength={250}
-                required
-              />
-              {errors.to && <span className="field-error">{errors.to}</span>}
-            </div>
-          </div>
 
           <button type="submit" disabled={isSubmitting} className="btn btn-primary btn-full">
             {isSubmitting ? 'Submitting...' : 'Delivered'}
