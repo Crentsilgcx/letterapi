@@ -54,6 +54,18 @@ export const receptionApi = {
 };
 
 export const adminApi = {
+  // Authentication
+  login: (username, password) => fetchJson(`${ADMIN_BASE}/login`, {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  }),
+
+  logout: () => fetchJson(`${ADMIN_BASE}/logout`, {
+    method: 'POST',
+  }),
+
+  checkAuth: () => fetchJson(`${ADMIN_BASE}/me`),
+
   getDeliveryPeople: () => fetchJson(`${ADMIN_BASE}/delivery-people`),
 
   createDeliveryPerson: (data) => fetchJson(`${ADMIN_BASE}/delivery-people`, {
@@ -68,5 +80,29 @@ export const adminApi = {
 
   deleteDeliveryPerson: (id) => fetchJson(`${ADMIN_BASE}/delivery-people/${id}`, {
     method: 'DELETE',
+  }),
+
+  // Recipient (Employee) management
+  getRecipients: () => fetchJson(`${ADMIN_BASE}/recipients`),
+
+  createRecipient: (data) => fetchJson(`${ADMIN_BASE}/recipients`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  updateRecipient: (id, data) => fetchJson(`${ADMIN_BASE}/recipients/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+
+  toggleRecipient: (recipient) => fetchJson(`${ADMIN_BASE}/recipients/${recipient.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      fullName: recipient.fullName,
+      jobTitle: recipient.jobTitle,
+      department: recipient.department,
+      active: !recipient.active,
+      sortOrder: recipient.sortOrder,
+    }),
   }),
 };
