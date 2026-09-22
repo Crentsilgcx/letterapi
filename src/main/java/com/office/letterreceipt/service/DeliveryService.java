@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,10 +75,18 @@ public class DeliveryService {
 
         String subject = clean(request.subject(), 250);
         if (!StringUtils.hasText(subject)) {
-            throw new ResponseStatusException(BAD_REQUEST, "Letter subject is required.");
+            subject = "Delivery to " + recipient.getFullName();
         }
 
+        // Prevent duplicate delivery submissions (same person, org, recipient, subject within 30 seconds)
         LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime threshold = now.minusSeconds(30);
+        Optional<LetterDelivery> recentDuplicate = deliveries.findFirstByDeliveryPersonAndOrganizationAndRecipientAndSubjectAndDeliveredAtAfter(
+            person, organization, recipient, subject, threshold);
+        if (recentDuplicate.isPresent()) {
+            throw new ResponseStatusException(CONFLICT, "A similar delivery was just submitted. Please wait before submitting again.");
+        }
+
         LetterDelivery delivery = new LetterDelivery();
         delivery.setDeliveryPerson(person);
         delivery.setOrganization(organization);
@@ -167,6 +176,9 @@ public class DeliveryService {
         if (!StringUtils.hasText(name)) {
             throw new ResponseStatusException(BAD_REQUEST, "Delivery person's name is required.");
         }
+        people.findByFullNameIgnoreCase(name).ifPresent(existing -> {
+            throw new ResponseStatusException(CONFLICT, "Employee already exists. This delivery person is already registered in the system.");
+        });
         DeliveryPerson person = new DeliveryPerson();
         person.setFullName(name);
         person.setPhone(clean(request.phone(), 60));

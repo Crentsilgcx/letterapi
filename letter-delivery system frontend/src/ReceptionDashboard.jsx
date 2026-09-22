@@ -15,14 +15,6 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleString();
 };
 
-const ConnectionStatus = ({ isConnected, wsError }) => (
-  <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
-    <span className="status-dot" />
-    <span>{isConnected ? 'Real-time connected' : 'Real-time disconnected'}</span>
-    {wsError && <span className="ws-error"> ({wsError})</span>}
-  </div>
-);
-
 const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId, onReceive, showAction = true }) => {
   if (isLoading) {
     return <div className="loading">Loading...</div>;
@@ -39,9 +31,9 @@ const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId
         <table>
           <thead>
             <tr>
-              <th>Delivered By / From</th>
-              <th>Addressed To</th>
-              <th>Letter</th>
+              <th>External Organization</th>
+              <th>Recipient</th>
+              <th>Letter Subject</th>
               <th>Delivered</th>
               <th>Received</th>
               {showAction && <th>Action</th>}
@@ -51,8 +43,7 @@ const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId
             {deliveries.map((d) => (
               <tr key={d.id}>
                 <td>
-                  <strong>{d.deliveryPersonName || '—'}</strong><br />
-                  <span className="muted">{d.organizationName || '—'}</span>
+                  <strong>{d.organizationName || '—'}</strong>
                 </td>
                 <td>
                   <strong>{d.recipientName}</strong><br />
@@ -92,8 +83,6 @@ const ReceptionDashboard = () => {
     error,
     success,
     receivingId,
-    isConnected,
-    wsError,
     handleReceive,
   } = useReception();
 
@@ -102,10 +91,7 @@ const ReceptionDashboard = () => {
       <div className="form-card">
         <div className="card-header">
           <h2 className="card-title">Reception Dashboard</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <ConnectionStatus isConnected={isConnected} wsError={wsError} />
-            <a href="/" target="_blank" className="btn btn-secondary btn-small">home</a>
-          </div>
+          <a href="/" target="_blank" className="btn btn-secondary btn-small">Home</a>
         </div>
 
         {success && <div className="alert alert-success">{success}</div>}

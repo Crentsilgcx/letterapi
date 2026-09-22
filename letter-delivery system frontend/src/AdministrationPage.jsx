@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { adminApi } from './api';
-import { useStomp } from './hooks/useStomp';
 import { useAuth } from './AuthContext';
 
 const STATUSES = [
@@ -10,26 +9,33 @@ const STATUSES = [
 
 function AdministrationPage() {
   const { user, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState('employees'); // 'employees' | 'organizations'
+  
+  // Employee state
   const [recipients, setRecipients] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingRecipients, setIsLoadingRecipients] = useState(true);
+  
+  // Organization state
+  const [organizations, setOrganizations] = useState([]);
+  const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(true);
+  
+  // Shared state
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('true'); // Default to active only
+  const [statusFilter, setStatusFilter] = useState('true');
   const [showModal, setShowModal] = useState(false);
-  const [editingRecipient, setEditingRecipient] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({
     fullName: '',
     jobTitle: '',
     department: '',
     active: true,
-    sortOrder: 100,
+    name: '',
   });
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const { isConnected, error: wsError } = useStomp();
 
   const loadRecipients = useCallback(async () => {
     try {
@@ -39,15 +45,27 @@ function AdministrationPage() {
     } catch (err) {
       setError(err.message);
     } finally {
-      setIsLoading(false);
+      setIsLoadingRecipients(false);
+    }
+  }, []);
+
+  const loadOrganizations = useCallback(async () => {
+    try {
+      setError(null);
+      const data = await adminApi.getOrganizations();
+      setOrganizations(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoadingOrganizations(false);
     }
   }, []);
 
   useEffect(() => {
     loadRecipients();
-  }, [loadRecipients]);
+    loadOrganizations();
+  }, [loadRecipients, loadOrganizations]);
 
-  // Default to active employees only; inactive can be viewed via filter
   const filteredRecipients = recipients.filter(r => {
     const matchesSearch = r.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (r.jobTitle && r.jobTitle.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -56,32 +74,50 @@ function AdministrationPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const activeCount = recipients.filter(r => r.active).length;
-  const inactiveCount = recipients.filter(r => !r.active).length;
+  const filteredOrganizations = organizations.filter(r => {
+    const matchesSearch = r.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === '' || r.active.toString() === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const activeRecipientCount = recipients.filter(r => r.active).length;
+  const inactiveRecipientCount = recipients.filter(r => !r.active).length;
+  const activeOrgCount = organizations.filter(r => r.active).length;
+  const inactiveOrgCount = organizations.filter(r => !r.active).length;
 
   const clearMessages = () => {
     setError(null);
     setSuccess(null);
   };
 
-  const handleOpenModal = (recipient = null) => {
-    if (recipient) {
-      setEditingRecipient(recipient);
-      setFormData({
-        fullName: recipient.fullName,
-        jobTitle: recipient.jobTitle || '',
-        department: recipient.department || '',
-        active: recipient.active,
-        sortOrder: recipient.sortOrder || 100,
-      });
+  const handleOpenModal = (item = null) => {
+    if (item) {
+      setEditingItem(item);
+      if (activeTab === 'employees') {
+        setFormData({
+          fullName: item.fullName,
+          jobTitle: item.jobTitle || '',
+          department: item.department || '',
+          active: item.active,
+          name: '',
+        });
+      } else {
+        setFormData({
+          fullName: '',
+          jobTitle: '',
+          department: '',
+          active: item.active,
+          name: item.name,
+        });
+      }
     } else {
-      setEditingRecipient(null);
+      setEditingItem(null);
       setFormData({
         fullName: '',
         jobTitle: '',
         department: '',
         active: true,
-        sortOrder: 100,
+        name: '',
       });
     }
     setFormErrors({});
@@ -90,13 +126,13 @@ function AdministrationPage() {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setEditingRecipient(null);
+    setEditingItem(null);
     setFormData({
       fullName: '',
       jobTitle: '',
       department: '',
       active: true,
-      sortOrder: 100,
+      name: '',
     });
     setFormErrors({});
   };
@@ -111,19 +147,24 @@ function AdministrationPage() {
 
   const validateForm = () => {
     const errors = {};
-    if (!formData.fullName?.trim()) {
-      errors.fullName = 'Full name is required';
-    } else if (formData.fullName.length > 160) {
-      errors.fullName = 'Full name too long (max 160 characters)';
-    }
-    if (formData.jobTitle && formData.jobTitle.length > 160) {
-      errors.jobTitle = 'Job title too long (max 160 characters)';
-    }
-    if (formData.department && formData.department.length > 160) {
-      errors.department = 'Department too long (max 160 characters)';
-    }
-    if (formData.sortOrder < 1 || formData.sortOrder > 9999) {
-      errors.sortOrder = 'Sort order must be between 1 and 9999';
+    if (activeTab === 'employees') {
+      if (!formData.fullName?.trim()) {
+        errors.fullName = 'Full name is required';
+      } else if (formData.fullName.length > 160) {
+        errors.fullName = 'Full name too long (max 160 characters)';
+      }
+      if (formData.jobTitle && formData.jobTitle.length > 160) {
+        errors.jobTitle = 'Job title too long (max 160 characters)';
+      }
+      if (formData.department && formData.department.length > 160) {
+        errors.department = 'Department too long (max 160 characters)';
+      }
+    } else {
+      if (!formData.name?.trim()) {
+        errors.name = 'Organization name is required';
+      } else if (formData.name.length > 180) {
+        errors.name = 'Organization name too long (max 180 characters)';
+      }
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -137,41 +178,63 @@ function AdministrationPage() {
     clearMessages();
 
     try {
-      const payload = {
-        fullName: formData.fullName.trim(),
-        jobTitle: formData.jobTitle?.trim() || null,
-        department: formData.department?.trim() || null,
-        active: formData.active,
-        sortOrder: formData.sortOrder,
-      };
+      if (activeTab === 'employees') {
+        const payload = {
+          fullName: formData.fullName.trim(),
+          jobTitle: formData.jobTitle?.trim() || null,
+          department: formData.department?.trim() || null,
+          active: formData.active,
+        };
 
-      if (editingRecipient) {
-        await adminApi.updateRecipient(editingRecipient.id, payload);
-        setSuccess('Employee updated successfully.');
+        if (editingItem) {
+          await adminApi.updateRecipient(editingItem.id, payload);
+          setSuccess('Employee updated successfully.');
+        } else {
+          await adminApi.createRecipient(payload);
+          setSuccess('Employee added successfully.');
+        }
+        await loadRecipients();
       } else {
-        await adminApi.createRecipient(payload);
-        setSuccess('Employee added successfully.');
+        const payload = {
+          name: formData.name.trim(),
+          active: formData.active,
+        };
+
+        if (editingItem) {
+          await adminApi.updateOrganization(editingItem.id, payload);
+          setSuccess('Organization updated successfully.');
+        } else {
+          await adminApi.createOrganization(payload);
+          setSuccess('Organization added successfully.');
+        }
+        await loadOrganizations();
       }
       handleCloseModal();
-      await loadRecipients();
     } catch (err) {
-      // Handle duplicate/unique constraint errors
       if (err.message && err.message.includes('already exists')) {
-        setError('An employee with this information already exists.');
+        setError(activeTab === 'employees' 
+          ? 'An employee with this name already exists. This delivery person is already registered in the system.'
+          : 'Organization already exists.');
       } else {
-        setError(err.message || 'Failed to save employee');
+        setError(err.message || `Failed to save ${activeTab === 'employees' ? 'employee' : 'organization'}`);
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleToggle = async (recipient) => {
+  const handleToggle = async (item) => {
     clearMessages();
     try {
-      await adminApi.toggleRecipient(recipient);
-      setSuccess(recipient.active ? 'Employee deactivated.' : 'Employee activated.');
-      await loadRecipients();
+      if (activeTab === 'employees') {
+        await adminApi.toggleRecipient(item);
+        setSuccess(item.active ? 'Employee deactivated.' : 'Employee activated.');
+        await loadRecipients();
+      } else {
+        await adminApi.toggleOrganization(item.id);
+        setSuccess(item.active ? 'Organization deactivated.' : 'Organization activated.');
+        await loadOrganizations();
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -181,10 +244,12 @@ function AdministrationPage() {
     await logout();
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleString();
-  };
+  const currentIsLoading = activeTab === 'employees' ? isLoadingRecipients : isLoadingOrganizations;
+  const currentFiltered = activeTab === 'employees' ? filteredRecipients : filteredOrganizations;
+  const activeCount = activeTab === 'employees' ? activeRecipientCount : activeOrgCount;
+  const inactiveCount = activeTab === 'employees' ? inactiveRecipientCount : inactiveOrgCount;
+  const recipientCount = recipients.length;
+  const organizationCount = organizations.length;
 
   return (
     <div className="container">
@@ -196,7 +261,7 @@ function AdministrationPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button type="button" className="btn btn-primary" onClick={() => handleOpenModal()}>
-              + Add Employee
+              + Add {activeTab === 'employees' ? 'Employee' : 'Organization'}
             </button>
             <button type="button" className="btn btn-secondary btn-small" onClick={handleLogout}>
               Logout
@@ -207,10 +272,25 @@ function AdministrationPage() {
         {success && <div className="alert alert-success">{success}</div>}
         {error && <div className="alert alert-error">{error}</div>}
 
+        <div className="tab-nav" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+          <button
+            className={`btn ${activeTab === 'employees' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => { setActiveTab('employees'); setSearchQuery(''); setStatusFilter('true'); }}
+          >
+            Employees ({recipientCount})
+          </button>
+          <button
+            className={`btn ${activeTab === 'organizations' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => { setActiveTab('organizations'); setSearchQuery(''); setStatusFilter('true'); }}
+          >
+            Organizations ({organizationCount})
+          </button>
+        </div>
+
         <div className="stats">
           <div className="stat">
-            <div className="stat-value">{activeCount}</div>
-            <div className="stat-label">Active Employees</div>
+            <div className="stat-value" style={{ color: '#166534' }}>{activeCount}</div>
+            <div className="stat-label">Active</div>
           </div>
           <div className="stat">
             <div className="stat-value" style={{ color: '#991b1b' }}>{inactiveCount}</div>
@@ -224,11 +304,11 @@ function AdministrationPage() {
 
         <div className="form-row" style={{ marginBottom: '16px', gap: '16px' }}>
           <div className="field" style={{ flex: 1, minWidth: '280px' }}>
-            <label htmlFor="searchEmployees">Search employees</label>
+            <label htmlFor="searchEmployees">Search {activeTab === 'employees' ? 'employees' : 'organizations'}</label>
             <input
               type="text"
               id="searchEmployees"
-              placeholder="Search by name, role, or department..."
+              placeholder={`Search by ${activeTab === 'employees' ? 'name, role, or department' : 'name'}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ paddingRight: '40px' }}
@@ -253,60 +333,104 @@ function AdministrationPage() {
           <table>
             <thead>
               <tr>
-                <th>Employee</th>
-                <th>Job Role</th>
-                <th>Department</th>
-                <th>Status</th>
-                <th>Sort Order</th>
-                <th style={{ width: '100px' }}>Actions</th>
+                {activeTab === 'employees' ? (
+                  <>
+                    <th>Employee</th>
+                    <th>Job Role</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th style={{ width: '100px' }}>Actions</th>
+                  </>
+                ) : (
+                  <>
+                    <th>Organization</th>
+                    <th>Status</th>
+                    <th style={{ width: '100px' }}>Actions</th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody>
-              {isLoading ? (
+              {currentIsLoading ? (
                 <tr>
-                  <td colSpan={6} className="loading">Loading employees...</td>
+                  <td colSpan={activeTab === 'employees' ? 5 : 3} className="loading">
+                    Loading {activeTab === 'employees' ? 'employees' : 'organizations'}...
+                  </td>
                 </tr>
-              ) : filteredRecipients.length === 0 ? (
+              ) : currentFiltered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="empty">
-                    {recipients.length === 0
-                      ? 'No employees registered yet. Click "Add Employee" to get started.'
-                      : 'No employees match your search/filters.'}
+                  <td colSpan={activeTab === 'employees' ? 5 : 3} className="empty">
+                    {(activeTab === 'employees' ? recipientCount : organizationCount) === 0
+                      ? `No ${activeTab === 'employees' ? 'employees' : 'organizations'} registered yet. Click "Add ${activeTab === 'employees' ? 'Employee' : 'Organization'}" to get started.`
+                      : 'No results match your search/filters.'}
                   </td>
                 </tr>
               ) : (
-                filteredRecipients.map(r => (
+                currentFiltered.map(r => (
                   <tr key={r.id}>
-                    <td>
-                      <strong>{r.fullName}</strong>
-                    </td>
-                    <td>{r.jobTitle || <span className="muted">—</span>}</td>
-                    <td>{r.department || <span className="muted">—</span>}</td>
-                    <td>
-                      <span className={`status-badge ${r.active ? 'status-received' : 'status-failed'}`}>
-                        {r.active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td>{r.sortOrder}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          type="button"
-                          className="btn btn-link btn-small"
-                          onClick={() => handleOpenModal(r)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className={`btn btn-link btn-small ${r.active ? '' : ''}`}
-                          onClick={() => handleToggle(r)}
-                          style={{ color: r.active ? '#dc2626' : '#166534' }}
-                        >
-                          {r.active ? 'Deactivate' : 'Activate'}
-                        </button>
-                      </div>
-                    </td>
+                    {activeTab === 'employees' ? (
+                      <>
+                        <td>
+                          <strong>{r.fullName}</strong>
+                        </td>
+                        <td>{r.jobTitle || <span className="muted">—</span>}</td>
+                        <td>{r.department || <span className="muted">—</span>}</td>
+                        <td>
+                          <span className={`status-badge ${r.active ? 'status-received' : 'status-failed'}`}>
+                            {r.active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              type="button"
+                              className="btn btn-link btn-small"
+                              onClick={() => handleOpenModal(r)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-link btn-small"
+                              onClick={() => handleToggle(r)}
+                              style={{ color: r.active ? '#dc2626' : '#166534' }}
+                            >
+                              {r.active ? 'Deactivate' : 'Activate'}
+                            </button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td>
+                          <strong>{r.name}</strong>
+                        </td>
+                        <td>
+                          <span className={`status-badge ${r.active ? 'status-received' : 'status-failed'}`}>
+                            {r.active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              type="button"
+                              className="btn btn-link btn-small"
+                              onClick={() => handleOpenModal(r)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-link btn-small"
+                              onClick={() => handleToggle(r)}
+                              style={{ color: r.active ? '#dc2626' : '#166534' }}
+                            >
+                              {r.active ? 'Deactivate' : 'Activate'}
+                            </button>
+                          </div>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))
               )}
@@ -319,95 +443,116 @@ function AdministrationPage() {
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>{editingRecipient ? 'Edit Employee' : 'Add Employee'}</h3>
+              <h3>{editingItem ? `Edit ${activeTab === 'employees' ? 'Employee' : 'Organization'}` : `Add ${activeTab === 'employees' ? 'Employee' : 'Organization'}`}</h3>
               <button type="button" className="modal-close" onClick={handleCloseModal} aria-label="Close">×</button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <p className="form-hint" style={{ marginBottom: '20px', textAlign: 'left' }}>
-                  {editingRecipient ? 'Update employee details below.' : 'Register a new employee in the organisation.'}
+                  {editingItem 
+                    ? `Update ${activeTab === 'employees' ? 'employee' : 'organization'} details below.`
+                    : `Register a new ${activeTab === 'employees' ? 'employee' : 'organization'} in the organisation.`}
                 </p>
                 
-                <div className="field">
-                  <label htmlFor="fullName">Full Name <span style={{ color: '#dc2626' }}>*</span></label>
-                  <input
-                    type="text"
-                    id="fullName"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleFormChange}
-                    onBlur={() => {
-                      if (!formData.fullName?.trim()) {
-                        setFormErrors(prev => ({ ...prev, fullName: 'Full name is required' }));
-                      }
-                    }}
-                    maxLength={160}
-                    required
-                    autoFocus
-                  />
-                  {formErrors.fullName && <span className="field-error">{formErrors.fullName}</span>}
-                </div>
-
-                <div className="form-row">
-                  <div className="field">
-                    <label htmlFor="jobTitle">Job Role</label>
-                    <input
-                      type="text"
-                      id="jobTitle"
-                      name="jobTitle"
-                      value={formData.jobTitle}
-                      onChange={handleFormChange}
-                      maxLength={160}
-                      placeholder="e.g. HR Manager"
-                    />
-                    {formErrors.jobTitle && <span className="field-error">{formErrors.jobTitle}</span>}
-                  </div>
-                  <div className="field">
-                    <label htmlFor="department">Department</label>
-                    <input
-                      type="text"
-                      id="department"
-                      name="department"
-                      value={formData.department}
-                      onChange={handleFormChange}
-                      maxLength={160}
-                      placeholder="e.g. Human Resources"
-                    />
-                    {formErrors.department && <span className="field-error">{formErrors.department}</span>}
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="field">
-                    <label htmlFor="sortOrder">Sort Order</label>
-                    <input
-                      type="number"
-                      id="sortOrder"
-                      name="sortOrder"
-                      value={formData.sortOrder}
-                      onChange={handleFormChange}
-                      onBlur={() => {
-                        if (formData.sortOrder < 1 || formData.sortOrder > 9999) {
-                          setFormErrors(prev => ({ ...prev, sortOrder: 'Sort order must be between 1 and 9999' }));
-                        }
-                      }}
-                      min={1}
-                      max={9999}
-                    />
-                    {formErrors.sortOrder && <span className="field-error">{formErrors.sortOrder}</span>}
-                  </div>
-                  <div className="field" style={{ display: 'flex', alignItems: 'flex-end' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', width: '100%' }}>
+                {activeTab === 'employees' ? (
+                  <>
+                    <div className="field">
+                      <label htmlFor="fullName">Full Name <span style={{ color: '#dc2626' }}>*</span></label>
                       <input
-                        type="checkbox"
-                        name="active"
-                        checked={formData.active}
+                        type="text"
+                        id="fullName"
+                        name="fullName"
+                        value={formData.fullName}
                         onChange={handleFormChange}
+                        onBlur={() => {
+                          if (!formData.fullName?.trim()) {
+                            setFormErrors(prev => ({ ...prev, fullName: 'Full name is required' }));
+                          }
+                        }}
+                        maxLength={160}
+                        required
+                        autoFocus
                       />
-                      <span>Active</span>
-                    </label>
-                  </div>
-                </div>
+                      {formErrors.fullName && <span className="field-error">{formErrors.fullName}</span>}
+                    </div>
+
+                    <div className="form-row">
+                      <div className="field">
+                        <label htmlFor="jobTitle">Job Role</label>
+                        <input
+                          type="text"
+                          id="jobTitle"
+                          name="jobTitle"
+                          value={formData.jobTitle}
+                          onChange={handleFormChange}
+                          maxLength={160}
+                          placeholder="e.g. HR Manager"
+                        />
+                        {formErrors.jobTitle && <span className="field-error">{formErrors.jobTitle}</span>}
+                      </div>
+                      <div className="field">
+                        <label htmlFor="department">Department</label>
+                        <input
+                          type="text"
+                          id="department"
+                          name="department"
+                          value={formData.department}
+                          onChange={handleFormChange}
+                          maxLength={160}
+                          placeholder="e.g. Human Resources"
+                        />
+                        {formErrors.department && <span className="field-error">{formErrors.department}</span>}
+                      </div>
+                    </div>
+
+                    <div className="field" style={{ display: 'flex', alignItems: 'flex-end' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', width: '100%' }}>
+                        <input
+                          type="checkbox"
+                          name="active"
+                          checked={formData.active}
+                          onChange={handleFormChange}
+                        />
+                        <span>Active</span>
+                      </label>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="field">
+                      <label htmlFor="name">Organization Name <span style={{ color: '#dc2626' }}>*</span></label>
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleFormChange}
+                        onBlur={() => {
+                          if (!formData.name?.trim()) {
+                            setFormErrors(prev => ({ ...prev, name: 'Organization name is required' }));
+                          }
+                        }}
+                        maxLength={180}
+                        required
+                        autoFocus
+                        placeholder="e.g. ABC Logistics"
+                      />
+                      {formErrors.name && <span className="field-error">{formErrors.name}</span>}
+                    </div>
+
+                    <div className="field" style={{ display: 'flex', alignItems: 'flex-end' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', width: '100%' }}>
+                        <input
+                          type="checkbox"
+                          name="active"
+                          checked={formData.active}
+                          onChange={handleFormChange}
+                        />
+                        <span>Active</span>
+                      </label>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="modal-footer">
@@ -415,7 +560,7 @@ function AdministrationPage() {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : (editingRecipient ? 'Update Employee' : 'Add Employee')}
+                  {isSubmitting ? 'Saving...' : (editingItem ? `Update ${activeTab === 'employees' ? 'Employee' : 'Organization'}` : `Add ${activeTab === 'employees' ? 'Employee' : 'Organization'}`)}
                 </button>
               </div>
             </form>

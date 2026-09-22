@@ -7,8 +7,7 @@ public record RecipientResponse(
         String fullName,
         String jobTitle,
         String department,
-        boolean active,
-        int sortOrder) {
+        boolean active) {
 
     public static RecipientResponse from(Recipient recipient) {
         return new RecipientResponse(
@@ -16,7 +15,6 @@ public record RecipientResponse(
             recipient.getFullName(),
             recipient.getJobTitle(),
             recipient.getDepartment(),
-            recipient.isActive(),
-            recipient.getSortOrder());
+            recipient.isActive());
     }
 }

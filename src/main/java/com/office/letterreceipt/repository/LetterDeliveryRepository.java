@@ -2,6 +2,9 @@ package com.office.letterreceipt.repository;
 
 import com.office.letterreceipt.model.DeliveryStatus;
 import com.office.letterreceipt.model.LetterDelivery;
+import com.office.letterreceipt.model.Organization;
+import com.office.letterreceipt.model.Recipient;
+import com.office.letterreceipt.model.DeliveryPerson;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +30,22 @@ public interface LetterDeliveryRepository extends JpaRepository<LetterDelivery, 
     long countByDeliveredAtBetween(LocalDateTime start, LocalDateTime end);
 
     long countByStatusAndReceivedAtBetween(DeliveryStatus status, LocalDateTime start, LocalDateTime end);
+
+    @Query("""
+        select d from LetterDelivery d
+        where d.deliveryPerson = :person
+          and d.organization = :organization
+          and d.recipient = :recipient
+          and d.subject = :subject
+          and d.deliveredAt > :threshold
+        order by d.deliveredAt desc
+        """)
+    Optional<LetterDelivery> findFirstByDeliveryPersonAndOrganizationAndRecipientAndSubjectAndDeliveredAtAfter(
+        @Param("person") DeliveryPerson person,
+        @Param("organization") Organization organization,
+        @Param("recipient") Recipient recipient,
+        @Param("subject") String subject,
+        @Param("threshold") LocalDateTime threshold);
 
     @Query("""
         select d from LetterDelivery d

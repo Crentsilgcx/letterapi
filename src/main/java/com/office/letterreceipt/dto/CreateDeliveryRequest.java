@@ -1,7 +1,6 @@
 package com.office.letterreceipt.dto;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -13,7 +12,7 @@ public record CreateDeliveryRequest(
         Long organizationId,
         @Size(max = 180) String organizationName,
         @NotNull Long recipientId,
-        @NotBlank @Size(max = 250) String subject,
+        @Size(max = 250) String subject,
         @Size(max = 120) String referenceNumber,
         @Size(max = 5000) String description) {
 
@@ -22,6 +21,7 @@ public record CreateDeliveryRequest(
         phone = blankToNull(phone);
         email = blankToNull(email);
         organizationName = blankToNull(organizationName);
+        subject = blankToNull(subject);
         referenceNumber = blankToNull(referenceNumber);
         description = blankToNull(description);
     }

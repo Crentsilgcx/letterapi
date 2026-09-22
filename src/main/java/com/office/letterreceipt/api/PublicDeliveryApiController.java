@@ -2,7 +2,10 @@ package com.office.letterreceipt.api;
 
 import com.office.letterreceipt.dto.CreateDeliveryRequest;
 import com.office.letterreceipt.dto.DeliveryResponse;
+import com.office.letterreceipt.dto.OrganizationRequest;
+import com.office.letterreceipt.dto.OrganizationResponse;
 import com.office.letterreceipt.model.DeliveryPerson;
+import com.office.letterreceipt.model.Organization;
 import com.office.letterreceipt.repository.DeliveryPersonRepository;
 import com.office.letterreceipt.repository.OrganizationRepository;
 import com.office.letterreceipt.repository.RecipientRepository;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/public")
@@ -44,7 +48,7 @@ public class PublicDeliveryApiController {
 
     @GetMapping("/recipients")
     public List<Map<String, Object>> recipients() {
-        return recipients.findByActiveTrueOrderBySortOrderAscFullNameAsc().stream()
+        return recipients.findByActiveTrueOrderByFullNameAsc().stream()
             .map(recipient -> Map.<String, Object>of(
                 "id", recipient.getId(),
                 "name", recipient.getFullName(),
@@ -58,6 +62,20 @@ public class PublicDeliveryApiController {
         return organizations.findByActiveTrueOrderByNameAsc().stream()
             .map(organization -> Map.<String, Object>of("id", organization.getId(), "name", organization.getName()))
             .toList();
+    }
+
+    @PostMapping("/organizations")
+    @ResponseStatus(HttpStatus.CREATED)
+    public OrganizationResponse createOrganization(@Valid @RequestBody OrganizationRequest request) {
+        String name = request.name().trim();
+        organizations.findByNameIgnoreCase(name)
+            .ifPresent(existing -> {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Organization already exists.");
+            });
+        Organization organization = new Organization();
+        organization.setName(name);
+        organization.setActive(true);
+        return OrganizationResponse.from(organizations.save(organization));
     }
 
     @GetMapping("/delivery-persons")

@@ -98,7 +98,7 @@ public class AdminApiController {
 
     @GetMapping("/recipients")
     public List<RecipientResponse> recipients() {
-        return recipients.findAllByOrderBySortOrderAscFullNameAsc().stream()
+        return recipients.findAllByOrderByFullNameAsc().stream()
             .map(RecipientResponse::from)
             .toList();
     }
@@ -130,5 +130,11 @@ public class AdminApiController {
             @PathVariable Long id,
             @Valid @RequestBody OrganizationRequest request) {
         return OrganizationResponse.from(service.saveOrganization(id, request));
+    }
+
+    @PutMapping("/organizations/{id}/toggle")
+    public OrganizationResponse toggleOrganization(@PathVariable Long id) {
+        service.toggleOrganization(id);
+        return OrganizationResponse.from(organizations.findById(id).orElseThrow());
     }
 }

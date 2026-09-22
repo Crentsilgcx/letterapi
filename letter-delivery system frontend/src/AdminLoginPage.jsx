@@ -93,7 +93,7 @@ function AdminLoginPage() {
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                 disabled={isSubmitting}
               >
-                {showPassword ? '🙈' : '👁'}
+                {showPassword ? '👀' : '👁'}
               </button>
             </div>
           </div>
@@ -109,7 +109,7 @@ function AdminLoginPage() {
 
         <div className="login-footer">
           <Link to="/" className="btn btn-link">
-            ← Back to Delivery Kiosk
+            ← Back
           </Link>
         </div>
       </div>

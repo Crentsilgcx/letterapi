@@ -3,19 +3,23 @@ import { deliveryApi } from './api';
 import { useStomp } from './hooks/useStomp';
 
 const NEW_DELIVERY_PERSON_ID = '__new__';
+const NEW_ORGANIZATION_ID = '__new_org__';
 
 const initialValues = {
   deliveryPersonId: '',
   deliveryPersonName: '',
   recipientId: '',
-  organisation: '',
+  organizationId: '',
+  organizationName: '',
   phone: '',
   email: '',
+  subject: '',
 };
 
 const isNewDeliveryPerson = (id) => id === NEW_DELIVERY_PERSON_ID;
+const isNewOrganization = (id) => id === NEW_ORGANIZATION_ID;
 
-const validate = (values, isNewPerson) => {
+const validate = (values, isNewPerson, isNewOrg) => {
   const errors = {};
   if (!values.deliveryPersonId) errors.deliveryPersonId = 'Delivery person is required';
   if (isNewPerson) {
@@ -24,17 +28,12 @@ const validate = (values, isNewPerson) => {
     if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) errors.email = 'Enter a valid email address';
   }
   if (!values.recipientId) errors.recipientId = 'Recipient is required';
-  if (!values.organisation) errors.organisation = 'Organisation is required';
+  if (!values.organizationId) errors.organizationId = 'Organization is required';
+  if (isNewOrg && !values.organizationName?.trim()) errors.organizationName = 'Organization name is required';
+  if (isNewOrg && values.organizationName && values.organizationName.length > 180) errors.organizationName = 'Organization name too long (max 180 characters)';
+  if (values.subject && values.subject.length > 250) errors.subject = 'Subject too long (max 250 characters)';
   return errors;
 };
-
-const ConnectionStatus = ({ isConnected, wsError }) => (
-  <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
-    <span className="status-dot" />
-    <span>{isConnected ? 'Real-time connected' : 'Real-time disconnected'}</span>
-    {wsError && <span className="ws-error"> ({wsError})</span>}
-  </div>
-);
 
 function DeliveryPersonHomepage() {
   const [values, setValues] = useState(initialValues);
@@ -46,8 +45,12 @@ function DeliveryPersonHomepage() {
   const [deliveryPersons, setDeliveryPersons] = useState([]);
   const [lastSubmittedDeliveryId, setLastSubmittedDeliveryId] = useState(null);
   const [deliveryStatus, setDeliveryStatus] = useState(null);
+  const [showOrgModal, setShowOrgModal] = useState(false);
+  const [orgFormData, setOrgFormData] = useState({ name: '', active: true });
+  const [orgFormErrors, setOrgFormErrors] = useState({});
+  const [isOrgSubmitting, setIsOrgSubmitting] = useState(false);
 
-  const { isConnected, error: wsError, subscribe } = useStomp();
+  const { subscribe } = useStomp();
 
   useEffect(() => {
     deliveryApi.getRecipients()
@@ -62,7 +65,7 @@ function DeliveryPersonHomepage() {
   }, []);
 
   useEffect(() => {
-    if (!lastSubmittedDeliveryId || !isConnected) return;
+    if (!lastSubmittedDeliveryId) return;
 
     const unsubscribe = subscribe('/topic/deliveries', (event) => {
       const { type, deliveryId, status } = event;
@@ -79,10 +82,12 @@ function DeliveryPersonHomepage() {
     });
 
     return unsubscribe;
-  }, [lastSubmittedDeliveryId, isConnected, subscribe]);
+  }, [lastSubmittedDeliveryId, subscribe]);
 
   const selectedPerson = deliveryPersons.find(p => p.id === Number(values.deliveryPersonId));
+  const selectedOrg = organizations.find(o => o.id === Number(values.organizationId));
   const isNewPerson = isNewDeliveryPerson(values.deliveryPersonId);
+  const isNewOrg = isNewOrganization(values.organizationId);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -90,21 +95,101 @@ function DeliveryPersonHomepage() {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
     
     // When selecting an existing delivery person, clear personal info fields
+    // and auto-select their organization
     if (name === 'deliveryPersonId' && !isNewDeliveryPerson(value)) {
       setValues(prev => ({ ...prev, deliveryPersonName: '', phone: '', email: '' }));
+      
+      const person = deliveryPersons.find(p => p.id === Number(value));
+      if (person?.organizationName) {
+        const org = organizations.find(o => o.name === person.organizationName);
+        if (org) {
+          setValues(prev => ({ ...prev, organizationId: String(org.id), organizationName: '' }));
+        }
+      }
+    }
+    // When selecting an existing organization, clear organization name field
+    if (name === 'organizationId' && !isNewOrganization(value)) {
+      setValues(prev => ({ ...prev, organizationName: '' }));
     }
   };
 
   const handleBlur = (e) => {
     const { name } = e.target;
-    const newErrors = validate({ ...values, [name]: values[name] }, isNewDeliveryPerson(values.deliveryPersonId));
+    const newErrors = validate({ ...values, [name]: values[name] }, isNewDeliveryPerson(values.deliveryPersonId), isNewOrganization(values.organizationId));
     if (newErrors[name]) setErrors(prev => ({ ...prev, [name]: newErrors[name] }));
+  };
+
+  const handleOrgChange = (e) => {
+    const { name, value, type } = e.target;
+    setOrgFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? e.target.checked : value }));
+    if (orgFormErrors[name]) {
+      setOrgFormErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const validateOrgForm = () => {
+    const errors = {};
+    if (!orgFormData.name?.trim()) {
+      errors.name = 'Organization name is required';
+    } else if (orgFormData.name.length > 180) {
+      errors.name = 'Organization name too long (max 180 characters)';
+    }
+    setOrgFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleOrgSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateOrgForm()) return;
+
+    setIsOrgSubmitting(true);
+    setOrgFormErrors({});
+
+    try {
+      const payload = {
+        name: orgFormData.name.trim(),
+        active: orgFormData.active,
+      };
+      await deliveryApi.createOrganization(payload);
+      setShowOrgModal(false);
+      setOrgFormData({ name: '', active: true });
+      setOrgFormErrors({});
+      // Refresh organizations list
+      const data = await deliveryApi.getOrganizations();
+      setOrganizations(data);
+      // Select the newly created organization
+      const newOrg = data.find(o => o.name.toLowerCase() === payload.name.toLowerCase());
+      if (newOrg) {
+        setValues(prev => ({ ...prev, organizationId: String(newOrg.id) }));
+      }
+    } catch (err) {
+      if (err.message && err.message.includes('already exists')) {
+        setOrgFormErrors({ name: 'Organization already exists.' });
+      } else {
+        setOrgFormErrors({ name: err.message || 'Failed to create organization' });
+      }
+    } finally {
+      setIsOrgSubmitting(false);
+    }
+  };
+
+  const handleOrgModalOpen = () => {
+    setOrgFormData({ name: '', active: true });
+    setOrgFormErrors({});
+    setShowOrgModal(true);
+  };
+
+  const handleOrgModalClose = () => {
+    setShowOrgModal(false);
+    setOrgFormData({ name: '', active: true });
+    setOrgFormErrors({});
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const isNew = isNewDeliveryPerson(values.deliveryPersonId);
-    const newErrors = validate(values, isNew);
+    const isNewOrg = isNewOrganization(values.organizationId);
+    const newErrors = validate(values, isNew, isNewOrg);
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -115,21 +200,38 @@ function DeliveryPersonHomepage() {
     setDeliveryStatus(null);
 
     try {
-      const organization = organizations.find(o => o.name === values.organisation) || organizations[0];
+      let organization;
+      if (isNewOrg) {
+        // Use the new organization name entered by the user
+        const orgName = values.organizationName.trim();
+        const existingOrg = organizations.find(o => o.name.toLowerCase() === orgName.toLowerCase());
+        if (existingOrg) {
+          organization = existingOrg;
+        } else {
+          // Create the organization via API
+          const created = await deliveryApi.createOrganization({ name: orgName, active: true });
+          organization = created;
+          // Refresh organizations list
+          const data = await deliveryApi.getOrganizations();
+          setOrganizations(data);
+        }
+      } else {
+        organization = organizations.find(o => o.id === Number(values.organizationId));
+      }
       const deliveryPerson = isNew ? null : deliveryPersons.find(p => p.id === Number(values.deliveryPersonId));
-
       const selectedRecipient = recipients.find(r => r.id === Number(values.recipientId));
+
       const payload = {
         deliveryPersonId: deliveryPerson ? deliveryPerson.id : null,
         fullName: isNew ? values.deliveryPersonName : (deliveryPerson ? deliveryPerson.name : null),
         phone: isNew ? (values.phone || null) : null,
         email: isNew ? (values.email || null) : null,
         organizationId: organization?.id || null,
-        organizationName: values.organisation,
+        organizationName: organization?.name || values.organisation || '',
         recipientId: Number(values.recipientId),
-        subject: `Delivery to ${selectedRecipient?.name || 'Recipient'}`,
+        subject: values.subject.trim(),
         referenceNumber: null,
-        description: `Organisation: ${values.organisation}\nRecipient: ${selectedRecipient?.name || ''}${selectedRecipient?.title ? ' — ' + selectedRecipient.title : ''}${selectedRecipient?.department ? ' (' + selectedRecipient.department + ')' : ''}`,
+        description: `Organization: ${organization?.name || ''}\nRecipient: ${selectedRecipient?.name || ''}${selectedRecipient?.title ? ' — ' + selectedRecipient.title : ''}${selectedRecipient?.department ? ' (' + selectedRecipient.department + ')' : ''}`,
       };
 
       const response = await deliveryApi.createDelivery(payload);
@@ -150,7 +252,6 @@ function DeliveryPersonHomepage() {
         <div className="card-header">
           <h2 className="card-title">Delivery Person</h2>
           <p className="card-subtitle">Submit a new delivery</p>
-          <ConnectionStatus isConnected={isConnected} wsError={wsError} />
         </div>
 
         {submitMessage && (
@@ -265,16 +366,62 @@ function DeliveryPersonHomepage() {
 
           <div className="form-row">
             <div className="field">
-              <label htmlFor="organisation">Organisation *</label>
-              <input type="text" name="organisation" id="organisation" 
-                value={values.organisation}
+              <label htmlFor="organizationId">Organization *</label>
+              <select
+                id="organizationId"
+                name="organizationId"
+                value={values.organizationId}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                placeholder="Enter organisation name"
-                maxLength={160}
                 required
+              >
+                <option value="" disabled>Select organization</option>
+                <option value={NEW_ORGANIZATION_ID}>+ Add New Organization</option>
+                {organizations.map(o => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+              {errors.organizationId && <span className="field-error">{errors.organizationId}</span>}
+            </div>
+          </div>
+
+          {isNewOrg && (
+            <div className="form-row new-person-fields">
+              <div className="field">
+                <label htmlFor="organizationName">Organization Name *</label>
+                <input
+                  type="text"
+                  id="organizationName"
+                  name="organizationName"
+                  value={values.organizationName}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="Enter organization name"
+                  maxLength={180}
+                  required
+                  autoFocus
+                />
+                {errors.organizationName && <span className="field-error">{errors.organizationName}</span>}
+              </div>
+            </div>
+          )}
+
+          <div className="form-row">
+            <div className="field">
+              <label htmlFor="subject">Letter Subject</label>
+              <input
+                type="text"
+                id="subject"
+                name="subject"
+                value={values.subject}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="Enter letter subject (optional)"
+                maxLength={250}
               />
-              {errors.organisation && <span className="field-error">{errors.organisation}</span>}
+              {errors.subject && <span className="field-error">{errors.subject}</span>}
             </div>
           </div>
 
@@ -317,8 +464,65 @@ function DeliveryPersonHomepage() {
           </button>
         </form>
 
-        <div className="home-actions" style={{ marginTop: '24px' }}>
-        </div>
+        {showOrgModal && (
+          <div className="modal-overlay" onClick={handleOrgModalClose}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Add Organization</h3>
+                <button type="button" className="modal-close" onClick={handleOrgModalClose} aria-label="Close">×</button>
+              </div>
+              <form onSubmit={handleOrgSubmit}>
+                <div className="modal-body">
+                  <p className="form-hint" style={{ marginBottom: '20px', textAlign: 'left' }}>
+                    Register a new organization for the delivery.
+                  </p>
+                  
+                  <div className="field">
+                    <label htmlFor="orgName">Organization Name <span style={{ color: '#dc2626' }}>*</span></label>
+                    <input
+                      type="text"
+                      id="orgName"
+                      name="name"
+                      value={orgFormData.name}
+                      onChange={handleOrgChange}
+                      onBlur={() => {
+                        if (!orgFormData.name?.trim()) {
+                          setOrgFormErrors(prev => ({ ...prev, name: 'Organization name is required' }));
+                        }
+                      }}
+                      maxLength={180}
+                      required
+                      autoFocus
+                      placeholder="e.g. ABC Logistics"
+                    />
+                    {orgFormErrors.name && <span className="field-error">{orgFormErrors.name}</span>}
+                  </div>
+
+                  <div className="field" style={{ display: 'flex', alignItems: 'flex-end' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', width: '100%' }}>
+                      <input
+                        type="checkbox"
+                        name="active"
+                        checked={orgFormData.active}
+                        onChange={handleOrgChange}
+                      />
+                      <span>Active</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={handleOrgModalClose} disabled={isOrgSubmitting}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={isOrgSubmitting}>
+                    {isOrgSubmitting ? 'Adding...' : 'Add Organization'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

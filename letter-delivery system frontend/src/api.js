@@ -12,7 +12,7 @@ async function fetchJson(url, options = {}) {
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...options.headers },
     });
     if (res.status === 401) {
-      throw new Error('Staff login rejected - check ADMIN_PASSWORD in the project .env matches the server.');
+      throw new Error('Invalid username or password.');
     }
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: res.statusText }));
@@ -33,6 +33,11 @@ export const deliveryApi = {
   getRecipients: () => fetchJson(`${API_BASE}/recipients`),
 
   getOrganizations: () => fetchJson(`${API_BASE}/organizations`),
+
+  createOrganization: (data) => fetchJson(`${API_BASE}/organizations`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
 
   getDeliveryPersons: (q = '') => fetchJson(`${API_BASE}/delivery-persons?q=${encodeURIComponent(q)}`),
 
@@ -104,5 +109,22 @@ export const adminApi = {
       active: !recipient.active,
       sortOrder: recipient.sortOrder,
     }),
+  }),
+
+  // Organization management
+  getOrganizations: () => fetchJson(`${ADMIN_BASE}/organizations`),
+
+  createOrganization: (data) => fetchJson(`${ADMIN_BASE}/organizations`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  updateOrganization: (id, data) => fetchJson(`${ADMIN_BASE}/organizations/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+
+  toggleOrganization: (id) => fetchJson(`${ADMIN_BASE}/organizations/${id}/toggle`, {
+    method: 'PUT',
   }),
 };
