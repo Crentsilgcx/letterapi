@@ -1,4 +1,4 @@
-import { useReception } from './hooks/useReceptionContext';
+import { useOperations } from './hooks/useOperationsContext';
 
 const statusBadge = (status) => {
   const classes = {
@@ -15,7 +15,17 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleString();
 };
 
-const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId, onReceive, showAction = true, count, totalElements, page, totalPages, onPageChange }) => {
+const formatDateShort = (dateStr) => {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString(undefined, { 
+    month: 'short', 
+    day: 'numeric', 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+};
+
+const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId, onReceive, showAction = true, count, totalElements, page, totalPages, onPageChange, showDeliveryPerson = false }) => {
   if (isLoading) {
     return <div className="loading">Loading...</div>;
   }
@@ -31,11 +41,11 @@ const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId
         <table>
           <thead>
             <tr>
-              <th>External Organization</th>
-              <th>Recipient</th>
-              <th>Letter Subject</th>
-              <th>Delivered</th>
-              <th>Received</th>
+              <th>Recipient Position</th>
+              <th>Organization</th>
+              <th>Subject</th>
+              <th>Date</th>
+              {showDeliveryPerson && <th>Delivery Person</th>}
               {showAction && <th>Action</th>}
             </tr>
           </thead>
@@ -43,18 +53,28 @@ const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId
             {deliveries.map((d) => (
               <tr key={d.id}>
                 <td>
+                  <strong>{d.recipientName}</strong>
+                </td>
+                <td>
                   <strong>{d.organizationName || '—'}</strong>
+                  {d.organizationAddress && <br />}
+                  {d.organizationAddress && (
+                    <span className="muted">{d.organizationAddress}</span>
+                  )}
                 </td>
                 <td>
-                  <strong>{d.recipientName}</strong><br />
-                  <span className="muted">{d.recipientTitle || ''}</span>
-                </td>
-                <td>
-                  <strong>{d.subject}</strong><br />
+                  <strong>{d.subject || '—'}</strong>
+                  {d.referenceNumber && <br />}
                   {d.referenceNumber && <span className="muted">Ref: {d.referenceNumber}</span>}
                 </td>
-                <td className="nowrap">{formatDate(d.deliveredAt)}</td>
-                <td className="nowrap">{d.receivedAt ? formatDate(d.receivedAt) : <span className="muted">—</span>}</td>
+                <td className="nowrap">
+                  {d.deliveredAt ? formatDateShort(d.deliveredAt) : '—'}
+                </td>
+                {showDeliveryPerson && (
+                  <td>
+                    <span className="muted">{d.deliveryPersonName || '—'}</span>
+                  </td>
+                )}
                 {showAction && (
                   <td>
                     <button
@@ -81,20 +101,25 @@ const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId
             </div>
             <div className="delivery-card-body">
               <div className="delivery-card-row">
-                <span className="delivery-card-label">Recipient:</span>
-                <span className="delivery-card-value"><strong>{d.recipientName}</strong>{d.recipientTitle && <span className="muted"> — {d.recipientTitle}</span>}</span>
+                <span className="delivery-card-label">Recipient Position:</span>
+                <span className="delivery-card-value"><strong>{d.recipientName}</strong></span>
               </div>
+              {showDeliveryPerson && (
+                <div className="delivery-card-row">
+                  <span className="delivery-card-label">Delivery Person:</span>
+                  <span className="delivery-card-value"><span className="muted">{d.deliveryPersonName || '—'}</span></span>
+                </div>
+              )}
               <div className="delivery-card-row delivery-card-subject">
                 <span className="delivery-card-label">Subject:</span>
-                <span className="delivery-card-value"><strong>{d.subject}</strong>{d.referenceNumber && <span className="muted"> (Ref: {d.referenceNumber})</span>}</span>
+                <span className="delivery-card-value">
+                  <strong>{d.subject || '—'}</strong>
+                  {d.referenceNumber && <span className="muted"> (Ref: {d.referenceNumber})</span>}
+                </span>
               </div>
               <div className="delivery-card-row">
                 <span className="delivery-card-label">Delivered:</span>
-                <span className="delivery-card-value">{formatDate(d.deliveredAt)}</span>
-              </div>
-              <div className="delivery-card-row">
-                <span className="delivery-card-label">Received:</span>
-                <span className="delivery-card-value">{d.receivedAt ? formatDate(d.receivedAt) : <span className="muted">—</span>}</span>
+                <span className="delivery-card-value">{d.deliveredAt ? formatDateShort(d.deliveredAt) : '—'}</span>
               </div>
               {showAction && (
                 <div className="delivery-card-actions">
@@ -146,7 +171,75 @@ const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId
   );
 };
 
-const ReceptionDashboard = () => {
+const SearchFilterBar = ({ searchQuery, onSearchChange, dateFilter, onDateFilterChange, customDateFrom, customDateTo, onCustomDateFromChange, onCustomDateToChange, showCustomDate, totalElements }) => {
+  const DATE_FILTER_OPTIONS = [
+    { value: '', label: 'All Time' },
+    { value: 'today', label: 'Today' },
+    { value: '7days', label: 'Last 7 Days' },
+    { value: '30days', label: 'Last 30 Days' },
+    { value: 'thisMonth', label: 'This Month' },
+    { value: 'custom', label: 'Custom Range' },
+  ];
+
+  return (
+    <div className="search-filter-bar">
+      <div className="search-field">
+        <label htmlFor="searchReceived" className="visually-hidden">Search received letters</label>
+        <input
+          type="text"
+          id="searchReceived"
+          placeholder="Search letters..."
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="search-input"
+        />
+      </div>
+      
+      <div className="filter-fields">
+        <div className="filter-field">
+          <label htmlFor="dateFilter" className="visually-hidden">Date filter</label>
+          <select
+            id="dateFilter"
+            value={dateFilter}
+            onChange={(e) => onDateFilterChange(e.target.value)}
+            className="filter-select"
+          >
+            {DATE_FILTER_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+        
+        {showCustomDate && (
+          <div className="custom-date-fields">
+            <div className="filter-field">
+              <label htmlFor="customDateFrom">From</label>
+              <input
+                type="date"
+                id="customDateFrom"
+                value={customDateFrom}
+                onChange={(e) => onCustomDateFromChange(e.target.value)}
+                className="filter-input"
+              />
+            </div>
+            <div className="filter-field">
+              <label htmlFor="customDateTo">To</label>
+              <input
+                type="date"
+                id="customDateTo"
+                value={customDateTo}
+                onChange={(e) => onCustomDateToChange(e.target.value)}
+                className="filter-input"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const OperationsDashboard = () => {
   const {
     pending,
     received,
@@ -156,6 +249,7 @@ const ReceptionDashboard = () => {
     receivedTotalPages,
     pendingTotalElements,
     receivedTotalElements,
+    receivedTodayCount,
     isLoading,
     error,
     success,
@@ -166,15 +260,23 @@ const ReceptionDashboard = () => {
     clearMessages,
     goToPendingPage,
     goToReceivedPage,
-    isConnected,
-  } = useReception();
+    searchQuery,
+    setSearchQuery,
+    dateFilter,
+    setDateFilter,
+    customDateFrom,
+    customDateTo,
+    setCustomDateFrom,
+    setCustomDateTo,
+    showCustomDate,
+  } = useOperations();
 
   return (
     <div className="container">
       <div className="form-card">
         <div className="card-header">
           <div>
-            <h2 className="card-title">Reception Dashboard</h2>
+            <h2 className="card-title">Operations</h2>
             <p className="card-subtitle">Manage incoming deliveries and receipt confirmations</p>
           </div>
         </div>
@@ -185,11 +287,15 @@ const ReceptionDashboard = () => {
         <div className="stats">
           <div className="stat">
             <div className="stat-value">{pendingTotalElements}</div>
-            <div className="stat-label">Awaiting Receipt</div>
+            <div className="stat-label">Pending Receipt</div>
+          </div>
+          <div className="stat">
+            <div className="stat-value">{receivedTodayCount}</div>
+            <div className="stat-label">Received Today</div>
           </div>
           <div className="stat">
             <div className="stat-value">{receivedTotalElements}</div>
-            <div className="stat-label">Received</div>
+            <div className="stat-label">Received Total</div>
           </div>
         </div>
 
@@ -214,13 +320,14 @@ const ReceptionDashboard = () => {
 
         {activeTab === 'pending' && (
           <DeliveryTable
-            title="Pending Receipt"
+            title="Pending Letters"
             deliveries={pending}
             emptyMessage="No letters are waiting for receipt confirmation."
             isLoading={isLoading}
             receivingId={receivingId}
             onReceive={handleReceive}
             showAction={true}
+            showDeliveryPerson={false}
             count={pending.length}
             totalElements={pendingTotalElements}
             page={pendingPage}
@@ -230,24 +337,39 @@ const ReceptionDashboard = () => {
         )}
 
         {activeTab === 'received' && (
-          <DeliveryTable
-            title="Received Letters"
-            deliveries={received}
-            emptyMessage="No letters have been received yet."
-            isLoading={isLoading}
-            receivingId={receivingId}
-            onReceive={handleReceive}
-            showAction={false}
-            count={received.length}
-            totalElements={receivedTotalElements}
-            page={receivedPage}
-            totalPages={receivedTotalPages}
-            onPageChange={goToReceivedPage}
-          />
+          <>
+            <SearchFilterBar
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              dateFilter={dateFilter}
+              onDateFilterChange={setDateFilter}
+              customDateFrom={customDateFrom}
+              customDateTo={customDateTo}
+              onCustomDateFromChange={setCustomDateFrom}
+              onCustomDateToChange={setCustomDateTo}
+              showCustomDate={showCustomDate}
+              totalElements={receivedTotalElements}
+            />
+            <DeliveryTable
+              title="Received Letters / Recent Activity"
+              deliveries={received}
+              emptyMessage="No letters have been received yet."
+              isLoading={isLoading}
+              receivingId={receivingId}
+              onReceive={handleReceive}
+              showAction={false}
+              showDeliveryPerson={true}
+              count={received.length}
+              totalElements={receivedTotalElements}
+              page={receivedPage}
+              totalPages={receivedTotalPages}
+              onPageChange={goToReceivedPage}
+            />
+          </>
         )}
       </div>
     </div>
   );
 };
 
-export default ReceptionDashboard;
+export default OperationsDashboard;

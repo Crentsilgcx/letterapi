@@ -8,7 +8,7 @@ const DeliveryForm = () => {
     isSubmitting,
     isCreatingPerson,
     submitMessage,
-    recipients,
+    recipientRoles,
     organizations,
     deliveryPersons,
     selectedPerson,
@@ -155,23 +155,23 @@ const DeliveryForm = () => {
             <div className="form-section letter-section" style={{ animation: 'slideDown 0.2s ease' }}>
               <h3 className="section-title">Letter Details</h3>
               <div className="field">
-                <label htmlFor="recipientId">Recipient *</label>
+                <label htmlFor="recipientRole">Recipient Role *</label>
                 <select
-                  id="recipientId"
-                  name="recipientId"
-                  value={values.recipientId}
+                  id="recipientRole"
+                  name="recipientRole"
+                  value={values.recipientRole}
                   onChange={handleChange}
                   required
                   disabled={isCreatingPerson}
                 >
-                  <option value="" disabled>Select recipient</option>
-                  {recipients.map(r => (
-                    <option key={r.id} value={r.id}>
-                      {r.name} {r.title && `(${r.title})`} {r.department && `- ${r.department}`}
+                  <option value="" disabled>Select recipient role</option>
+                  {recipientRoles.map(role => (
+                    <option key={role} value={role}>
+                      {role}
                     </option>
                   ))}
                 </select>
-                {errors.recipientId && <span className="field-error">{errors.recipientId}</span>}
+                {errors.recipientRole && <span className="field-error">{errors.recipientRole}</span>}
               </div>
 
               <div className="form-row">

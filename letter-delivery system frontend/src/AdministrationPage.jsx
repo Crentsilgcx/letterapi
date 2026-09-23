@@ -7,9 +7,9 @@ const STATUSES = [
   { value: 'false', label: 'Inactive' },
 ];
 
-function AdministrationPage() {
+function AdministrationPage({ initialTab }) {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('employees'); // 'employees' | 'organizations'
+  const [activeTab, setActiveTab] = useState(initialTab || 'employees'); // 'employees' | 'organizations'
   
   // Employee state
   const [recipients, setRecipients] = useState([]);

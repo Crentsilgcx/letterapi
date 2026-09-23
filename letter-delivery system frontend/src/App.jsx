@@ -1,10 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import DeliveryPersonHomepage from './DeliveryPersonHomepage';
-import ReceptionDashboard from './ReceptionDashboard';
-import AdministrationPage from './AdministrationPage';
+import ReceptionStaffDashboard from './ReceptionStaffDashboard';
 import AdminLoginPage from './AdminLoginPage';
 import ProtectedRoute from './ProtectedRoute';
 import { AuthProvider } from './AuthContext';
+import { ReceptionProvider } from './hooks/useReceptionContext';
 import Navbar from './Navbar';
 import HomePage from './HomePage';
 import './index.css';
@@ -14,13 +14,20 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/delivery" element={<DeliveryPersonHomepage />} />
-      <Route path="/reception" element={<ReceptionDashboard />} />
+      <Route
+        path="/reception"
+        element={
+          <ReceptionProvider>
+            <ReceptionStaffDashboard />
+          </ReceptionProvider>
+        }
+      />
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route
         path="/admin/*"
         element={
           <ProtectedRoute requiredRole="ADMIN">
-            <AdministrationPage />
+            <AdminLoginPage />
           </ProtectedRoute>
         }
       />

@@ -1,13 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 
 // Same-origin so it goes through the Vite /ws proxy in dev and the reverse proxy in production.
 const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
 
 export function useStomp() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState(null);
-
   const clientRef = useRef(null);
   const messageHandlersRef = useRef(new Map());
 
@@ -18,7 +15,6 @@ export function useStomp() {
     }
 
     const client = new Client({
-  
       webSocketFactory: () => {
         console.log('Connecting STOMP WebSocket to:', WS_URL);
         return new WebSocket(WS_URL);
@@ -35,21 +31,14 @@ export function useStomp() {
 
       onConnect: (frame) => {
         console.log('STOMP connected:', frame);
-        setIsConnected(true);
-        setError(null);
       },
 
       onStompError: (frame) => {
         console.error('STOMP error:', frame);
-        setError(
-          frame.headers?.message || 'STOMP broker error'
-        );
       },
 
       onWebSocketError: (event) => {
         console.error('WebSocket error:', event);
-        setIsConnected(false);
-        setError('WebSocket connection error');
       },
 
       onWebSocketClose: (event) => {
@@ -58,13 +47,10 @@ export function useStomp() {
           event.code,
           event.reason
         );
-
-        setIsConnected(false);
       },
 
       onDisconnect: () => {
         console.log('STOMP disconnected');
-        setIsConnected(false);
       },
     });
 
@@ -73,15 +59,12 @@ export function useStomp() {
   }, []);
 
   const disconnect = useCallback(async () => {
-    // Clear the ref before awaiting: a remount (e.g. StrictMode) may create a new client meanwhile,
-    // and clearing afterwards would drop that live client so subscribe() finds nothing.
     const client = clientRef.current;
     clientRef.current = null;
     if (client) {
       await client.deactivate();
     }
 
-    setIsConnected(false);
     messageHandlersRef.current.clear();
   }, []);
 
@@ -125,11 +108,8 @@ export function useStomp() {
   }, [connect, disconnect]);
 
   return {
-    isConnected,
-    error,
     subscribe,
     connect,
     disconnect,
   };
 }
-

@@ -57,6 +57,11 @@ public class PublicDeliveryApiController {
             .toList();
     }
 
+    @GetMapping("/recipient-roles")
+    public List<String> recipientRoles() {
+        return recipients.findDistinctActiveJobTitles();
+    }
+
     @GetMapping("/organizations")
     public List<Map<String, Object>> organizations() {
         return organizations.findByActiveTrueOrderByNameAsc().stream()

@@ -41,6 +41,8 @@ export const deliveryApi = {
 
   getDeliveryPersons: (q = '') => fetchJson(`${API_BASE}/delivery-persons?q=${encodeURIComponent(q)}`),
 
+  getRecipientRoles: () => fetchJson(`${API_BASE}/recipient-roles`),
+
   createDelivery: (data) => fetchJson(`${API_BASE}/deliveries`, {
     method: 'POST',
     body: JSON.stringify(data),
@@ -52,10 +54,29 @@ export const deliveryApi = {
 export const receptionApi = {
   getPending: () => fetchJson(`${RECEPTION_BASE}/deliveries/pending`),
   getReceived: () => fetchJson(`${RECEPTION_BASE}/deliveries/received`),
+  getPendingPage: (page = 0, size = 10, q, dateFrom, dateTo, recipientPosition, organization) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    if (q) params.append('q', q);
+    if (dateFrom) params.append('dateFrom', dateFrom);
+    if (dateTo) params.append('dateTo', dateTo);
+    if (recipientPosition) params.append('recipientPosition', recipientPosition);
+    if (organization) params.append('organization', organization);
+    return fetchJson(`${RECEPTION_BASE}/deliveries/pending/page?${params.toString()}`);
+  },
+  getReceivedPage: (page = 0, size = 10, q, dateFrom, dateTo, recipientPosition, organization) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    if (q) params.append('q', q);
+    if (dateFrom) params.append('dateFrom', dateFrom);
+    if (dateTo) params.append('dateTo', dateTo);
+    if (recipientPosition) params.append('recipientPosition', recipientPosition);
+    if (organization) params.append('organization', organization);
+    return fetchJson(`${RECEPTION_BASE}/deliveries/received/page?${params.toString()}`);
+  },
   receiveDelivery: (id, remarks) => fetchJson(`${RECEPTION_BASE}/deliveries/${id}/receive`, {
     method: 'POST',
     body: JSON.stringify({ remarks }),
   }),
+  getStatistics: () => fetchJson(`${RECEPTION_BASE}/statistics`),
 };
 
 export const adminApi = {

@@ -9,7 +9,7 @@ const initialValues = {
   email: '',
   organizationId: '',
   organizationName: '',
-  recipientId: '',
+  recipientRole: '',
   subject: '',
   referenceNumber: '',
   description: '',
@@ -17,7 +17,7 @@ const initialValues = {
 
 const validate = (values, isNewPerson) => {
   const errors = {};
-  if (!values.recipientId) errors.recipientId = 'Recipient is required';
+  if (!values.recipientRole) errors.recipientRole = 'Recipient role is required';
   if (!values.subject?.trim()) errors.subject = 'Subject is required';
   if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
     errors.email = 'Invalid email format';
@@ -38,7 +38,7 @@ const validate = (values, isNewPerson) => {
 };
 
 export function useDeliveryForm() {
-  const [recipients, setRecipients] = useState([]);
+  const [recipientRoles, setRecipientRoles] = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [deliveryPersons, setDeliveryPersons] = useState([]);
   const [isCreatingPerson, setIsCreatingPerson] = useState(false);
@@ -50,7 +50,7 @@ export function useDeliveryForm() {
   }, []);
 
   useEffect(() => {
-    deliveryApi.getRecipients().then(setRecipients).catch(() => {});
+    deliveryApi.getRecipientRoles().then(setRecipientRoles).catch(() => {});
     deliveryApi.getOrganizations().then(setOrganizations).catch(() => {});
     fetchDeliveryPersons();
   }, [fetchDeliveryPersons]);
@@ -80,7 +80,7 @@ export function useDeliveryForm() {
       email: isNew ? (values.email || null) : (values.email || null),
       organizationId: isNew ? (values.organizationId ? Number(values.organizationId) : null) : (values.organizationId ? Number(values.organizationId) : null),
       organizationName: isNew ? (values.organizationName || null) : (values.organizationName || null),
-      recipientId: Number(values.recipientId),
+      recipientRole: values.recipientRole,
       subject: values.subject.trim(),
       referenceNumber: values.referenceNumber || null,
       description: values.description || null,
@@ -131,7 +131,7 @@ export function useDeliveryForm() {
 
   return {
     ...form,
-    recipients,
+    recipientRoles,
     organizations,
     deliveryPersons,
     selectedPerson,

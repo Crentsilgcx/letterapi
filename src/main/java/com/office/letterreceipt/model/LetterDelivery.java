@@ -17,13 +17,14 @@ public class LetterDelivery {
     @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
     @Version private long version;
     @Column(name="tracking_number", unique=true, nullable=false, length=40) private String trackingNumber;
-    @ManyToOne(fetch=FetchType.LAZY, optional=false) @JoinColumn(name="delivery_person_id", nullable=false) private DeliveryPerson deliveryPerson;
-    @ManyToOne(fetch=FetchType.LAZY, optional=false) @JoinColumn(name="organization_id", nullable=false) private Organization organization;
-    @ManyToOne(fetch=FetchType.LAZY, optional=false) @JoinColumn(name="recipient_id", nullable=false) private Recipient recipient;
+    @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="delivery_person_id") private DeliveryPerson deliveryPerson;
+    @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="organization_id") private Organization organization;
+    @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="recipient_id") private Recipient recipient;
     @Column(name="delivery_person_name", nullable=false, length=160) private String deliveryPersonName;
     @Column(name="delivery_person_phone", length=60) private String deliveryPersonPhone;
     @Column(name="delivery_person_email", length=180) private String deliveryPersonEmail;
     @Column(name="organization_name", nullable=false, length=180) private String organizationName;
+    @Column(name="organization_address", length=250) private String organizationAddress;
     @Column(name="recipient_name", nullable=false, length=160) private String recipientName;
     @Column(name="recipient_title", length=160) private String recipientTitle;
     @Column(nullable=false, length=250) private String subject;
@@ -44,6 +45,7 @@ public class LetterDelivery {
     public String getDeliveryPersonPhone(){return deliveryPersonPhone;} public void setDeliveryPersonPhone(String v){deliveryPersonPhone=v;}
     public String getDeliveryPersonEmail(){return deliveryPersonEmail;} public void setDeliveryPersonEmail(String v){deliveryPersonEmail=v;}
     public String getOrganizationName(){return organizationName;} public void setOrganizationName(String v){organizationName=v;}
+    public String getOrganizationAddress(){return organizationAddress;} public void setOrganizationAddress(String v){organizationAddress=v;}
     public String getRecipientName(){return recipientName;} public void setRecipientName(String v){recipientName=v;}
     public String getRecipientTitle(){return recipientTitle;} public void setRecipientTitle(String v){recipientTitle=v;}
     public String getSubject(){return subject;} public void setSubject(String v){subject=v;}

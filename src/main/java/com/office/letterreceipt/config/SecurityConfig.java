@@ -32,18 +32,19 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
-    SecurityFilterChain staffApiSecurity(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
+    SecurityFilterChain apiSecurity(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
         http
-            .securityMatcher("/api/reception/**", "/api/admin/**")
+            .securityMatcher("/api/**")
             .userDetailsService(userDetailsService)
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/api/admin/login").permitAll()
                 .requestMatchers("/api/admin/me").authenticated()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/reception/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                 .anyRequest().authenticated())
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .httpBasic(Customizer.withDefaults());
         return http.build();
     }
@@ -59,7 +60,6 @@ public class SecurityConfig {
                     "/deliver",
                     "/track",
                     "/track/**",
-                    "/api/public/**",
                     "/css/**",
                     "/js/**",
                     "/favicon.svg",
@@ -67,14 +67,13 @@ public class SecurityConfig {
                     "/actuator/health")
                 .permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/reception/**").hasAnyRole("ADMIN", "RECEPTIONIST")
+                .requestMatchers("/reception/**", "/operations/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                 .anyRequest().authenticated())
             .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                .ignoringRequestMatchers("/api/public/**"))
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/reception", true)
+                .defaultSuccessUrl("/operations", true)
                 .permitAll())
             .logout(logout -> logout
                 .logoutSuccessUrl("/")

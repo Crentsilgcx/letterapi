@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq, req) => {
-              if (!/^\/api\/(reception|admin)\//.test(req.url)) return
+              if (!/^\/api\/(reception|admin)(\/|$)/.test(req.url)) return
               const auth = staffAuthHeader(mode)
               if (auth) proxyReq.setHeader('Authorization', auth)
             })
