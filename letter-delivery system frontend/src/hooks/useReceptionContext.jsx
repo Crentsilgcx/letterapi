@@ -81,9 +81,6 @@ export function ReceptionProvider({ children }) {
     customDateTo: '',
     recipientPositionFilter: '',
     organizationFilter: '',
-    dateFilter: '',
-    customDateFrom: '',
-    customDateTo: '',
   });
   
   // Keep refs in sync with state

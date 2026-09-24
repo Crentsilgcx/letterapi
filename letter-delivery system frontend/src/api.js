@@ -72,6 +72,8 @@ export const receptionApi = {
     if (organization) params.append('organization', organization);
     return fetchJson(`${RECEPTION_BASE}/deliveries/received/page?${params.toString()}`);
   },
+  getPendingPageRaw: (params, abortSignal) => fetchJson(`${RECEPTION_BASE}/deliveries/pending/page?${params}`, { signal: abortSignal }),
+  getReceivedPageRaw: (params, abortSignal) => fetchJson(`${RECEPTION_BASE}/deliveries/received/page?${params}`, { signal: abortSignal }),
   receiveDelivery: (id, remarks) => fetchJson(`${RECEPTION_BASE}/deliveries/${id}/receive`, {
     method: 'POST',
     body: JSON.stringify({ remarks }),

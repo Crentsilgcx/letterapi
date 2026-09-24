@@ -1468,10 +1468,172 @@ tr:hover td {
   }
 }
 
-@media (max-width: 1024px) and (min-width: 769px) {
-  .table-wrap {
-    margin: 0 -16px;
-    width: calc(100% + 32px);
+/* Expandable Delivery Cards */
+.delivery-card {
+  cursor: pointer;
+  transition: box-shadow 0.15s, background-color 0.15s;
+}
+
+.delivery-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.delivery-card.expanded {
+  background: #fafafa;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.delivery-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.delivery-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.delivery-card-position {
+  font-weight: 600;
+  font-size: 15px;
+  color: #1a1a1a;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.delivery-card-org {
+  font-size: 13px;
+  color: #666;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.delivery-card-date {
+  color: #888;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.delivery-card-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.delivery-card-status {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-delivered {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-received {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-pending {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.status-failed {
+  background: #fce4ec;
+  color: #c62828;
+}
+
+.delivery-card-expand {
+  color: #888;
+  font-size: 14px;
+  line-height: 1;
+  user-select: none;
+  transition: transform 0.15s;
+}
+
+.delivery-card.expanded .delivery-card-expand {
+  transform: rotate(180deg);
+}
+
+.delivery-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.2s ease;
+  padding: 0 0;
+}
+
+.delivery-card.expanded .delivery-card-body {
+  max-height: 500px;
+  opacity: 1;
+  padding: 12px 0 0 0;
+}
+
+.delivery-card-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.delivery-card-label {
+  color: #888;
+  font-weight: 500;
+  min-width: 90px;
+  flex-shrink: 0;
+}
+
+.delivery-card-value {
+  color: #1a1a1a;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.delivery-card-value strong {
+  font-weight: 600;
+}
+
+.delivery-card-subject {
+  margin-top: 4px;
+}
+
+.delivery-card-subject .delivery-card-label {
+  min-width: auto;
+}
+
+.delivery-card-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eef0f2;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+  .table-section {
+    display: none;
+  }
+  
+  .delivery-cards {
+    display: flex;
   }
 }
 
@@ -1660,25 +1822,26 @@ tr:hover td {
 /* Search/Filter Bar */
 .search-filter-bar {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 24px;
   padding: 16px;
   background: #fafafa;
   border: 1px solid #e5e5e5;
   border-radius: 8px;
-  flex-wrap: wrap;
   align-items: flex-end;
 }
 
 .search-field {
-  flex: 1;
-  width: 0;
-  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  min-width: 240px;
+  max-width: none;
 }
 
 .search-input {
-  flex: 1;
-  width: 0px;
+  width: 100%;
+  min-width: 0;
   padding: 10px 12px;
   font-size: 14px;
   font-family: inherit;
@@ -1686,6 +1849,7 @@ tr:hover td {
   border-radius: 6px;
   background: #fff;
   transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
 }
 
 .search-input:focus {
@@ -1696,15 +1860,18 @@ tr:hover td {
 
 .filter-fields {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: flex-end;
-  flex-wrap: wrap;
 }
 
 .filter-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+  min-width: 140px;
 }
 
 .filter-field label {
@@ -1714,15 +1881,17 @@ tr:hover td {
 }
 
 .filter-select,
-.filter-input {
-  padding: 10px 12px;
-  font-size: 14px;
-  font-family: inherit;
-  border: 1px solid #d0d0d0;
-  border-radius: 6px;
-  background: #fff;
-  min-width: 160px;
-}
+  .filter-input {
+    width: 100%;
+    min-width: 0;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    background: #fff;
+    box-sizing: border-box;
+  }
 
 .filter-select:focus,
 .filter-input:focus {
@@ -1733,6 +1902,7 @@ tr:hover td {
 
 .custom-date-fields {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: flex-end;
 }

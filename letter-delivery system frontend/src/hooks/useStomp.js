@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 
 // Same-origin so it goes through the Vite /ws proxy in dev and the reverse proxy in production.
@@ -6,7 +6,8 @@ const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${wind
 
 export function useStomp() {
   const clientRef = useRef(null);
-  const messageHandlersRef = useRef(new Map());
+  const subscriptionsRef = useRef(new Map()); // destination -> { handler, unsubscribe }
+  const pendingSubscriptionsRef = useRef(new Map()); // destination -> handler
 
   const connect = useCallback(() => {
     // Prevent duplicate connections
@@ -31,6 +32,34 @@ export function useStomp() {
 
       onConnect: (frame) => {
         console.log('STOMP connected:', frame);
+
+        // Execute all pending subscriptions now that we're connected
+        pendingSubscriptionsRef.current.forEach((handler, destination) => {
+          if (clientRef.current?.connected) {
+            try {
+              const subscription = clientRef.current.subscribe(
+                destination,
+                (message) => {
+                  try {
+                    const event = JSON.parse(message.body);
+                    const stored = subscriptionsRef.current.get(destination);
+                    if (stored) {
+                      stored.handler(event);
+                    }
+                  } catch (err) {
+                    console.error('Failed to parse STOMP message:', err);
+                  }
+                }
+              );
+              subscriptionsRef.current.set(destination, { handler: pendingSubscriptionsRef.current.get(destination), unsubscribe: () => subscription.unsubscribe() });
+              console.log('Subscribed successfully to:', destination);
+            } catch (err) {
+              console.error('Failed to subscribe to:', destination, err);
+            }
+          }
+        });
+        // Clear pending after processing
+        pendingSubscriptionsRef.current.clear();
       },
 
       onStompError: (frame) => {
@@ -64,38 +93,48 @@ export function useStomp() {
     if (client) {
       await client.deactivate();
     }
-
-    messageHandlersRef.current.clear();
+    subscriptionsRef.current.clear();
+    pendingSubscriptionsRef.current.clear();
   }, []);
 
   const subscribe = useCallback((destination, handler) => {
     const client = clientRef.current;
 
-    if (!client?.connected) {
-      console.warn(
-        'Cannot subscribe. STOMP is not connected:',
-        destination
-      );
-      return () => {};
+    // Store handler for (re)subscription
+    pendingSubscriptionsRef.current.set(destination, handler);
+
+    // If already connected, subscribe immediately
+    if (client?.connected) {
+      try {
+        const subscription = client.subscribe(
+          destination,
+          (message) => {
+            try {
+              const event = JSON.parse(message.body);
+              handler(event);
+            } catch (err) {
+              console.error('Failed to parse STOMP message:', err);
+            }
+          }
+        );
+        subscriptionsRef.current.set(destination, { handler, unsubscribe: () => subscription.unsubscribe() });
+        console.log('Subscribed successfully to:', destination);
+        pendingSubscriptionsRef.current.delete(destination);
+      } catch (err) {
+        console.error('Failed to subscribe to:', destination, err);
+      }
+    } else {
+      console.log('STOMP not yet connected, queuing subscription for:', destination);
     }
 
-    const subscription = client.subscribe(
-      destination,
-      (message) => {
-        try {
-          const event = JSON.parse(message.body);
-          handler(event);
-        } catch (err) {
-          console.error(
-            'Failed to parse STOMP message:',
-            err
-          );
-        }
-      }
-    );
-
+    // Return cleanup function
     return () => {
-      subscription.unsubscribe();
+      const stored = subscriptionsRef.current.get(destination);
+      if (stored) {
+        stored.unsubscribe();
+        subscriptionsRef.current.delete(destination);
+      }
+      pendingSubscriptionsRef.current.delete(destination);
     };
   }, []);
 

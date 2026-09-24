@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Component
@@ -19,21 +20,54 @@ public class WebSocketEventPublisher {
     }
 
     public void notifyDeliveryCreated(LetterDelivery delivery) {
-        sendAfterCommit(Map.of(
-            "type", "DELIVERY_CREATED",
-            "deliveryId", delivery.getId(),
-            "recipient", delivery.getRecipientName(),
-            "status", delivery.getStatus().name(),
-            "message", "New delivery received"
-        ));
+        Map<String, Object> deliveryData = new HashMap<>();
+        deliveryData.put("id", delivery.getId());
+        deliveryData.put("trackingNumber", delivery.getTrackingNumber());
+        deliveryData.put("deliveryPersonName", delivery.getDeliveryPersonName());
+        deliveryData.put("deliveryPersonPhone", delivery.getDeliveryPersonPhone());
+        deliveryData.put("deliveryPersonEmail", delivery.getDeliveryPersonEmail());
+        deliveryData.put("organizationName", delivery.getOrganizationName());
+        deliveryData.put("organizationAddress", delivery.getOrganizationAddress());
+        deliveryData.put("recipientName", delivery.getRecipientName());
+        deliveryData.put("recipientTitle", delivery.getRecipientTitle());
+        deliveryData.put("subject", delivery.getSubject());
+        deliveryData.put("referenceNumber", delivery.getReferenceNumber());
+        deliveryData.put("status", delivery.getStatus().name());
+        deliveryData.put("deliveredAt", delivery.getDeliveredAt().toString());
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("type", "DELIVERY_CREATED");
+        payload.put("deliveryId", delivery.getId());
+        payload.put("delivery", deliveryData);
+        payload.put("message", "New delivery received");
+
+        sendAfterCommit(payload);
     }
 
     public void notifyDeliveryReceived(LetterDelivery delivery) {
-        sendAfterCommit(Map.of(
-            "type", "DELIVERY_STATUS_CHANGED",
-            "deliveryId", delivery.getId(),
-            "status", delivery.getStatus().name()
-        ));
+        Map<String, Object> deliveryData = new HashMap<>();
+        deliveryData.put("id", delivery.getId());
+        deliveryData.put("trackingNumber", delivery.getTrackingNumber());
+        deliveryData.put("deliveryPersonName", delivery.getDeliveryPersonName());
+        deliveryData.put("deliveryPersonPhone", delivery.getDeliveryPersonPhone());
+        deliveryData.put("deliveryPersonEmail", delivery.getDeliveryPersonEmail());
+        deliveryData.put("organizationName", delivery.getOrganizationName());
+        deliveryData.put("organizationAddress", delivery.getOrganizationAddress());
+        deliveryData.put("recipientName", delivery.getRecipientName());
+        deliveryData.put("recipientTitle", delivery.getRecipientTitle());
+        deliveryData.put("subject", delivery.getSubject());
+        deliveryData.put("referenceNumber", delivery.getReferenceNumber());
+        deliveryData.put("status", delivery.getStatus().name());
+        deliveryData.put("deliveredAt", delivery.getDeliveredAt().toString());
+        deliveryData.put("receivedAt", delivery.getReceivedAt() != null ? delivery.getReceivedAt().toString() : null);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("type", "DELIVERY_STATUS_CHANGED");
+        payload.put("deliveryId", delivery.getId());
+        payload.put("status", delivery.getStatus().name());
+        payload.put("delivery", deliveryData);
+
+        sendAfterCommit(payload);
     }
 
     // Clients reload from the API when notified, so only announce changes once they are committed.

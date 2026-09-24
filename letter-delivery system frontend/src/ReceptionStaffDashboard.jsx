@@ -1,4 +1,5 @@
 import { useReception } from './hooks/useReceptionContext';
+import { useState } from 'react';
 
 const statusBadge = (status) => {
   const classes = {
@@ -25,6 +26,95 @@ const formatDateShort = (dateStr) => {
   });
 };
 
+const DeliveryCard = ({ delivery, onReceive, receivingId, showAction = true }) => {
+  const [expanded, setExpanded] = useState(false);
+  
+  const handleClick = (e) => {
+    // Don't expand if clicking on button
+    if (e.target.closest('button')) return;
+    setExpanded(!expanded);
+  };
+
+  return (
+    <div className={`delivery-card ${expanded ? 'expanded' : ''}`} onClick={handleClick}>
+      <div className="delivery-card-header">
+        <div className="delivery-card-main">
+          <span className="delivery-card-position">{delivery.recipientName}</span>
+          <span className="delivery-card-org">
+            {delivery.organizationName || '—'} 
+            {delivery.deliveredAt && (
+              <span className="delivery-card-date"> • {formatDateShort(delivery.deliveredAt)}</span>
+            )}
+          </span>
+        </div>
+        <div className="delivery-card-right">
+          <span className={`delivery-card-status ${statusBadge(delivery.status).props.className.split(' ')[1]}`}>
+            {delivery.status}
+          </span>
+          <span className="delivery-card-expand">
+            {expanded ? '▲' : '▼'}
+          </span>
+        </div>
+      </div>
+      
+      <div className="delivery-card-body">
+        <div className="delivery-card-row">
+          <span className="delivery-card-label">Subject:</span>
+          <span className="delivery-card-value">
+            <strong>{delivery.subject || '—'}</strong>
+            {delivery.referenceNumber && <span className="muted"> (Ref: {delivery.referenceNumber})</span>}
+          </span>
+        </div>
+        <div className="delivery-card-row">
+          <span className="delivery-card-label">Organization:</span>
+          <span className="delivery-card-value">
+            <strong>{delivery.organizationName || '—'}</strong>
+            {delivery.organizationAddress && <br />}
+            {delivery.organizationAddress && (
+              <span className="muted">{delivery.organizationAddress}</span>
+            )}
+          </span>
+        </div>
+        <div className="delivery-card-row">
+          <span className="delivery-card-label">Delivery Person:</span>
+          <span className="delivery-card-value">
+            <span className="muted">{delivery.deliveryPersonName || '—'}</span>
+          </span>
+        </div>
+        <div className="delivery-card-row">
+          <span className="delivery-card-label">Delivered:</span>
+          <span className="delivery-card-value">
+            {delivery.deliveredAt ? formatDateShort(delivery.deliveredAt) : '—'}
+          </span>
+        </div>
+        {delivery.receivedAt && (
+          <div className="delivery-card-row">
+            <span className="delivery-card-label">Received:</span>
+            <span className="delivery-card-value">
+              {delivery.receivedAt ? formatDateShort(delivery.receivedAt) : '—'}
+            </span>
+          </div>
+        )}
+        
+        {showAction && (
+          <div className="delivery-card-actions">
+            <button
+              className="btn btn-primary btn-small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onReceive(delivery.id);
+              }}
+              disabled={receivingId === delivery.id}
+            >
+              {receivingId === delivery.id ? 'Confirming...' : 'Receive'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId, onReceive, showAction = true, count, totalElements, page, totalPages, onPageChange, showDeliveryPerson = false }) => {
   if (isLoading) {
     return <div className="loading">Loading...</div>;
@@ -36,7 +126,6 @@ const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId
 
   return (
     <div className="table-section">
-      <h3 className="table-title">{title} <span className="count">({totalElements || deliveries.length})</span></h3>
       <div className="table-wrap">
         <table>
           <thead>
@@ -92,44 +181,13 @@ const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId
       
       <div className="delivery-cards">
         {deliveries.map((d) => (
-          <div key={d.id} className="delivery-card">
-            <div className="delivery-card-header">
-              <span className="delivery-card-org">{d.organizationName || '—'}</span>
-              <span className="delivery-card-status">{statusBadge(d.status)}</span>
-            </div>
-            <div className="delivery-card-body">
-              <div className="delivery-card-row">
-                <span className="delivery-card-label">Recipient Position:</span>
-                <span className="delivery-card-value"><strong>{d.recipientName}</strong></span>
-              </div>
-              <div className="delivery-card-row">
-                <span className="delivery-card-label">Delivery Person:</span>
-                <span className="delivery-card-value"><span className="muted">{d.deliveryPersonName || '—'}</span></span>
-              </div>
-              <div className="delivery-card-row delivery-card-subject">
-                <span className="delivery-card-label">Subject:</span>
-                <span className="delivery-card-value">
-                  <strong>{d.subject || '—'}</strong>
-                  {d.referenceNumber && <span className="muted"> (Ref: {d.referenceNumber})</span>}
-                </span>
-              </div>
-              <div className="delivery-card-row">
-                <span className="delivery-card-label">Delivered:</span>
-                <span className="delivery-card-value">{d.deliveredAt ? formatDateShort(d.deliveredAt) : '—'}</span>
-              </div>
-              {showAction && (
-                <div className="delivery-card-actions">
-                  <button
-                    className="btn btn-primary btn-small"
-                    onClick={() => onReceive(d.id)}
-                    disabled={receivingId === d.id}
-                  >
-                    {receivingId === d.id ? 'Confirming...' : 'Receive'}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          <DeliveryCard
+            key={d.id}
+            delivery={d}
+            onReceive={onReceive}
+            receivingId={receivingId}
+            showAction={showAction}
+          />
         ))}
       </div>
       
@@ -332,7 +390,6 @@ const ReceptionStaffDashboard = () => {
     setCustomDateFrom,
     setCustomDateTo,
     showCustomDate,
-    // These need to be added to the context
     recipientPositionFilter,
     setRecipientPositionFilter,
     organizationFilter,
