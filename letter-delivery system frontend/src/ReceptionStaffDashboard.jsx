@@ -370,7 +370,6 @@ const ReceptionStaffDashboard = () => {
     receivedTotalPages,
     pendingTotalElements,
     receivedTotalElements,
-    receivedTodayCount,
     isLoading,
     error,
     success,

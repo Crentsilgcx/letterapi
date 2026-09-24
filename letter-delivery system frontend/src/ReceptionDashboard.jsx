@@ -1,4 +1,5 @@
 import { useReception } from './hooks/useReceptionContext.jsx';
+import { useState } from 'react';
 
 const statusBadge = (status) => {
   const classes = {

@@ -150,15 +150,14 @@ export function ReceptionProvider({ children }) {
     }
   }, [buildApiParams]);
 
-  // Initial load - only fetch active tab
+  // Initial load - fetch both tabs in PARALLEL
   useEffect(() => {
     let active = true;
     (async () => {
       if (!active) return;
       try {
         setIsLoading(true);
-        await loadPending(0, false);
-        await loadReceived(0, false);
+        await Promise.all([loadPending(0, false), loadReceived(0, false)]);
       } catch (e) {
       } finally {
         if (active) setIsLoading(false);
@@ -273,7 +272,9 @@ export function ReceptionProvider({ children }) {
 
   // WebSocket event handler - use optimistic updates
   useEffect(() => {
+    console.log('Setting up WebSocket subscription for /topic/deliveries');
     const unsubscribe = subscribe('/topic/deliveries', (event) => {
+      console.log('RECEIVED DELIVERY EVENT:', event);
       const { type, deliveryId, status, delivery } = event;
 
       if (type === 'DELIVERY_CREATED' && delivery) {
