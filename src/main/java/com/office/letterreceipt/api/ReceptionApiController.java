@@ -40,9 +40,12 @@ public class ReceptionApiController {
 
     @GetMapping("/deliveries/pending")
     public List<DeliveryResponse> pending() {
-        return deliveries.findTop100ByStatusOrderByDeliveredAtAsc(DeliveryStatus.DELIVERED).stream()
+        long start = System.currentTimeMillis();
+        List<DeliveryResponse> result = deliveries.findTop100ByStatusOrderByDeliveredAtAsc(DeliveryStatus.DELIVERED).stream()
             .map(DeliveryResponse::full)
             .toList();
+        System.out.println("[PERF] pending: " + (System.currentTimeMillis() - start) + " ms");
+        return result;
     }
 
     @GetMapping("/deliveries/pending/page")
@@ -54,19 +57,27 @@ public class ReceptionApiController {
             @RequestParam(required = false) String dateTo,
             @RequestParam(required = false) String recipientPosition,
             @RequestParam(required = false) String organization) {
+        long start = System.currentTimeMillis();
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "deliveredAt"));
         LocalDateTime from = parseDate(dateFrom);
         LocalDateTime to = parseDateToEndOfDay(dateTo);
+        long repoStart = System.currentTimeMillis();
         Page<LetterDelivery> result = deliveries.searchWithFilters(
                 DeliveryStatus.DELIVERED, q, recipientPosition, organization, from, to, pageable);
-        return PageResponse.from(result.map(DeliveryResponse::full));
+        long repoTime = System.currentTimeMillis() - repoStart;
+        PageResponse<DeliveryResponse> response = PageResponse.from(result.map(DeliveryResponse::full));
+        System.out.println("[PERF] pendingPage: repo=" + repoTime + "ms, total=" + (System.currentTimeMillis() - start) + "ms");
+        return response;
     }
 
     @GetMapping("/deliveries/received")
     public List<DeliveryResponse> received() {
-        return deliveries.findTop100ByStatusOrderByReceivedAtDesc(DeliveryStatus.RECEIVED).stream()
+        long start = System.currentTimeMillis();
+        List<DeliveryResponse> result = deliveries.findTop100ByStatusOrderByReceivedAtDesc(DeliveryStatus.RECEIVED).stream()
             .map(DeliveryResponse::full)
             .toList();
+        System.out.println("[PERF] received: " + (System.currentTimeMillis() - start) + " ms");
+        return result;
     }
 
     @GetMapping("/deliveries/received/page")
@@ -78,12 +89,17 @@ public class ReceptionApiController {
             @RequestParam(required = false) String dateTo,
             @RequestParam(required = false) String recipientPosition,
             @RequestParam(required = false) String organization) {
+        long start = System.currentTimeMillis();
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "receivedAt"));
         LocalDateTime from = parseDate(dateFrom);
         LocalDateTime to = parseDateToEndOfDay(dateTo);
+        long repoStart = System.currentTimeMillis();
         Page<LetterDelivery> result = deliveries.searchWithFilters(
                 DeliveryStatus.RECEIVED, q, recipientPosition, organization, from, to, pageable);
-        return PageResponse.from(result.map(DeliveryResponse::full));
+        long repoTime = System.currentTimeMillis() - repoStart;
+        PageResponse<DeliveryResponse> response = PageResponse.from(result.map(DeliveryResponse::full));
+        System.out.println("[PERF] receivedPage: repo=" + repoTime + "ms, total=" + (System.currentTimeMillis() - start) + "ms");
+        return response;
     }
 
     private LocalDateTime parseDate(String dateStr) {
@@ -110,19 +126,25 @@ public class ReceptionApiController {
             @Valid @RequestBody(required = false) ReceiveDeliveryRequest request,
             Principal principal,
             HttpServletRequest servletRequest) {
+        long start = System.currentTimeMillis();
         String remarks = request == null ? null : request.remarks();
-        return DeliveryResponse.full(service.receive(id, principal.getName(), remarks, servletRequest));
+        DeliveryResponse response = DeliveryResponse.full(service.receive(id, principal.getName(), remarks, servletRequest));
+        System.out.println("[PERF] receive: " + (System.currentTimeMillis() - start) + " ms");
+        return response;
     }
 
     @GetMapping("/statistics")
     public Map<String, Object> statistics() {
+        long start = System.currentTimeMillis();
         LocalDateTime todayStart = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
         LocalDateTime todayEnd = todayStart.plusDays(1);
         long receivedToday = deliveries.countByStatusAndReceivedAtBetween(DeliveryStatus.RECEIVED, todayStart, todayEnd);
         long pending = deliveries.countByStatus(DeliveryStatus.DELIVERED);
-        return Map.of(
+        Map<String, Object> result = Map.of(
             "pendingCount", pending,
             "receivedTodayCount", receivedToday
         );
+        System.out.println("[PERF] statistics: " + (System.currentTimeMillis() - start) + " ms");
+        return result;
     }
 }

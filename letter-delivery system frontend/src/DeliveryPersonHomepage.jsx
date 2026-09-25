@@ -26,8 +26,38 @@ const validate = (values) => {
   return errors;
 };
 
+const DRAFT_STORAGE_KEY = 'delivery-form-draft';
+
+const loadDraft = () => {
+  try {
+    const stored = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.warn('Failed to load draft from sessionStorage:', e);
+  }
+  return null;
+};
+
+const saveDraft = (values) => {
+  try {
+    sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(values));
+  } catch (e) {
+    console.warn('Failed to save draft to sessionStorage:', e);
+  }
+};
+
+const clearDraft = () => {
+  try {
+    sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+  } catch (e) {
+    console.warn('Failed to clear draft from sessionStorage:', e);
+  }
+};
+
 function DeliveryPersonHomepage() {
-  const [values, setValues] = useState(initialValues);
+  const [values, setValues] = useState(() => loadDraft() || initialValues);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState(null);
@@ -58,7 +88,9 @@ function DeliveryPersonHomepage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setValues(prev => ({ ...prev, [name]: value }));
+    const newValues = { ...values, [name]: value };
+    setValues(newValues);
+    saveDraft(newValues);
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
@@ -97,6 +129,7 @@ function DeliveryPersonHomepage() {
       setSubmitMessage({ type: 'success', text: 'Delivery submitted successfully!' });
       setLastSubmittedDeliveryId(response.id);
       setDeliveryStatus('DELIVERED');
+      clearDraft();
       setValues(initialValues);
     } catch (err) {
       setSubmitMessage({ type: 'error', text: err.message || 'Failed to submit delivery' });

@@ -280,6 +280,7 @@ ul {
 }
 
 .card-header {
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -554,6 +555,38 @@ tr:hover td {
   }
 }
 
+@media (max-width:470px){
+    .filter-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    flex: 1;
+   
+}
+    .search-field {
+     flex-direction: column;
+    flex: 1 1 0;
+    width: 100%;
+    max-width: none;
+}
+
+.search-filter-bar {
+    flex-direction: column;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #fafafa;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    align-items: flex-end;
+}
+
+
+}
+
 @media (max-width: 768px) {
   .main-content {
     padding: 24px 12px;
@@ -732,6 +765,9 @@ tr:hover td {
     justify-content: flex-start;
     padding: 14px 16px;
   }
+
+  
+
 }
 
 @media (max-width: 480px) {
@@ -750,14 +786,13 @@ tr:hover td {
 }
 
 .card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
 }
-
 .card-subtitle {
   color: #666;
   font-size: 14px;
@@ -810,10 +845,12 @@ tr:hover td {
   }
   
   .card-header {
-    flex-direction: column;
-    align-items: flex-start;
+        flex-direction: column;
+        align-items: flex-start;
+        align-items: center;
+    }
   }
-}
+    
 
 .connection-status {
   display: inline-flex;
@@ -1821,7 +1858,8 @@ tr:hover td {
 
 /* Search/Filter Bar */
 .search-filter-bar {
-  display: flex;
+  flex-direction: column;
+  /* display: flex; */
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 24px;
@@ -1835,11 +1873,15 @@ tr:hover td {
 .search-field {
   flex: 1 1 0;
   min-width: 0;
-  min-width: 240px;
-  max-width: none;
+  /* Search field grows to fill available space */
+}
+
+.search-field > div {
+  width: 100%;
 }
 
 .search-input {
+  margin-bottom: 10px;
   width: 100%;
   min-width: 0;
   padding: 10px 12px;
@@ -1863,6 +1905,8 @@ tr:hover td {
   flex-wrap: wrap;
   gap: 12px;
   align-items: flex-end;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .filter-field {
@@ -1871,7 +1915,6 @@ tr:hover td {
   gap: 6px;
   flex: 1 1 0;
   min-width: 0;
-  min-width: 140px;
 }
 
 .filter-field label {
@@ -1881,17 +1924,17 @@ tr:hover td {
 }
 
 .filter-select,
-  .filter-input {
-    width: 100%;
-    min-width: 0;
-    padding: 10px 12px;
-    font-size: 14px;
-    font-family: inherit;
-    border: 1px solid #d0d0d0;
-    border-radius: 6px;
-    background: #fff;
-    box-sizing: border-box;
-  }
+.filter-input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  background: #fff;
+  box-sizing: border-box;
+}
 
 .filter-select:focus,
 .filter-input:focus {
@@ -1905,6 +1948,92 @@ tr:hover td {
   flex-wrap: wrap;
   gap: 12px;
   align-items: flex-end;
+  width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.custom-date-fields .filter-field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Responsive breakpoints for search/filter bar */
+@media (max-width: 1024px) {
+  .search-filter-bar {
+    flex-wrap: wrap;
+  }
+  
+  .search-field {
+    flex: 1 1 100%;
+    min-width: 0;
+    order: -1;
+  }
+  
+  .filter-fields {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .search-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-field {
+    flex: 1 1 100%;
+    min-width: 0;
+    order: -1;
+  }
+  
+  .filter-fields {
+    flex: 1 1 100%;
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .filter-field,
+  .custom-date-fields {
+    flex: 1 1 100%;
+    min-width: 0;
+    width: 100%;
+  }
+  
+  .filter-field > .filter-select,
+  .filter-field > .filter-input {
+    width: 100%;
+  }
+  
+  .custom-date-fields {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .custom-date-fields .filter-field {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-filter-bar {
+    padding: 12px;
+    gap: 8px;
+  }
+  
+  .search-input,
+  .filter-select,
+  .filter-input {
+    padding: 12px 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .filter-field label {
+    font-size: 13px;
+  }
 }
 
 /* Visually hidden for accessibility */

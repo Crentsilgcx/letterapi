@@ -85,15 +85,18 @@ public class AdminApiController {
 
     @GetMapping("/me")
     public Map<String, Object> me(Authentication authentication) {
+        long start = System.currentTimeMillis();
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
         UserAccount user = users.findByUsernameIgnoreCase(authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        return Map.of(
+        Map<String, Object> result = Map.of(
                 "username", user.getUsername(),
                 "displayName", user.getDisplayName(),
                 "role", user.getRole().name());
+        System.out.println("[PERF] /me: " + (System.currentTimeMillis() - start) + " ms");
+        return result;
     }
 
     @GetMapping("/recipients")

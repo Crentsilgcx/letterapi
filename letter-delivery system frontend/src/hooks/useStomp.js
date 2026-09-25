@@ -17,7 +17,7 @@ export function useStomp() {
 
     const client = new Client({
       webSocketFactory: () => {
-        console.log('Connecting STOMP WebSocket to:', WS_URL);
+        console.log('[STOMP] Connecting to:', WS_URL);
         return new WebSocket(WS_URL);
       },
 
@@ -31,13 +31,14 @@ export function useStomp() {
       },
 
       onConnect: (frame) => {
-        console.log('STOMP connected:', frame);
+        console.log('[STOMP] Connected:', frame);
 
         // Execute all pending subscriptions now that we're connected
         pendingSubscriptionsRef.current.forEach((handler, destination) => {
           if (clientRef.current?.connected) {
+            let subscription = null;
             try {
-              const subscription = clientRef.current.subscribe(
+              subscription = clientRef.current.subscribe(
                 destination,
                 (message) => {
                   try {
@@ -47,14 +48,18 @@ export function useStomp() {
                       stored.handler(event);
                     }
                   } catch (err) {
-                    console.error('Failed to parse STOMP message:', err);
+                    console.error('[STOMP] Failed to parse message:', err);
                   }
                 }
               );
-              subscriptionsRef.current.set(destination, { handler: pendingSubscriptionsRef.current.get(destination), unsubscribe: () => subscription.unsubscribe() });
-              console.log('Subscribed successfully to:', destination);
+              // Store subscription with unsubscribe function - subscription is in scope here
+              subscriptionsRef.current.set(destination, { 
+                handler: pendingSubscriptionsRef.current.get(destination), 
+                unsubscribe: () => { if (subscription) subscription.unsubscribe(); } 
+              });
+              console.log('[STOMP] Subscribed successfully to:', destination);
             } catch (err) {
-              console.error('Failed to subscribe to:', destination, err);
+              console.error('[STOMP] Failed to subscribe to:', destination, err);
             }
           }
         });
@@ -63,23 +68,19 @@ export function useStomp() {
       },
 
       onStompError: (frame) => {
-        console.error('STOMP error:', frame);
+        console.error('[STOMP] Error:', frame);
       },
 
       onWebSocketError: (event) => {
-        console.error('WebSocket error:', event);
+        console.error('[STOMP] WebSocket error:', event);
       },
 
       onWebSocketClose: (event) => {
-        console.log(
-          'WebSocket closed:',
-          event.code,
-          event.reason
-        );
+        console.log('[STOMP] WebSocket closed:', event.code, event.reason);
       },
 
       onDisconnect: () => {
-        console.log('STOMP disconnected');
+        console.log('[STOMP] Disconnected');
       },
     });
 
@@ -105,26 +106,30 @@ export function useStomp() {
 
     // If already connected, subscribe immediately
     if (client?.connected) {
+      let subscription = null;
       try {
-        const subscription = client.subscribe(
+        subscription = client.subscribe(
           destination,
           (message) => {
             try {
               const event = JSON.parse(message.body);
               handler(event);
             } catch (err) {
-              console.error('Failed to parse STOMP message:', err);
+              console.error('[STOMP] Failed to parse message:', err);
             }
           }
         );
-        subscriptionsRef.current.set(destination, { handler, unsubscribe: () => subscription.unsubscribe() });
-        console.log('Subscribed successfully to:', destination);
+        subscriptionsRef.current.set(destination, { 
+          handler, 
+          unsubscribe: () => { if (subscription) subscription.unsubscribe(); } 
+        });
+        console.log('[STOMP] Subscribed successfully to:', destination);
         pendingSubscriptionsRef.current.delete(destination);
       } catch (err) {
-        console.error('Failed to subscribe to:', destination, err);
+        console.error('[STOMP] Failed to subscribe to:', destination, err);
       }
     } else {
-      console.log('STOMP not yet connected, queuing subscription for:', destination);
+      console.log('[STOMP] Not yet connected, queuing subscription for:', destination);
     }
 
     // Return cleanup function
