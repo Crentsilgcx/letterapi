@@ -5,4 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface DeliveryPersonRepository extends JpaRepository<DeliveryPerson,Long>{
     List<DeliveryPerson> findTop20ByActiveTrueAndFullNameContainingIgnoreCaseOrderByFullNameAsc(String q);
     List<DeliveryPerson> findTop100ByActiveTrueOrderByFullNameAsc();
+    Optional<DeliveryPerson> findByFullNameIgnoreCase(String fullName);
 }
