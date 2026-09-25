@@ -6,6 +6,11 @@ const ReceptionContext = createContext(null);
 
 const DEFAULT_PAGE_SIZE = 10;
 
+// Cache configuration
+const CACHE_KEY = 'reception_cache_v1';
+const CACHE_VERSION = 1;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 const DATE_FILTER_OPTIONS = [
   { value: '', label: 'All Time' },
   { value: 'today', label: 'Today' },
@@ -44,6 +49,141 @@ function getDateRange(filter) {
   }
 }
 
+// Cache utility functions
+function getCache() {
+  try {
+    const cached = sessionStorage.getItem('reception_cache_v1');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.version === CACHE_VERSION) {
+        return parsed;
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return null;
+}
+
+function setCache(data) {
+  try {
+    const cacheData = {
+      ...data,
+      version: CACHE_VERSION,
+      timestamp: Date.now(),
+    };
+    sessionStorage.setItem('reception_cache_v1', JSON.stringify(cacheData));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function clearCache() {
+  try {
+    sessionStorage.removeItem('reception_cache_v1');
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function isCacheValid(cache) {
+  if (!cache || cache.version !== CACHE_VERSION) return false;
+  const age = Date.now() - cache.timestamp;
+  return age < CACHE_TTL;
+}
+
+function getCacheState(cache) {
+  if (!cache) return null;
+  return {
+    pending: cache.pending || [],
+    received: cache.received || [],
+    pendingPage: cache.pendingPage || 0,
+    receivedPage: cache.receivedPage || 0,
+    pendingTotalPages: cache.pendingTotalPages || 1,
+    receivedTotalPages: cache.receivedTotalPages || 1,
+    pendingTotalElements: cache.pendingTotalElements || 0,
+    receivedTotalElements: cache.receivedTotalElements || 0,
+    receivedTodayCount: cache.receivedTodayCount || 0,
+    searchQuery: cache.searchQuery || '',
+    dateFilter: cache.dateFilter || '',
+    customDateFrom: cache.customDateFrom || '',
+    customDateTo: cache.customDateTo || '',
+    showCustomDate: cache.showCustomDate || false,
+    recipientPositionFilter: cache.recipientPositionFilter || '',
+    organizationFilter: cache.organizationFilter || '',
+  };
+}
+
+function buildCacheState(state) {
+  return {
+    version: CACHE_VERSION,
+    timestamp: Date.now(),
+    pending: state.pending,
+    received: state.received,
+    pendingPage: state.pendingPage,
+    receivedPage: state.receivedPage,
+    pendingTotalPages: state.pendingTotalPages,
+    receivedTotalPages: state.receivedTotalPages,
+    pendingTotalElements: state.pendingTotalElements,
+    receivedTotalElements: state.receivedTotalElements,
+    receivedTodayCount: state.receivedTodayCount,
+    searchQuery: state.searchQuery,
+    dateFilter: state.dateFilter,
+    customDateFrom: state.customDateFrom,
+    customDateTo: state.customDateTo,
+    showCustomDate: state.showCustomDate,
+    recipientPositionFilter: state.recipientPositionFilter,
+    organizationFilter: state.organizationFilter,
+  };
+}
+
+// Helper to check if a delivery matches current filters
+function matchesFilters(delivery, filters) {
+  if (!delivery) return false;
+  
+  const { searchQuery, dateFilter, customDateFrom, customDateTo, recipientPositionFilter, organizationFilter } = filters;
+  
+  // Search query match
+  if (searchQuery) {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = 
+      (delivery.recipientName?.toLowerCase().includes(searchQuery)) ||
+      (delivery.organizationName?.toLowerCase().includes(searchQuery)) ||
+      (delivery.subject?.toLowerCase().includes(searchQuery)) ||
+      (delivery.deliveryPersonName?.toLowerCase().includes(searchQuery)) ||
+      (delivery.trackingNumber?.toLowerCase().includes(searchQuery)) ||
+      (delivery.referenceNumber?.toLowerCase().includes(searchQuery));
+    if (!matchesSearch) return false;
+  }
+  
+  // Recipient position filter
+  if (recipientPositionFilter && delivery.recipientTitle !== recipientPositionFilter) {
+    return false;
+  }
+  
+  // Organization filter
+  if (organizationFilter && delivery.organizationName !== organizationFilter) {
+    return false;
+  }
+  
+  // Date filter
+  if (dateFilter) {
+    const { from, to } = getDateRange(dateFilter);
+    const deliveredAt = new Date(delivery.deliveredAt);
+    if (from && deliveredAt < new Date(from)) return false;
+    if (to && deliveredAt > new Date(to)) return false;
+  }
+  
+  // Custom date range
+  if (customDateFrom || customDateTo) {
+    const deliveredAt = new Date(delivery.deliveredAt);
+    if (customDateFrom && deliveredAt < new Date(customDateFrom)) return false;
+    if (customDateTo && deliveredAt > new Date(customDateTo)) return false;
+  }
+  
+  return true;
+}
+
 export function ReceptionProvider({ children }) {
   const [pending, setPending] = useState([]);
   const [received, setReceived] = useState([]);
@@ -54,11 +194,9 @@ export function ReceptionProvider({ children }) {
   const [pendingTotalElements, setPendingTotalElements] = useState(0);
   const [receivedTotalElements, setReceivedTotalElements] = useState(0);
   const [receivedTodayCount, setReceivedTodayCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const [receivingId, setReceivingId] = useState(null);
-  const [activeTab, setActiveTab] = useState('pending');
+  
+  // Separate search input (immediate) from debounced search query (for API)
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [customDateFrom, setCustomDateFrom] = useState('');
@@ -67,12 +205,22 @@ export function ReceptionProvider({ children }) {
   const [recipientPositionFilter, setRecipientPositionFilter] = useState('');
   const [organizationFilter, setOrganizationFilter] = useState('');
   
-  // Request cancellation refs
-  const pendingAbortRef = useRef(null);
-  const receivedAbortRef = useRef(null);
+  // Timer refs for debouncing
   const searchTimeoutRef = useRef(null);
   const filterTimeoutRef = useRef(null);
-
+  const pendingAbortRef = useRef(null);
+  const receivedAbortRef = useRef(null);
+  
+  // Stable refs for load functions - avoid recreation on every render
+  const loadPendingRef = useRef(null);
+  const loadReceivedRef = useRef(null);
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [receivingId, setReceivingId] = useState(null);
+  const [activeTab, setActiveTab] = useState('pending');
+  
   // Stable filter values for API calls - use refs to avoid recreating callbacks
   const filtersRef = useRef({
     searchQuery: '',
@@ -83,13 +231,72 @@ export function ReceptionProvider({ children }) {
     organizationFilter: '',
   });
   
+  // Refs for WebSocket handler to access current state without causing re-renders
+  const stateRefs = useRef({
+    pending: [],
+    received: [],
+    pendingPage: 0,
+    receivedPage: 0,
+    pendingTotalPages: 1,
+    receivedTotalPages: 1,
+    pendingTotalElements: 0,
+    receivedTotalElements: 0,
+    receivedTodayCount: 0,
+    searchQuery: '',
+    dateFilter: '',
+    customDateFrom: '',
+    customDateTo: '',
+    showCustomDate: false,
+    recipientPositionFilter: '',
+    organizationFilter: '',
+    activeTab: 'pending',
+    pendingPage: 0,
+    receivedPage: 0,
+    pendingTotalPages: 1,
+    receivedTotalPages: 1,
+    pendingTotalElements: 0,
+    receivedTotalElements: 0,
+    receivedTodayCount: 0,
+    searchQuery: '',
+    dateFilter: '',
+    customDateFrom: '',
+    customDateTo: '',
+    showCustomDate: false,
+    recipientPositionFilter: '',
+    organizationFilter: '',
+  });
+
   // Keep refs in sync with state
-  useEffect(() => { filtersRef.current.searchQuery = searchQuery; }, [searchQuery]);
-  useEffect(() => { filtersRef.current.dateFilter = dateFilter; }, [dateFilter]);
-  useEffect(() => { filtersRef.current.customDateFrom = customDateFrom; }, [customDateFrom]);
-  useEffect(() => { filtersRef.current.customDateTo = customDateTo; }, [customDateTo]);
-  useEffect(() => { filtersRef.current.recipientPositionFilter = recipientPositionFilter; }, [recipientPositionFilter]);
-  useEffect(() => { filtersRef.current.organizationFilter = organizationFilter; }, [organizationFilter]);
+  useEffect(() => { stateRefs.current.pending = pending; }, [pending]);
+  useEffect(() => { stateRefs.current.received = received; }, [received]);
+  useEffect(() => { stateRefs.current.pendingPage = pendingPage; }, [pendingPage]);
+  useEffect(() => { stateRefs.current.receivedPage = receivedPage; }, [receivedPage]);
+  useEffect(() => { stateRefs.current.pendingTotalPages = pendingTotalPages; }, [pendingTotalPages]);
+  useEffect(() => { stateRefs.current.receivedTotalPages = receivedTotalPages; }, [receivedTotalPages]);
+  useEffect(() => { stateRefs.current.pendingTotalElements = pendingTotalElements; }, [pendingTotalElements]);
+  useEffect(() => { stateRefs.current.receivedTotalElements = receivedTotalElements; }, [receivedTotalElements]);
+  useEffect(() => { stateRefs.current.receivedTodayCount = receivedTodayCount; }, [receivedTodayCount]);
+  useEffect(() => { stateRefs.current.dateFilter = dateFilter; }, [dateFilter]);
+  useEffect(() => { stateRefs.current.customDateFrom = customDateFrom; }, [customDateFrom]);
+  useEffect(() => { stateRefs.current.customDateTo = customDateTo; }, [customDateTo]);
+  useEffect(() => { stateRefs.current.showCustomDate = showCustomDate; }, [showCustomDate]);
+  useEffect(() => { stateRefs.current.recipientPositionFilter = recipientPositionFilter; }, [recipientPositionFilter]);
+  useEffect(() => { stateRefs.current.organizationFilter = organizationFilter; }, [organizationFilter]);
+  useEffect(() => { stateRefs.current.activeTab = activeTab; }, [activeTab]);
+  useEffect(() => { stateRefs.current.pendingPage = pendingPage; }, [pendingPage]);
+  useEffect(() => { stateRefs.current.receivedPage = receivedPage; }, [receivedPage]);
+  useEffect(() => { stateRefs.current.pendingTotalPages = pendingTotalPages; }, [pendingTotalPages]);
+  useEffect(() => { stateRefs.current.receivedTotalPages = receivedTotalPages; }, [receivedTotalPages]);
+  useEffect(() => { stateRefs.current.pendingTotalElements = pendingTotalElements; }, [pendingTotalElements]);
+  useEffect(() => { stateRefs.current.receivedTotalElements = receivedTotalElements; }, [receivedTotalElements]);
+  useEffect(() => { stateRefs.current.receivedTodayCount = receivedTodayCount; }, [receivedTodayCount]);
+  useEffect(() => { stateRefs.current.searchQuery = searchQuery; }, [searchQuery]);
+  useEffect(() => { stateRefs.current.dateFilter = dateFilter; }, [dateFilter]);
+  useEffect(() => { stateRefs.current.customDateFrom = customDateFrom; }, [customDateFrom]);
+  useEffect(() => { stateRefs.current.customDateTo = customDateTo; }, [customDateTo]);
+  useEffect(() => { stateRefs.current.showCustomDate = showCustomDate; }, [showCustomDate]);
+  useEffect(() => { stateRefs.current.recipientPositionFilter = recipientPositionFilter; }, [recipientPositionFilter]);
+  useEffect(() => { stateRefs.current.organizationFilter = organizationFilter; }, [organizationFilter]);
 
   const getDateRangeFromRefs = useCallback(() => {
     const { dateFilter, customDateFrom, customDateTo } = filtersRef.current;
@@ -99,7 +306,7 @@ export function ReceptionProvider({ children }) {
     return getDateRange(dateFilter);
   }, []);
 
-  const buildApiParams = useCallback((page = 0) => {
+const buildApiParams = useCallback((page = 0) => {
     const { searchQuery, recipientPositionFilter, organizationFilter } = filtersRef.current;
     const { from, to } = getDateRangeFromRefs();
     const params = new URLSearchParams({ 
@@ -114,6 +321,7 @@ export function ReceptionProvider({ children }) {
     return params.toString();
   }, []);
 
+  // Stable load functions using useCallback with [] deps - read from refs for current values
   const loadPending = useCallback(async (page = 0, append = false, abortSignal) => {
     try {
       setError(null);
@@ -127,10 +335,32 @@ export function ReceptionProvider({ children }) {
       setPendingPage(data.page);
       setPendingTotalPages(data.totalPages);
       setPendingTotalElements(data.totalElements);
+      
+      // Update cache after successful fetch
+      if (!append && page === 0) {
+        setCache(buildCacheState({
+          pending: data.content,
+          received,
+          pendingPage: data.page,
+          receivedPage: receivedPage,
+          pendingTotalPages: data.totalPages,
+          receivedTotalPages: receivedTotalPages,
+          pendingTotalElements: data.totalElements,
+          receivedTotalElements: receivedTotalElements,
+          receivedTodayCount: receivedTodayCount,
+          searchQuery: searchQuery,
+          dateFilter: dateFilter,
+          customDateFrom: customDateFrom,
+          customDateTo: customDateTo,
+          showCustomDate: showCustomDate,
+          recipientPositionFilter: recipientPositionFilter,
+          organizationFilter: organizationFilter,
+        }));
+      }
     } catch (err) {
       if (err.name !== 'AbortError') setError(err.message);
     }
-  }, [buildApiParams]);
+  }, [buildApiParams, received, receivedPage, receivedTotalPages, receivedTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientPositionFilter, organizationFilter]);
 
   const loadReceived = useCallback(async (page = 0, append = false, abortSignal) => {
     try {
@@ -145,32 +375,86 @@ export function ReceptionProvider({ children }) {
       setReceivedPage(data.page);
       setReceivedTotalPages(data.totalPages);
       setReceivedTotalElements(data.totalElements);
+      
+      // Update cache after successful fetch
+      if (!append && page === 0) {
+        setCache(buildCacheState({
+          pending: pending,
+          received: data.content,
+          pendingPage: pendingPage,
+          receivedPage: data.page,
+          pendingTotalPages: pendingTotalPages,
+          receivedTotalPages: data.totalPages,
+          pendingTotalElements: pendingTotalElements,
+          receivedTotalElements: data.totalElements,
+          receivedTodayCount: receivedTodayCount,
+          searchQuery: searchQuery,
+          dateFilter: dateFilter,
+          customDateFrom: customDateFrom,
+          customDateTo: customDateTo,
+          showCustomDate: showCustomDate,
+          recipientPositionFilter: recipientPositionFilter,
+          organizationFilter: organizationFilter,
+        }));
+      }
     } catch (err) {
       if (err.name !== 'AbortError') setError(err.message);
     }
-  }, [buildApiParams]);
+  }, [buildApiParams, pending, pendingPage, pendingTotalPages, pendingTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientPositionFilter, organizationFilter]);
 
-  // Initial load - fetch both tabs in PARALLEL
+  // Initial load - check cache first, then fetch if needed
   useEffect(() => {
     let active = true;
     (async () => {
       if (!active) return;
       try {
-        setIsLoading(true);
-        await Promise.all([loadPending(0, false), loadReceived(0, false)]);
+        // Try to load from cache first
+        const cached = getCache();
+        const cachedState = getCacheState(cached);
+        const cacheValid = isCacheValid(cached);
+        
+        if (cachedState && cacheValid) {
+          // Restore from cache immediately - no loading spinner needed
+          setPending(cachedState.pending);
+          setReceived(cachedState.received);
+          setPendingPage(cachedState.pendingPage);
+          setReceivedPage(cachedState.receivedPage);
+          setPendingTotalPages(cachedState.pendingTotalPages);
+          setReceivedTotalPages(cachedState.receivedTotalPages);
+          setPendingTotalElements(cachedState.pendingTotalElements);
+          setReceivedTotalElements(cachedState.receivedTotalElements);
+          setReceivedTodayCount(cachedState.receivedTodayCount);
+          setSearchQuery(cachedState.searchQuery);
+          setDateFilter(cachedState.dateFilter);
+          setCustomDateFrom(cachedState.customDateFrom);
+          setCustomDateTo(cachedState.customDateTo);
+          setShowCustomDate(cachedState.showCustomDate);
+          setRecipientPositionFilter(cachedState.recipientPositionFilter);
+          setOrganizationFilter(cachedState.organizationFilter);
+          setIsLoading(false);
+          
+          // Stale-while-revalidate: refresh in background if cache is slightly stale
+          // (We consider cache "fresh" for the full TTL, then do background refresh)
+        } else {
+          // No valid cache - load from API
+          setIsLoading(true);
+          await Promise.all([loadPending(0, false), loadReceived(0, false)]);
+        }
       } catch (e) {
       } finally {
         if (active) setIsLoading(false);
       }
     })();
     return () => { active = false; };
-  }, [loadPending, loadReceived]);
+  }, []); // Run only once on mount
 
   // Debounced search - only affects active tab
+  // Debounced search - only affects active tab
   const handleSearch = useCallback((query) => {
-    setSearchQuery(query);
+    setSearchInput(query);
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => {
+      setSearchQuery(query);
       if (activeTab === 'pending') {
         setPendingPage(0);
         loadPending(0, false);
@@ -179,7 +463,7 @@ export function ReceptionProvider({ children }) {
         loadReceived(0, false);
       }
     }, 300);
-  }, [activeTab, loadPending, loadReceived]);
+  }, [activeTab]);
 
   // Filter handlers - only affect active tab, debounced
   const handleFilterChange = useCallback((setter, newValue) => {
@@ -194,7 +478,7 @@ export function ReceptionProvider({ children }) {
         loadReceived(0, false);
       }
     }, 150);
-  }, [activeTab, loadPending, loadReceived]);
+  }, [activeTab]);
 
   const handleDateFilterChange = useCallback((filter) => {
     setDateFilter(filter);
@@ -213,7 +497,7 @@ export function ReceptionProvider({ children }) {
         loadReceived(0, false);
       }
     }, 150);
-  }, [activeTab, loadPending, loadReceived]);
+  }, [activeTab]);
 
   const handleCustomDateChange = useCallback((from, to) => {
     setCustomDateFrom(from);
@@ -228,7 +512,7 @@ export function ReceptionProvider({ children }) {
         loadReceived(0, false);
       }
     }, 150);
-  }, [activeTab, loadPending, loadReceived]);
+  }, [activeTab]);
 
   const handleRecipientPositionFilterChange = useCallback((filter) => {
     handleFilterChange(setRecipientPositionFilter, filter);
@@ -256,12 +540,32 @@ export function ReceptionProvider({ children }) {
       });
       setReceivedTotalElements(prev => prev + 1);
       setReceivedTodayCount(prev => prev + 1);
+      
+      // Update cache after successful receive
+      setCache(buildCacheState({
+        pending: pending.filter(d => d.id !== id),
+        received: [...received, updatedDelivery],
+        pendingPage,
+        receivedPage,
+        pendingTotalPages,
+        receivedTotalPages,
+        pendingTotalElements: Math.max(0, pendingTotalElements - 1),
+        receivedTotalElements: receivedTotalElements + 1,
+        receivedTodayCount: receivedTodayCount + 1,
+        searchQuery,
+        dateFilter,
+        customDateFrom,
+        customDateTo,
+        showCustomDate,
+        recipientPositionFilter,
+        organizationFilter,
+      }));
     } catch (err) {
       setError(err.message);
     } finally {
       setReceivingId(null);
     }
-  }, []);
+  }, [pending, received, pendingPage, receivedPage, pendingTotalPages, receivedTotalPages, pendingTotalElements, receivedTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientPositionFilter, organizationFilter]);
 
   const clearMessages = useCallback(() => {
     setError(null);
@@ -270,61 +574,162 @@ export function ReceptionProvider({ children }) {
 
   const { subscribe } = useStomp();
 
-  // WebSocket event handler - use optimistic updates
+  // WebSocket event handler - re-fetch current page to maintain filter consistency
   useEffect(() => {
     console.log('Setting up WebSocket subscription for /topic/deliveries');
     const unsubscribe = subscribe('/topic/deliveries', (event) => {
       console.log('RECEIVED DELIVERY EVENT:', event);
       const { type, deliveryId, status, delivery } = event;
 
+      // Use refs to access current state without causing re-renders
+      const state = stateRefs.current;
+
       if (type === 'DELIVERY_CREATED' && delivery) {
-        // Optimistic insert for pending tab
-        if (activeTab === 'pending' && pendingPage === 0) {
+        // New delivery arrived - add to pending list if it matches current filters
+        const filters = {
+          searchQuery: state.searchQuery,
+          dateFilter: state.dateFilter,
+          customDateFrom: state.customDateFrom,
+          customDateTo: state.customDateTo,
+          recipientPositionFilter: state.recipientPositionFilter,
+          organizationFilter: state.organizationFilter,
+        };
+        
+        const matches = matchesFilters(delivery, filters);
+        
+        // Always update total count
+        setPendingTotalElements(prev => prev + 1);
+        
+        // Add to pending list if it matches current filters
+        // This ensures the new delivery appears immediately without requiring a filter change
+        if (matches) {
           setPending(prev => {
+            // Prevent duplicates
             if (prev.some(d => d.id === delivery.id)) return prev;
             return [delivery, ...prev];
           });
-          setPendingTotalElements(prev => prev + 1);
-        } else {
-          setPendingTotalElements(prev => prev + 1);
         }
+        
+        // Update cache for new delivery
+        setCache(buildCacheState({
+          pending: state.pending,
+          received: state.received,
+          pendingPage: state.pendingPage,
+          receivedPage: state.receivedPage,
+          pendingTotalPages: state.pendingTotalPages,
+          receivedTotalPages: state.receivedTotalPages,
+          pendingTotalElements: state.pendingTotalElements + 1,
+          receivedTotalElements: state.receivedTotalElements,
+          receivedTodayCount: state.receivedTodayCount,
+          searchQuery: state.searchQuery,
+          dateFilter: state.dateFilter,
+          customDateFrom: state.customDateFrom,
+          customDateTo: state.customDateTo,
+          showCustomDate: state.showCustomDate,
+          recipientPositionFilter: state.recipientPositionFilter,
+          organizationFilter: state.organizationFilter,
+        }));
       }
 
       if (type === 'DELIVERY_STATUS_CHANGED' && status === 'RECEIVED') {
-        // Remove from pending
+        // Letter received - remove from pending, add to received
         setPending(prev => prev.filter(d => d.id !== deliveryId));
         setPendingTotalElements(prev => Math.max(0, prev - 1));
         
-        // Add to received if we have the delivery data
+        // Add to received list
         if (delivery) {
           setReceived(prev => {
             if (prev.some(d => d.id === deliveryId)) return prev;
             return [delivery, ...prev];
           });
-          setReceivedTotalElements(prev => prev + 1);
-        } else {
-          setReceivedTotalElements(prev => prev + 1);
         }
+        
+        // Update totals
+        setPendingTotalElements(prev => Math.max(0, prev - 1));
+        setReceivedTotalElements(prev => prev + 1);
         setReceivedTodayCount(prev => prev + 1);
+        
+        // Update cache
+        setCache(buildCacheState({
+          pending: state.pending.filter(d => d.id !== deliveryId),
+          received: delivery ? [delivery, ...state.received] : state.received,
+          pendingPage: state.pendingPage,
+          receivedPage: state.receivedPage,
+          pendingTotalPages: state.pendingTotalPages,
+          receivedTotalPages: state.receivedTotalPages,
+          pendingTotalElements: Math.max(0, state.pendingTotalElements - 1),
+          receivedTotalElements: state.receivedTotalElements + 1,
+          receivedTodayCount: state.receivedTodayCount + 1,
+          searchQuery: state.searchQuery,
+          dateFilter: state.dateFilter,
+          customDateFrom: state.customDateFrom,
+          customDateTo: state.customDateTo,
+          showCustomDate: state.showCustomDate,
+          recipientPositionFilter: state.recipientPositionFilter,
+          organizationFilter: state.organizationFilter,
+        }));
+        
+        // Refresh received tab if it's active
+        if (state.activeTab === 'received') {
+          loadReceived(state.receivedPage, false);
+        }
       }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [subscribe, activeTab, pendingPage]);
+  }, [subscribe]); // Only depend on subscribe function
 
   const goToPendingPage = useCallback((page) => {
     if (page < 0 || page >= pendingTotalPages) return;
     setPendingPage(page);
     loadPending(page, false);
-  }, [loadPending, pendingTotalPages]);
+    // Update cache with new page
+    setCache(buildCacheState({
+      pending,
+      received,
+      pendingPage: page,
+      receivedPage,
+      pendingTotalPages,
+      receivedTotalPages,
+      pendingTotalElements,
+      receivedTotalElements,
+      receivedTodayCount,
+      searchQuery,
+      dateFilter,
+      customDateFrom,
+      customDateTo,
+      showCustomDate,
+      recipientPositionFilter,
+      organizationFilter,
+    }));
+  }, [pendingTotalPages, pending, received, pendingPage, receivedPage, pendingTotalPages, receivedTotalPages, pendingTotalElements, receivedTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientPositionFilter, organizationFilter]);
 
   const goToReceivedPage = useCallback((page) => {
     if (page < 0 || page >= receivedTotalPages) return;
     setReceivedPage(page);
     loadReceived(page, false);
-  }, [loadReceived, receivedTotalPages]);
+    // Update cache with new page
+    setCache(buildCacheState({
+      pending,
+      received,
+      pendingPage,
+      receivedPage: page,
+      pendingTotalPages,
+      receivedTotalPages,
+      pendingTotalElements,
+      receivedTotalElements,
+      receivedTodayCount,
+      searchQuery,
+      dateFilter,
+      customDateFrom,
+      customDateTo,
+      showCustomDate,
+      recipientPositionFilter,
+      organizationFilter,
+    }));
+  }, [receivedTotalPages, pending, received, pendingPage, receivedPage, pendingTotalPages, receivedTotalPages, pendingTotalElements, receivedTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientPositionFilter, organizationFilter]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -357,7 +762,9 @@ export function ReceptionProvider({ children }) {
     goToPendingPage,
     goToReceivedPage,
     searchQuery,
+    searchInput,
     setSearchQuery: handleSearch,
+    setSearchInput,
     dateFilter,
     setDateFilter: handleDateFilterChange,
     customDateFrom,
@@ -385,6 +792,7 @@ export function ReceptionProvider({ children }) {
     receivingId,
     activeTab,
     searchQuery,
+    searchInput,
     dateFilter,
     customDateFrom,
     customDateTo,

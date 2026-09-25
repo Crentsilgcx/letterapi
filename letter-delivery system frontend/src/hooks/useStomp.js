@@ -17,7 +17,7 @@ export function useStomp() {
 
     const client = new Client({
       webSocketFactory: () => {
-        console.log('[STOMP] Connecting to:', WS_URL);
+        console.log('Connecting STOMP WebSocket to:', WS_URL);
         return new WebSocket(WS_URL);
       },
 
@@ -31,7 +31,7 @@ export function useStomp() {
       },
 
       onConnect: (frame) => {
-        console.log('[STOMP] Connected:', frame);
+        console.log('STOMP connected:', frame);
 
         // Execute all pending subscriptions now that we're connected
         pendingSubscriptionsRef.current.forEach((handler, destination) => {
@@ -48,7 +48,7 @@ export function useStomp() {
                       stored.handler(event);
                     }
                   } catch (err) {
-                    console.error('[STOMP] Failed to parse message:', err);
+                    console.error('Failed to parse STOMP message:', err);
                   }
                 }
               );
@@ -57,9 +57,9 @@ export function useStomp() {
                 handler: pendingSubscriptionsRef.current.get(destination), 
                 unsubscribe: () => { if (subscription) subscription.unsubscribe(); } 
               });
-              console.log('[STOMP] Subscribed successfully to:', destination);
+              console.log('Subscribed successfully to:', destination);
             } catch (err) {
-              console.error('[STOMP] Failed to subscribe to:', destination, err);
+              console.error('Failed to subscribe to:', destination, err);
             }
           }
         });
@@ -68,19 +68,23 @@ export function useStomp() {
       },
 
       onStompError: (frame) => {
-        console.error('[STOMP] Error:', frame);
+        console.error('STOMP error:', frame);
       },
 
       onWebSocketError: (event) => {
-        console.error('[STOMP] WebSocket error:', event);
+        console.error('WebSocket error:', event);
       },
 
       onWebSocketClose: (event) => {
-        console.log('[STOMP] WebSocket closed:', event.code, event.reason);
+        console.log(
+          'WebSocket closed:',
+          event.code,
+          event.reason
+        );
       },
 
       onDisconnect: () => {
-        console.log('[STOMP] Disconnected');
+        console.log('STOMP disconnected');
       },
     });
 
@@ -115,21 +119,18 @@ export function useStomp() {
               const event = JSON.parse(message.body);
               handler(event);
             } catch (err) {
-              console.error('[STOMP] Failed to parse message:', err);
+              console.error('Failed to parse STOMP message:', err);
             }
           }
         );
-        subscriptionsRef.current.set(destination, { 
-          handler, 
-          unsubscribe: () => { if (subscription) subscription.unsubscribe(); } 
-        });
-        console.log('[STOMP] Subscribed successfully to:', destination);
+        subscriptionsRef.current.set(destination, { handler, unsubscribe: () => subscription.unsubscribe() });
+        console.log('Subscribed successfully to:', destination);
         pendingSubscriptionsRef.current.delete(destination);
       } catch (err) {
-        console.error('[STOMP] Failed to subscribe to:', destination, err);
+        console.error('Failed to subscribe to:', destination, err);
       }
     } else {
-      console.log('[STOMP] Not yet connected, queuing subscription for:', destination);
+      console.log('STOMP not yet connected, queuing subscription for:', destination);
     }
 
     // Return cleanup function

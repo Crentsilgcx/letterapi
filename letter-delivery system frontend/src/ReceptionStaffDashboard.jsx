@@ -226,7 +226,7 @@ const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId
 };
 
 const SearchFilterBar = ({ 
-  searchQuery, onSearchChange, 
+  searchInput, onSearchChange, 
   dateFilter, onDateFilterChange, 
   customDateFrom, customDateTo, onCustomDateFromChange, onCustomDateToChange, 
   showCustomDate, 
@@ -251,7 +251,7 @@ const SearchFilterBar = ({
           type="text"
           id="searchLetters"
           placeholder="Search letters..."
-          value={searchQuery}
+          value={searchInput}
           onChange={(e) => onSearchChange(e.target.value)}
           className="search-input"
         />
@@ -381,7 +381,9 @@ const ReceptionStaffDashboard = () => {
     goToPendingPage,
     goToReceivedPage,
     searchQuery,
+    searchInput,
     setSearchQuery,
+    setSearchInput,
     dateFilter,
     setDateFilter,
     customDateFrom,
@@ -423,8 +425,8 @@ const ReceptionStaffDashboard = () => {
         </div>
 
         <SearchFilterBar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+          searchQuery={searchInput}
+          onSearchChange={setSearchInput}
           dateFilter={dateFilter}
           onDateFilterChange={setDateFilter}
           customDateFrom={customDateFrom}

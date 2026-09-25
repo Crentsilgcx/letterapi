@@ -33,6 +33,14 @@ function clearCachedUser() {
   }
 }
 
+function clearReceptionCache() {
+  try {
+    sessionStorage.removeItem('reception_cache_v1');
+  } catch {
+    // ignore storage errors
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,6 +98,7 @@ export function AuthProvider({ children }) {
       await adminApi.logout();
     } finally {
       clearCachedUser();
+      clearReceptionCache();
       setUser(null);
       setIsAuthenticated(false);
     }
