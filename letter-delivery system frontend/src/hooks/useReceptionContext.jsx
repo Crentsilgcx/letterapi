@@ -11,15 +11,6 @@ const CACHE_KEY = 'reception_cache_v1';
 const CACHE_VERSION = 1;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-const DATE_FILTER_OPTIONS = [
-  { value: '', label: 'All Time' },
-  { value: 'today', label: 'Today' },
-  { value: '7days', label: 'Last 7 Days' },
-  { value: '30days', label: 'Last 30 Days' },
-  { value: 'thisMonth', label: 'This Month' },
-  { value: 'custom', label: 'Custom Range' },
-];
-
 function getDateRange(filter) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -52,7 +43,7 @@ function getDateRange(filter) {
 // Cache utility functions
 function getCache() {
   try {
-    const cached = sessionStorage.getItem('reception_cache_v1');
+    const cached = sessionStorage.getItem(CACHE_KEY);
     if (cached) {
       const parsed = JSON.parse(cached);
       if (parsed.version === CACHE_VERSION) {
@@ -72,15 +63,7 @@ function setCache(data) {
       version: CACHE_VERSION,
       timestamp: Date.now(),
     };
-    sessionStorage.setItem('reception_cache_v1', JSON.stringify(cacheData));
-  } catch {
-    // ignore storage errors
-  }
-}
-
-function clearCache() {
-  try {
-    sessionStorage.removeItem('reception_cache_v1');
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
   } catch {
     // ignore storage errors
   }
@@ -147,12 +130,12 @@ function matchesFilters(delivery, filters) {
   if (searchQuery) {
     const query = searchQuery.toLowerCase();
     const matchesSearch = 
-      (delivery.recipientName?.toLowerCase().includes(searchQuery)) ||
-      (delivery.organizationName?.toLowerCase().includes(searchQuery)) ||
-      (delivery.subject?.toLowerCase().includes(searchQuery)) ||
-      (delivery.deliveryPersonName?.toLowerCase().includes(searchQuery)) ||
-      (delivery.trackingNumber?.toLowerCase().includes(searchQuery)) ||
-      (delivery.referenceNumber?.toLowerCase().includes(searchQuery));
+      (delivery.recipientName?.toLowerCase().includes(query)) ||
+      (delivery.organizationName?.toLowerCase().includes(query)) ||
+      (delivery.subject?.toLowerCase().includes(query)) ||
+      (delivery.deliveryPersonName?.toLowerCase().includes(query)) ||
+      (delivery.trackingNumber?.toLowerCase().includes(query)) ||
+      (delivery.referenceNumber?.toLowerCase().includes(query));
     if (!matchesSearch) return false;
   }
   
@@ -211,10 +194,6 @@ export function ReceptionProvider({ children }) {
   const pendingAbortRef = useRef(null);
   const receivedAbortRef = useRef(null);
   
-  // Stable refs for load functions - avoid recreation on every render
-  const loadPendingRef = useRef(null);
-  const loadReceivedRef = useRef(null);
-  
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -230,6 +209,14 @@ export function ReceptionProvider({ children }) {
     recipientPositionFilter: '',
     organizationFilter: '',
   });
+
+  // Keep filtersRef in sync with filter state for API calls
+  useEffect(() => { filtersRef.current.searchQuery = searchQuery; }, [searchQuery]);
+  useEffect(() => { filtersRef.current.dateFilter = dateFilter; }, [dateFilter]);
+  useEffect(() => { filtersRef.current.customDateFrom = customDateFrom; }, [customDateFrom]);
+  useEffect(() => { filtersRef.current.customDateTo = customDateTo; }, [customDateTo]);
+  useEffect(() => { filtersRef.current.recipientPositionFilter = recipientPositionFilter; }, [recipientPositionFilter]);
+  useEffect(() => { filtersRef.current.organizationFilter = organizationFilter; }, [organizationFilter]);
   
   // Refs for WebSocket handler to access current state without causing re-renders
   const stateRefs = useRef({
@@ -250,39 +237,11 @@ export function ReceptionProvider({ children }) {
     recipientPositionFilter: '',
     organizationFilter: '',
     activeTab: 'pending',
-    pendingPage: 0,
-    receivedPage: 0,
-    pendingTotalPages: 1,
-    receivedTotalPages: 1,
-    pendingTotalElements: 0,
-    receivedTotalElements: 0,
-    receivedTodayCount: 0,
-    searchQuery: '',
-    dateFilter: '',
-    customDateFrom: '',
-    customDateTo: '',
-    showCustomDate: false,
-    recipientPositionFilter: '',
-    organizationFilter: '',
   });
 
   // Keep refs in sync with state
   useEffect(() => { stateRefs.current.pending = pending; }, [pending]);
   useEffect(() => { stateRefs.current.received = received; }, [received]);
-  useEffect(() => { stateRefs.current.pendingPage = pendingPage; }, [pendingPage]);
-  useEffect(() => { stateRefs.current.receivedPage = receivedPage; }, [receivedPage]);
-  useEffect(() => { stateRefs.current.pendingTotalPages = pendingTotalPages; }, [pendingTotalPages]);
-  useEffect(() => { stateRefs.current.receivedTotalPages = receivedTotalPages; }, [receivedTotalPages]);
-  useEffect(() => { stateRefs.current.pendingTotalElements = pendingTotalElements; }, [pendingTotalElements]);
-  useEffect(() => { stateRefs.current.receivedTotalElements = receivedTotalElements; }, [receivedTotalElements]);
-  useEffect(() => { stateRefs.current.receivedTodayCount = receivedTodayCount; }, [receivedTodayCount]);
-  useEffect(() => { stateRefs.current.dateFilter = dateFilter; }, [dateFilter]);
-  useEffect(() => { stateRefs.current.customDateFrom = customDateFrom; }, [customDateFrom]);
-  useEffect(() => { stateRefs.current.customDateTo = customDateTo; }, [customDateTo]);
-  useEffect(() => { stateRefs.current.showCustomDate = showCustomDate; }, [showCustomDate]);
-  useEffect(() => { stateRefs.current.recipientPositionFilter = recipientPositionFilter; }, [recipientPositionFilter]);
-  useEffect(() => { stateRefs.current.organizationFilter = organizationFilter; }, [organizationFilter]);
-  useEffect(() => { stateRefs.current.activeTab = activeTab; }, [activeTab]);
   useEffect(() => { stateRefs.current.pendingPage = pendingPage; }, [pendingPage]);
   useEffect(() => { stateRefs.current.receivedPage = receivedPage; }, [receivedPage]);
   useEffect(() => { stateRefs.current.pendingTotalPages = pendingTotalPages; }, [pendingTotalPages]);
@@ -297,6 +256,7 @@ export function ReceptionProvider({ children }) {
   useEffect(() => { stateRefs.current.showCustomDate = showCustomDate; }, [showCustomDate]);
   useEffect(() => { stateRefs.current.recipientPositionFilter = recipientPositionFilter; }, [recipientPositionFilter]);
   useEffect(() => { stateRefs.current.organizationFilter = organizationFilter; }, [organizationFilter]);
+  useEffect(() => { stateRefs.current.activeTab = activeTab; }, [activeTab]);
 
   const getDateRangeFromRefs = useCallback(() => {
     const { dateFilter, customDateFrom, customDateTo } = filtersRef.current;
@@ -440,7 +400,8 @@ const buildApiParams = useCallback((page = 0) => {
           setIsLoading(true);
           await Promise.all([loadPending(0, false), loadReceived(0, false)]);
         }
-      } catch (e) {
+      } catch {
+        // Ignore cache/init errors - UI will show empty state
       } finally {
         if (active) setIsLoading(false);
       }
@@ -541,16 +502,22 @@ const buildApiParams = useCallback((page = 0) => {
       setReceivedTotalElements(prev => prev + 1);
       setReceivedTodayCount(prev => prev + 1);
       
+      // Update total pages for consistency
+      const newPendingTotalElements = Math.max(0, pendingTotalElements - 1);
+      const newReceivedTotalElements = receivedTotalElements + 1;
+      setPendingTotalPages(Math.max(1, Math.ceil(newPendingTotalElements / DEFAULT_PAGE_SIZE)));
+      setReceivedTotalPages(Math.max(1, Math.ceil(newReceivedTotalElements / DEFAULT_PAGE_SIZE)));
+      
       // Update cache after successful receive
       setCache(buildCacheState({
         pending: pending.filter(d => d.id !== id),
         received: [...received, updatedDelivery],
         pendingPage,
         receivedPage,
-        pendingTotalPages,
-        receivedTotalPages,
-        pendingTotalElements: Math.max(0, pendingTotalElements - 1),
-        receivedTotalElements: receivedTotalElements + 1,
+        pendingTotalPages: Math.max(1, Math.ceil(newPendingTotalElements / DEFAULT_PAGE_SIZE)),
+        receivedTotalPages: Math.max(1, Math.ceil(newReceivedTotalElements / DEFAULT_PAGE_SIZE)),
+        pendingTotalElements: newPendingTotalElements,
+        receivedTotalElements: newReceivedTotalElements,
         receivedTodayCount: receivedTodayCount + 1,
         searchQuery,
         dateFilter,
@@ -600,25 +567,33 @@ const buildApiParams = useCallback((page = 0) => {
         // Always update total count
         setPendingTotalElements(prev => prev + 1);
         
+        // Compute new pending array for cache consistency
+        const newPendingTotalElements = state.pendingTotalElements + 1;
+        const newPendingTotalPages = Math.max(1, Math.ceil(newPendingTotalElements / DEFAULT_PAGE_SIZE));
+        const pendingExists = state.pending.some(d => d.id === delivery.id);
+        const newPending = matches && !pendingExists ? [delivery, ...state.pending] : state.pending;
+        
         // Add to pending list if it matches current filters
         // This ensures the new delivery appears immediately without requiring a filter change
         if (matches) {
           setPending(prev => {
-            // Prevent duplicates
             if (prev.some(d => d.id === delivery.id)) return prev;
             return [delivery, ...prev];
           });
         }
         
-        // Update cache for new delivery
+        // Update pendingTotalPages to stay consistent
+        setPendingTotalPages(newPendingTotalPages);
+        
+        // Update cache for new delivery with correct pending array
         setCache(buildCacheState({
-          pending: state.pending,
+          pending: newPending,
           received: state.received,
           pendingPage: state.pendingPage,
           receivedPage: state.receivedPage,
-          pendingTotalPages: state.pendingTotalPages,
+          pendingTotalPages: newPendingTotalPages,
           receivedTotalPages: state.receivedTotalPages,
-          pendingTotalElements: state.pendingTotalElements + 1,
+          pendingTotalElements: newPendingTotalElements,
           receivedTotalElements: state.receivedTotalElements,
           receivedTodayCount: state.receivedTodayCount,
           searchQuery: state.searchQuery,
@@ -644,21 +619,31 @@ const buildApiParams = useCallback((page = 0) => {
           });
         }
         
+        // Compute new arrays and totals for cache consistency
+        const newPendingTotalElements = Math.max(0, state.pendingTotalElements - 1);
+        const newReceivedTotalElements = state.receivedTotalElements + 1;
+        const newPendingTotalPages = Math.max(1, Math.ceil(newPendingTotalElements / DEFAULT_PAGE_SIZE));
+        const newReceivedTotalPages = Math.max(1, Math.ceil(newReceivedTotalElements / DEFAULT_PAGE_SIZE));
+        const newPending = state.pending.filter(d => d.id !== deliveryId);
+        const newReceived = delivery ? [delivery, ...state.received] : state.received;
+        
         // Update totals
         setPendingTotalElements(prev => Math.max(0, prev - 1));
         setReceivedTotalElements(prev => prev + 1);
         setReceivedTodayCount(prev => prev + 1);
+        setPendingTotalPages(newPendingTotalPages);
+        setReceivedTotalPages(newReceivedTotalPages);
         
-        // Update cache
+        // Update cache with correct arrays
         setCache(buildCacheState({
-          pending: state.pending.filter(d => d.id !== deliveryId),
-          received: delivery ? [delivery, ...state.received] : state.received,
+          pending: newPending,
+          received: newReceived,
           pendingPage: state.pendingPage,
           receivedPage: state.receivedPage,
-          pendingTotalPages: state.pendingTotalPages,
-          receivedTotalPages: state.receivedTotalPages,
-          pendingTotalElements: Math.max(0, state.pendingTotalElements - 1),
-          receivedTotalElements: state.receivedTotalElements + 1,
+          pendingTotalPages: newPendingTotalPages,
+          receivedTotalPages: newReceivedTotalPages,
+          pendingTotalElements: newPendingTotalElements,
+          receivedTotalElements: newReceivedTotalElements,
           receivedTodayCount: state.receivedTodayCount + 1,
           searchQuery: state.searchQuery,
           dateFilter: state.dateFilter,
