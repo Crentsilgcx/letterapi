@@ -110,4 +110,37 @@ public interface LetterDeliveryRepository extends JpaRepository<LetterDelivery, 
         @Param("dateFrom") LocalDateTime dateFrom,
         @Param("dateTo") LocalDateTime dateTo,
         Pageable pageable);
+
+    // Report queries - no pagination, returns all matching records
+    @Query("""
+        select d from LetterDelivery d
+        where (:status is null or d.status = :status)
+          and (:recipientPosition is null or :recipientPosition = '' or lower(d.recipientName) = lower(:recipientPosition))
+          and (:organization is null or :organization = '' or lower(d.organizationName) = lower(:organization))
+          and (:dateFrom is null or d.deliveredAt >= :dateFrom)
+          and (:dateTo is null or d.deliveredAt <= :dateTo)
+        order by d.deliveredAt desc
+        """)
+    List<LetterDelivery> findAllForReport(
+        @Param("status") DeliveryStatus status,
+        @Param("recipientPosition") String recipientPosition,
+        @Param("organization") String organization,
+        @Param("dateFrom") LocalDateTime dateFrom,
+        @Param("dateTo") LocalDateTime dateTo,
+        Pageable pageable);
+
+    @Query("""
+        select count(d) from LetterDelivery d
+        where (:status is null or d.status = :status)
+          and (:recipientPosition is null or :recipientPosition = '' or lower(d.recipientName) = lower(:recipientPosition))
+          and (:organization is null or :organization = '' or lower(d.organizationName) = lower(:organization))
+          and (:dateFrom is null or d.deliveredAt >= :dateFrom)
+          and (:dateTo is null or d.deliveredAt <= :dateTo)
+        """)
+    long countForReport(
+        @Param("status") DeliveryStatus status,
+        @Param("recipientPosition") String recipientPosition,
+        @Param("organization") String organization,
+        @Param("dateFrom") LocalDateTime dateFrom,
+        @Param("dateTo") LocalDateTime dateTo);
 }

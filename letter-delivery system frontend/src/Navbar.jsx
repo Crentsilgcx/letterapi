@@ -16,9 +16,14 @@ function Navbar() {
           <Link to="/delivery" className={location.pathname === '/delivery' ? 'active' : ''}>Delivery Staff</Link>
         </li>
         {hasReceptionAccess && (
-          <li>
-            <Link to="/reception" className={location.pathname.startsWith('/reception') ? 'active' : ''}>Reception Staff</Link>
-          </li>
+          <>
+            <li>
+              <Link to="/reception" className={location.pathname.startsWith('/reception') ? 'active' : ''}>Reception Staff</Link>
+            </li>
+            <li>
+              <Link to="/reports" className={location.pathname.startsWith('/reports') ? 'active' : ''}>Reports</Link>
+            </li>
+          </>
         )}
         {isAdmin && (
           <li>

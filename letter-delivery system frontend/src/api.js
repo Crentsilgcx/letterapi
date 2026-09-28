@@ -79,6 +79,54 @@ export const receptionApi = {
     body: JSON.stringify({ remarks }),
   }),
   getStatistics: () => fetchJson(`${RECEPTION_BASE}/statistics`),
+
+  // Reports
+  generateReport: (filters) => fetchJson(`${RECEPTION_BASE}/reports/generate`, {
+    method: 'POST',
+    body: JSON.stringify(filters),
+  }),
+  exportCsv: (filters) => {
+    const params = new URLSearchParams();
+    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.append('dateTo', filters.dateTo);
+    if (filters.organization) params.append('organization', filters.organization);
+    if (filters.recipientPosition) params.append('recipientPosition', filters.recipientPosition);
+    if (filters.status) params.append('status', filters.status);
+    return fetch(`${RECEPTION_BASE}/reports/export/csv?${params.toString()}`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    }).then(res => {
+      if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+      return res.blob();
+    });
+  },
+  exportExcel: (filters) => {
+    const params = new URLSearchParams();
+    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.append('dateTo', filters.dateTo);
+    if (filters.organization) params.append('organization', filters.organization);
+    if (filters.recipientPosition) params.append('recipientPosition', filters.recipientPosition);
+    if (filters.status) params.append('status', filters.status);
+    return fetch(`${RECEPTION_BASE}/reports/export/excel?${params.toString()}`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    }).then(res => {
+      if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+      return res.blob();
+    });
+  },
+  exportPdf: (filters) => {
+    const params = new URLSearchParams();
+    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.append('dateTo', filters.dateTo);
+    if (filters.organization) params.append('organization', filters.organization);
+    if (filters.recipientPosition) params.append('recipientPosition', filters.recipientPosition);
+    if (filters.status) params.append('status', filters.status);
+    return fetch(`${RECEPTION_BASE}/reports/export/pdf?${params.toString()}`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    }).then(res => {
+      if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+      return res.blob();
+    });
+  },
 };
 
 export const adminApi = {

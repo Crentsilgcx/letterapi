@@ -7,9 +7,9 @@ const STATUSES = [
   { value: 'false', label: 'Inactive' },
 ];
 
-function AdministrationPage({ initialTab }) {
+function AdministrationPage() {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState(initialTab || 'employees'); // 'employees' | 'organizations'
+  const [activeTab, setActiveTab] = useState('employees'); // 'employees' | 'organizations'
   
   // Employee state
   const [recipients, setRecipients] = useState([]);
@@ -62,8 +62,11 @@ function AdministrationPage({ initialTab }) {
   }, []);
 
   useEffect(() => {
-    loadRecipients();
-    loadOrganizations();
+    // Call async loaders inside an async IIFE to avoid synchronous setState calls
+    (async () => {
+      await loadRecipients();
+      await loadOrganizations();
+    })();
   }, [loadRecipients, loadOrganizations]);
 
   const filteredRecipients = recipients.filter(r => {
@@ -248,8 +251,7 @@ function AdministrationPage({ initialTab }) {
   const currentFiltered = activeTab === 'employees' ? filteredRecipients : filteredOrganizations;
   const activeCount = activeTab === 'employees' ? activeRecipientCount : activeOrgCount;
   const inactiveCount = activeTab === 'employees' ? inactiveRecipientCount : inactiveOrgCount;
-  const recipientCount = recipients.length;
-  const organizationCount = organizations.length;
+  const totalCount = activeTab === 'employees' ? recipients.length : organizations.length;
 
   return (
     <div className="container">
@@ -277,13 +279,13 @@ function AdministrationPage({ initialTab }) {
             className={`btn ${activeTab === 'employees' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => { setActiveTab('employees'); setSearchQuery(''); setStatusFilter('true'); }}
           >
-            Employees ({recipientCount})
+            Employees ({recipients.length})
           </button>
           <button
             className={`btn ${activeTab === 'organizations' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => { setActiveTab('organizations'); setSearchQuery(''); setStatusFilter('true'); }}
           >
-            Organizations ({organizationCount})
+            Organizations ({organizations.length})
           </button>
         </div>
 
@@ -360,7 +362,7 @@ function AdministrationPage({ initialTab }) {
               ) : currentFiltered.length === 0 ? (
                 <tr>
                   <td colSpan={activeTab === 'employees' ? 5 : 3} className="empty">
-                    {(activeTab === 'employees' ? recipientCount : organizationCount) === 0
+                    {totalCount === 0
                       ? `No ${activeTab === 'employees' ? 'employees' : 'organizations'} registered yet. Click "Add ${activeTab === 'employees' ? 'Employee' : 'Organization'}" to get started.`
                       : 'No results match your search/filters.'}
                   </td>

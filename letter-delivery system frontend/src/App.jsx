@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import DeliveryPersonHomepage from './DeliveryPersonHomepage';
 import ReceptionDashboard from './ReceptionDashboard';
 import AdminLoginPage from './AdminLoginPage';
+import ReportsPage from './ReportsPage';
 import ProtectedRoute from './ProtectedRoute';
 import { AuthProvider } from './AuthContext';
 import { ReceptionProvider } from './hooks/useReceptionContext';
@@ -20,6 +21,14 @@ function AppRoutes() {
           <ReceptionProvider>
             <ReceptionDashboard />
           </ReceptionProvider>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute requiredRoles={['ADMIN', 'RECEPTIONIST']}>
+            <ReportsPage />
+          </ProtectedRoute>
         }
       />
       <Route path="/admin/login" element={<AdminLoginPage />} />
