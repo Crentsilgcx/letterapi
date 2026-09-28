@@ -201,6 +201,8 @@ export function ReceptionProvider({ children }) {
   const filterTimeoutRef = useRef(null);
   const pendingAbortRef = useRef(null);
   const receivedAbortRef = useRef(null);
+  const loadPendingRef = useRef(null);
+  const loadReceivedRef = useRef(null);
   // A response started before a real-time update must not replace that update.
   // These also keep stale responses from writing older cache snapshots.
   const pendingRealtimeRevisionRef = useRef(0);
@@ -211,7 +213,26 @@ export function ReceptionProvider({ children }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [receivingId, setReceivingId] = useState(null);
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTabState] = useState('pending');
+
+  // Wrapped setActiveTab that reloads the newly active tab with current filters
+  const setActiveTab = useCallback((tab) => {
+    setActiveTabState(tab);
+    // Reload the newly active tab with current filters
+    if (tab === 'pending') {
+      if (pendingAbortRef.current) pendingAbortRef.current.abort();
+      const controller = new AbortController();
+      pendingAbortRef.current = controller;
+      setPendingPage(0);
+      loadPendingRef.current?.(0, false, controller.signal);
+    } else if (tab === 'received') {
+      if (receivedAbortRef.current) receivedAbortRef.current.abort();
+      const controller = new AbortController();
+      receivedAbortRef.current = controller;
+      setReceivedPage(0);
+      loadReceivedRef.current?.(0, false, controller.signal);
+    }
+  }, []);
   
   // Stable filter values for API calls - use refs to avoid recreating callbacks
   const filtersRef = useRef({
@@ -337,6 +358,9 @@ const buildApiParams = useCallback((page = 0) => {
     }
   }, [buildApiParams, received, receivedPage, receivedTotalPages, receivedTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientPositionFilter, organizationFilter]);
 
+  // Store loadPending in ref for use in setActiveTab (avoids circular dependency)
+  useEffect(() => { loadPendingRef.current = loadPending; }, [loadPending]);
+
   const loadReceived = useCallback(async (page = 0, append = false, abortSignal, overrideParams) => {
     const requestRealtimeRevision = receivedRealtimeRevisionRef.current;
     try {
@@ -379,6 +403,9 @@ const buildApiParams = useCallback((page = 0) => {
     }
   }, [buildApiParams, pending, pendingPage, pendingTotalPages, pendingTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientPositionFilter, organizationFilter]);
 
+  // Store loadReceived in ref for use in setActiveTab
+  useEffect(() => { loadReceivedRef.current = loadReceived; }, [loadReceived]);
+
   // Initial load - check cache first, then fetch if needed
   useEffect(() => {
     let active = true;
@@ -410,8 +437,10 @@ const buildApiParams = useCallback((page = 0) => {
           setOrganizationFilter(cachedState.organizationFilter);
           setIsLoading(false);
           
-          // Stale-while-revalidate: refresh in background if cache is slightly stale
-          // (We consider cache "fresh" for the full TTL, then do background refresh)
+          // Background refresh: always fetch fresh data after cache restore
+          // This ensures received tab has data even if cache was empty
+          loadPending(0, false);
+          loadReceived(0, false);
         } else {
           // No valid cache - load from API
           setIsLoading(true);
