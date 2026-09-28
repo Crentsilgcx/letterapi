@@ -31,14 +31,22 @@ export function useStomp() {
       },
 
       onConnect: (frame) => {
+        // React Strict Mode can finish connecting a client that has already
+        // been replaced during its development-only remount. That stale client
+        // must not consume the active client's queued subscriptions.
+        if (clientRef.current !== client) {
+          console.log('Ignoring STOMP connection from an inactive client');
+          return;
+        }
+
         console.log('STOMP connected:', frame);
 
         // Execute all pending subscriptions now that we're connected
         pendingSubscriptionsRef.current.forEach((handler, destination) => {
-          if (clientRef.current?.connected) {
+          if (client.connected) {
             let subscription = null;
             try {
-              subscription = clientRef.current.subscribe(
+              subscription = client.subscribe(
                 destination,
                 (message) => {
                   try {
@@ -54,17 +62,16 @@ export function useStomp() {
               );
               // Store subscription with unsubscribe function - subscription is in scope here
               subscriptionsRef.current.set(destination, { 
-                handler: pendingSubscriptionsRef.current.get(destination), 
+                handler,
                 unsubscribe: () => { if (subscription) subscription.unsubscribe(); } 
               });
+              pendingSubscriptionsRef.current.delete(destination);
               console.log('Subscribed successfully to:', destination);
             } catch (err) {
               console.error('Failed to subscribe to:', destination, err);
             }
           }
         });
-        // Clear pending after processing
-        pendingSubscriptionsRef.current.clear();
       },
 
       onStompError: (frame) => {
@@ -98,8 +105,12 @@ export function useStomp() {
     if (client) {
       await client.deactivate();
     }
-    subscriptionsRef.current.clear();
-    pendingSubscriptionsRef.current.clear();
+    // Do not let an asynchronously disconnecting, superseded client erase
+    // subscriptions queued by the replacement client (React Strict Mode).
+    if (clientRef.current === null) {
+      subscriptionsRef.current.clear();
+      pendingSubscriptionsRef.current.clear();
+    }
   }, []);
 
   const subscribe = useCallback((destination, handler) => {
