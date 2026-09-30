@@ -13,17 +13,17 @@ function Navbar() {
       <Link to="/" className="nav-brand" aria-label="Letter Delivery Home">Letter Delivery</Link>
       <ul className="nav-links">
         <li>
-          <Link to="/delivery" className={location.pathname === '/delivery' ? 'active' : ''}>Delivery Staff</Link>
+          <Link to="/delivery" className={location.pathname === '/delivery' ? 'active' : ''}>Delivery</Link>
         </li>
         {hasReceptionAccess && (
-          <>
-            <li>
-              <Link to="/reception" className={location.pathname.startsWith('/reception') ? 'active' : ''}>Reception Staff</Link>
-            </li>
-            <li>
-              <Link to="/reports" className={location.pathname.startsWith('/reports') ? 'active' : ''}>Reports</Link>
-            </li>
-          </>
+          <li>
+            <Link
+              to="/reception/dashboard"
+              className={location.pathname.startsWith('/reception') ? 'active' : ''}
+            >
+              Reception
+            </Link>
+          </li>
         )}
         {isAdmin && (
           <li>

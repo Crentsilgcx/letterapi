@@ -59,20 +59,15 @@ const DeliveryCard = ({ delivery, onReceive, receivingId, showAction = true }) =
       
       <div className="delivery-card-body">
         <div className="delivery-card-row">
-          <span className="delivery-card-label">Subject:</span>
+          <span className="delivery-card-label">Reference:</span>
           <span className="delivery-card-value">
-            <strong>{delivery.subject || '—'}</strong>
-            {delivery.referenceNumber && <span className="muted"> (Ref: {delivery.referenceNumber})</span>}
+            <strong>{delivery.trackingNumber || '—'}</strong>
           </span>
         </div>
         <div className="delivery-card-row">
           <span className="delivery-card-label">Organization:</span>
           <span className="delivery-card-value">
             <strong>{delivery.organizationName || '—'}</strong>
-            {delivery.organizationAddress && <br />}
-            {delivery.organizationAddress && (
-              <span className="muted">{delivery.organizationAddress}</span>
-            )}
           </span>
         </div>
         <div className="delivery-card-row">
@@ -132,7 +127,7 @@ const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId
             <tr>
               <th>Recipient Position</th>
               <th>Organization</th>
-              <th>Subject</th>
+              <th>Reference</th>
               <th>Delivery Person</th>
               <th>Date</th>
               {showAction && <th>Action</th>}
@@ -146,15 +141,9 @@ const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId
                 </td>
                 <td>
                   <strong>{d.organizationName || '—'}</strong>
-                  {d.organizationAddress && <br />}
-                  {d.organizationAddress && (
-                    <span className="muted">{d.organizationAddress}</span>
-                  )}
                 </td>
                 <td>
-                  <strong>{d.subject || '—'}</strong>
-                  {d.referenceNumber && <br />}
-                  {d.referenceNumber && <span className="muted">Ref: {d.referenceNumber}</span>}
+                  <strong>{d.trackingNumber || '—'}</strong>
                 </td>
                 <td>
                   <span className="muted">{d.deliveryPersonName || '—'}</span>

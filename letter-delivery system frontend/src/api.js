@@ -81,10 +81,17 @@ export const receptionApi = {
   getStatistics: () => fetchJson(`${RECEPTION_BASE}/statistics`),
 
   // Reports
-  generateReport: (filters) => fetchJson(`${RECEPTION_BASE}/reports/generate`, {
-    method: 'POST',
-    body: JSON.stringify(filters),
-  }),
+  generateReport: (filters) => {
+    const params = new URLSearchParams();
+    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.append('dateTo', filters.dateTo);
+    if (filters.organization) params.append('organization', filters.organization);
+    if (filters.recipientPosition) params.append('recipientPosition', filters.recipientPosition);
+    if (filters.status) params.append('status', filters.status);
+    return fetchJson(`${RECEPTION_BASE}/reports/generate?${params.toString()}`, {
+      method: 'POST',
+    });
+  },
   exportCsv: (filters) => {
     const params = new URLSearchParams();
     if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);

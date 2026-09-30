@@ -1,32 +1,25 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from './useForm';
-import { deliveryApi, adminApi } from '../api';
+import { deliveryApi } from '../api';
 
 const initialValues = {
   deliveryPersonId: '',
   fullName: '',
   phone: '',
   email: '',
-  organizationId: '',
   organizationName: '',
   recipientRole: '',
-  subject: '',
-  referenceNumber: '',
-  description: '',
 };
 
 const validate = (values, isNewPerson) => {
   const errors = {};
-  if (!values.recipientRole) errors.recipientRole = 'Recipient role is required';
-  if (!values.subject?.trim()) errors.subject = 'Subject is required';
+  if (!values.recipientRole) errors.recipientRole = 'Recipient position is required';
   if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
     errors.email = 'Invalid email format';
   }
   if (values.phone && values.phone.length > 60) errors.phone = 'Phone too long (max 60)';
   if (values.fullName && values.fullName.length > 160) errors.fullName = 'Name too long (max 160)';
-  if (values.subject && values.subject.length > 250) errors.subject = 'Subject too long (max 250)';
-  if (values.referenceNumber && values.referenceNumber.length > 120) errors.referenceNumber = 'Reference too long (max 120)';
-  if (values.description && values.description.length > 5000) errors.description = 'Description too long (max 5000)';
+  if (values.organizationName && values.organizationName.length > 180) errors.organizationName = 'Organization name too long (max 180)';
   
   if (isNewPerson) {
     if (!values.fullName?.trim()) errors.fullName = 'Delivery person name is required';
@@ -39,7 +32,6 @@ const validate = (values, isNewPerson) => {
 
 export function useDeliveryForm() {
   const [recipientRoles, setRecipientRoles] = useState([]);
-  const [organizations, setOrganizations] = useState([]);
   const [deliveryPersons, setDeliveryPersons] = useState([]);
   const [isCreatingPerson, setIsCreatingPerson] = useState(false);
 
@@ -51,7 +43,6 @@ export function useDeliveryForm() {
 
   useEffect(() => {
     deliveryApi.getRecipientRoles().then(setRecipientRoles).catch(() => {});
-    deliveryApi.getOrganizations().then(setOrganizations).catch(() => {});
     fetchDeliveryPersons();
   }, [fetchDeliveryPersons]);
 
@@ -78,12 +69,8 @@ export function useDeliveryForm() {
       fullName: isNew ? values.fullName.trim() : (values.fullName || null),
       phone: isNew ? (values.phone || null) : (values.phone || null),
       email: isNew ? (values.email || null) : (values.email || null),
-      organizationId: isNew ? (values.organizationId ? Number(values.organizationId) : null) : (values.organizationId ? Number(values.organizationId) : null),
       organizationName: isNew ? (values.organizationName || null) : (values.organizationName || null),
       recipientRole: values.recipientRole,
-      subject: values.subject.trim(),
-      referenceNumber: values.referenceNumber || null,
-      description: values.description || null,
     };
     
     setIsCreatingPerson(true);
@@ -102,7 +89,6 @@ export function useDeliveryForm() {
       form.setFieldValue('fullName', '');
       form.setFieldValue('phone', '');
       form.setFieldValue('email', '');
-      form.setFieldValue('organizationId', '');
       form.setFieldValue('organizationName', '');
     } else if (value) {
       const person = deliveryPersons.find(p => String(p.id) === String(value));
@@ -110,7 +96,6 @@ export function useDeliveryForm() {
         form.setFieldValue('fullName', person.fullName || '');
         form.setFieldValue('phone', person.phone || '');
         form.setFieldValue('email', person.email || '');
-        form.setFieldValue('organizationId', person.organizationId ? String(person.organizationId) : '');
         form.setFieldValue('organizationName', person.organizationName || '');
       }
     }
@@ -132,7 +117,6 @@ export function useDeliveryForm() {
   return {
     ...form,
     recipientRoles,
-    organizations,
     deliveryPersons,
     selectedPerson,
     isNewPerson: isNewPerson(),

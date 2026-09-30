@@ -158,7 +158,7 @@ const DeliveryTable = ({
               <tr>
                 <th>External Organization</th>
                 <th>Recipient</th>
-                <th>Letter Subject</th>
+                <th>Reference</th>
                 <th>Delivered</th>
                 <th>Received</th>
                 {showAction && <th>Action</th>}
@@ -175,8 +175,7 @@ const DeliveryTable = ({
                     <span className="muted">{d.recipientTitle || ''}</span>
                   </td>
                   <td>
-                    <strong>{d.subject}</strong><br />
-                    {d.referenceNumber && <span className="muted">Ref: {d.referenceNumber}</span>}
+                    <strong>{d.trackingNumber}</strong>
                   </td>
                   <td className="nowrap">{formatDate(d.deliveredAt)}</td>
                   <td className="nowrap">{d.receivedAt ? formatDate(d.receivedAt) : <span className="muted">—</span>}</td>
@@ -221,8 +220,8 @@ const DeliveryTable = ({
                 <span className="delivery-card-value"><strong>{d.recipientName}</strong>{d.recipientTitle && <span className="muted"> — {d.recipientTitle}</span>}</span>
               </div>
               <div className="delivery-card-row delivery-card-subject">
-                <span className="delivery-card-label">Subject:</span>
-                <span className="delivery-card-value"><strong>{d.subject}</strong>{d.referenceNumber && <span className="muted"> (Ref: {d.referenceNumber})</span>}</span>
+                <span className="delivery-card-label">Reference:</span>
+                <span className="delivery-card-value"><strong>{d.trackingNumber}</strong></span>
               </div>
               <div className="delivery-card-row">
                 <span className="delivery-card-label">Delivered:</span>

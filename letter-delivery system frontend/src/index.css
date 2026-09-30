@@ -1755,6 +1755,63 @@ tr:hover td {
   border-bottom-color: #4CAF50;
 }
 
+
+
+/* Reception Sub-Navigation */
+.reception-subnav {
+  background: #fff;
+  border-bottom: 1px solid #e5e5e5;
+  padding: 0 20px;
+  margin: 0 -20px 24px -20px;
+}
+
+.reception-subnav-list {
+    justify-content: center;
+    display: flex;
+    gap: 4px;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 12px 0;
+}
+.reception-subnav-link {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+
+.reception-subnav-link:hover {
+  color: #1a1a1a;
+}
+
+.reception-subnav-link.active {
+  color: #4CAF50;
+  border-bottom-color: #4CAF50;
+}
+
+@media (max-width: 768px) {
+  .reception-subnav {
+    padding: 0 12px;
+    margin: 0 -12px 16px -12px;
+  }
+  
+  .reception-subnav-list {
+    padding: 8px 0;
+    gap: 2px;
+  }
+  
+  .reception-subnav-link {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+}
+
 /* Operations Tabs */
 .operations-tabs {
   display: flex;

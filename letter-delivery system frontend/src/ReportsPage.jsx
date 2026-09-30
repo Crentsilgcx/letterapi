@@ -308,13 +308,12 @@ const ReportsPage = () => {
                   <thead>
                     <tr>
                       <th>ID</th>
-                      <th>Tracking #</th>
+                      <th>Reference</th>
                       <th>Status</th>
                       <th>Delivery Person</th>
                       <th>Organization</th>
                       <th>Recipient</th>
                       <th>Subject</th>
-                      <th>Ref #</th>
                       <th>Delivered</th>
                       <th>Received</th>
                       <th>Received By</th>
@@ -337,7 +336,6 @@ const ReportsPage = () => {
                           {record.recipientTitle && <span className="muted"> ({record.recipientTitle})</span>}
                         </td>
                         <td>{record.subject}</td>
-                        <td>{record.referenceNumber || '—'}</td>
                         <td className="nowrap">{formatDateTime(record.deliveredAt)}</td>
                         <td className="nowrap">{record.receivedAt ? formatDateTime(record.receivedAt) : <span className="muted">—</span>}</td>
                         <td>{record.receivedBy || <span className="muted">—</span>}</td>

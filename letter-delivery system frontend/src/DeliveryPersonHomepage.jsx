@@ -8,9 +8,7 @@ const initialValues = {
   phone: '',
   email: '',
   organizationName: '',
-  organizationAddress: '',
   recipientPosition: '',
-  subject: '',
 };
 
 const validate = (values) => {
@@ -18,11 +16,8 @@ const validate = (values) => {
   if (!values.deliveryPersonName?.trim()) errors.deliveryPersonName = 'Delivery person name is required';
   if (values.phone && values.phone.length > 60) errors.phone = 'Phone too long (max 60)';
   if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) errors.email = 'Enter a valid email address';
-  if (!values.organizationName?.trim()) errors.organizationName = 'Organization name is required';
   if (values.organizationName && values.organizationName.length > 180) errors.organizationName = 'Organization name too long (max 180 characters)';
-  if (values.organizationAddress && values.organizationAddress.length > 250) errors.organizationAddress = 'Organization address too long (max 250 characters)';
   if (!values.recipientPosition) errors.recipientPosition = 'Recipient position is required';
-  if (values.subject && values.subject.length > 250) errors.subject = 'Subject too long (max 250 characters)';
   return errors;
 };
 
@@ -117,12 +112,8 @@ function DeliveryPersonHomepage() {
         fullName: values.deliveryPersonName.trim(),
         phone: values.phone?.trim() || null,
         email: values.email?.trim() || null,
-        organizationName: values.organizationName.trim(),
-        organizationAddress: values.organizationAddress?.trim() || null,
+        organizationName: values.organizationName?.trim() || null,
         recipientPosition: values.recipientPosition,
-        subject: values.subject?.trim() || null,
-        referenceNumber: null,
-        description: `Organization: ${values.organizationName.trim()}\nOrganization Address: ${values.organizationAddress?.trim() || 'N/A'}\nRecipient Position: ${values.recipientPosition}`,
       };
 
       const response = await deliveryApi.createDelivery(payload);
@@ -142,8 +133,11 @@ function DeliveryPersonHomepage() {
     <div className="container">
       <div className="form-card">
         <div className="card-header">
-          <h2 className="card-title">Delivery Person</h2>
+          <div>
+              <h2 className="card-title">Delivery Person</h2>
           <p className="card-subtitle">Submit a new delivery</p>
+          </div>
+          
         </div>
 
         {submitMessage && (
@@ -231,7 +225,7 @@ function DeliveryPersonHomepage() {
 
           <div className="form-row">
             <div className="field">
-              <label htmlFor="organizationName">Organization Name *</label>
+              <label htmlFor="organizationName">Organization Name</label>
               <input
                 type="text"
                 id="organizationName"
@@ -239,43 +233,10 @@ function DeliveryPersonHomepage() {
                 value={values.organizationName}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                placeholder="Organization name"
+                placeholder="Organization name (optional)"
                 maxLength={180}
-                required
               />
               {errors.organizationName && <span className="field-error">{errors.organizationName}</span>}
-            </div>
-
-            <div className="field">
-              <label htmlFor="organizationAddress">Organization Address</label>
-              <input
-                type="text"
-                id="organizationAddress"
-                name="organizationAddress"
-                value={values.organizationAddress}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Organization address (optional)"
-                maxLength={250}
-              />
-              {errors.organizationAddress && <span className="field-error">{errors.organizationAddress}</span>}
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="field">
-              <label htmlFor="subject">Letter Subject</label>
-              <input
-                type="text"
-                id="subject"
-                name="subject"
-                value={values.subject}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Enter letter subject (optional)"
-                maxLength={250}
-              />
-              {errors.subject && <span className="field-error">{errors.subject}</span>}
             </div>
           </div>
 

@@ -16,6 +16,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 public class LetterDelivery {
     @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
     @Version private long version;
+    // Unified reference/tracking code for the letter (e.g., REF-2026-7K4P92)
     @Column(name="tracking_number", unique=true, nullable=false, length=40) private String trackingNumber;
     @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="delivery_person_id") private DeliveryPerson deliveryPerson;
     @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="organization_id") private Organization organization;
@@ -23,11 +24,13 @@ public class LetterDelivery {
     @Column(name="delivery_person_name", nullable=false, length=160) private String deliveryPersonName;
     @Column(name="delivery_person_phone", length=60) private String deliveryPersonPhone;
     @Column(name="delivery_person_email", length=180) private String deliveryPersonEmail;
-    @Column(name="organization_name", nullable=false, length=180) private String organizationName;
+    @Column(name="organization_name", length=180) private String organizationName;
     @Column(name="organization_address", length=250) private String organizationAddress;
     @Column(name="recipient_name", nullable=false, length=160) private String recipientName;
     @Column(name="recipient_title", length=160) private String recipientTitle;
-    @Column(nullable=false, length=250) private String subject;
+    // Legacy field - nullable for new deliveries, kept for historical data
+    @Column(length=250) private String subject;
+    // Legacy field - kept for historical data, not used for new deliveries
     @Column(name="reference_number", length=120) private String referenceNumber;
     @Column(columnDefinition="TEXT") private String description;
     @Enumerated(EnumType.STRING) @Column(nullable=false, length=30) private DeliveryStatus status;

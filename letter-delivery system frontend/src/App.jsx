@@ -8,6 +8,7 @@ import { AuthProvider } from './AuthContext';
 import { ReceptionProvider } from './hooks/useReceptionContext';
 import Navbar from './Navbar';
 import HomePage from './HomePage';
+import ReceptionLayout from './ReceptionLayout';
 import './index.css';
 
 function AppRoutes() {
@@ -19,18 +20,21 @@ function AppRoutes() {
         path="/reception"
         element={
           <ReceptionProvider>
-            <ReceptionDashboard />
+            <ReceptionLayout />
           </ReceptionProvider>
         }
-      />
-      <Route
-        path="/reports"
-        element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'RECEPTIONIST']}>
-            <ReportsPage />
-          </ProtectedRoute>
-        }
-      />
+      >
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<ReceptionDashboard />} />
+        <Route
+          path="record"
+          element={
+            <ProtectedRoute requiredRoles={['ADMIN', 'RECEPTIONIST']}>
+              <ReportsPage />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route
         path="/admin/*"

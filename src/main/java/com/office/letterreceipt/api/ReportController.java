@@ -34,26 +34,48 @@ public class ReportController {
     }
 
     @PostMapping("/generate")
-    public ReportResponse generateReport(@RequestBody ReportRequest request) {
+    public ReportResponse generateReport(
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo,
+            @RequestParam(required = false) String organization,
+            @RequestParam(required = false) String recipientPosition,
+            @RequestParam(required = false) String status) {
+
+        ReportRequest request = buildRequest(dateFrom, dateTo, organization, recipientPosition, status);
         LocalDateTime generatedAt = LocalDateTime.now();
 
         // Build pageable for large result set (up to MAX_REPORT_RECORDS)
         var pageable = PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt"));
 
-        List<LetterDelivery> records = deliveries.findAllForReport(
-                request.status(),
-                request.recipientPosition(),
-                request.organization(),
-                request.dateFrom(),
-                request.dateTo(),
-                pageable);
-
-        long totalRecords = deliveries.countForReport(
-                request.status(),
-                request.recipientPosition(),
-                request.organization(),
-                request.dateFrom(),
-                request.dateTo());
+        List<LetterDelivery> records;
+        long totalRecords;
+        if ("Other".equalsIgnoreCase(organization)) {
+            records = deliveries.findAllForReportOtherOrganizations(
+                    request.status(),
+                    request.recipientPosition(),
+                    request.dateFrom(),
+                    request.dateTo(),
+                    pageable);
+            totalRecords = deliveries.countForReportOtherOrganizations(
+                    request.status(),
+                    request.recipientPosition(),
+                    request.dateFrom(),
+                    request.dateTo());
+        } else {
+            records = deliveries.findAllForReport(
+                    request.status(),
+                    request.recipientPosition(),
+                    request.organization(),
+                    request.dateFrom(),
+                    request.dateTo(),
+                    pageable);
+            totalRecords = deliveries.countForReport(
+                    request.status(),
+                    request.recipientPosition(),
+                    request.organization(),
+                    request.dateFrom(),
+                    request.dateTo());
+        }
 
         List<DeliveryResponse> responseRecords = records.stream()
                 .map(DeliveryResponse::full)
@@ -73,13 +95,23 @@ public class ReportController {
 
         ReportRequest request = buildRequest(dateFrom, dateTo, organization, recipientPosition, status);
 
-        List<LetterDelivery> records = deliveries.findAllForReport(
-                request.status(),
-                request.recipientPosition(),
-                request.organization(),
-                request.dateFrom(),
-                request.dateTo(),
-                PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
+        List<LetterDelivery> records;
+        if ("Other".equalsIgnoreCase(organization)) {
+            records = deliveries.findAllForReportOtherOrganizations(
+                    request.status(),
+                    request.recipientPosition(),
+                    request.dateFrom(),
+                    request.dateTo(),
+                    PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
+        } else {
+            records = deliveries.findAllForReport(
+                    request.status(),
+                    request.recipientPosition(),
+                    request.organization(),
+                    request.dateFrom(),
+                    request.dateTo(),
+                    PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
+        }
 
         String filename = "incoming-letter-report-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".csv";
 
@@ -89,7 +121,7 @@ public class ReportController {
         try (var writer = new com.opencsv.CSVWriter(response.getWriter())) {
             // Header
             writer.writeNext(new String[]{
-                    "ID", "Tracking Number", "Status", "Delivery Person", "Organization",
+                    "ID", "Reference", "Status", "Delivery Person", "Organization",
                     "Recipient Position", "Subject", "Reference Number",
                     "Delivered At", "Received At", "Received By"
             });
@@ -124,13 +156,23 @@ public class ReportController {
 
         ReportRequest request = buildRequest(dateFrom, dateTo, organization, recipientPosition, status);
 
-        List<LetterDelivery> records = deliveries.findAllForReport(
-                request.status(),
-                request.recipientPosition(),
-                request.organization(),
-                request.dateFrom(),
-                request.dateTo(),
-                PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
+        List<LetterDelivery> records;
+        if ("Other".equalsIgnoreCase(organization)) {
+            records = deliveries.findAllForReportOtherOrganizations(
+                    request.status(),
+                    request.recipientPosition(),
+                    request.dateFrom(),
+                    request.dateTo(),
+                    PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
+        } else {
+            records = deliveries.findAllForReport(
+                    request.status(),
+                    request.recipientPosition(),
+                    request.organization(),
+                    request.dateFrom(),
+                    request.dateTo(),
+                    PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
+        }
 
         String filename = "incoming-letter-report-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".xlsx";
 
@@ -167,7 +209,7 @@ public class ReportController {
 
             // Headers row
             var headerRow = sheet.createRow(4);
-            String[] headers = {"ID", "Tracking Number", "Status", "Delivery Person", "Organization",
+            String[] headers = {"ID", "Reference", "Status", "Delivery Person", "Organization",
                     "Recipient Position", "Subject", "Reference Number",
                     "Delivered At", "Received At", "Received By"};
             for (int i = 0; i < headers.length; i++) {
@@ -213,13 +255,23 @@ public class ReportController {
 
         ReportRequest request = buildRequest(dateFrom, dateTo, organization, recipientPosition, status);
 
-        List<LetterDelivery> records = deliveries.findAllForReport(
-                request.status(),
-                request.recipientPosition(),
-                request.organization(),
-                request.dateFrom(),
-                request.dateTo(),
-                PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
+        List<LetterDelivery> records;
+        if ("Other".equalsIgnoreCase(organization)) {
+            records = deliveries.findAllForReportOtherOrganizations(
+                    request.status(),
+                    request.recipientPosition(),
+                    request.dateFrom(),
+                    request.dateTo(),
+                    PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
+        } else {
+            records = deliveries.findAllForReport(
+                    request.status(),
+                    request.recipientPosition(),
+                    request.organization(),
+                    request.dateFrom(),
+                    request.dateTo(),
+                    PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
+        }
 
         String filename = "incoming-letter-report-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".pdf";
 
@@ -262,7 +314,7 @@ public class ReportController {
             var table = new com.itextpdf.layout.element.Table(columnWidths).useAllAvailableWidth();
 
             // Header row
-            String[] headers = {"ID", "Tracking #", "Status", "Delivery Person", "Organization",
+            String[] headers = {"ID", "Reference", "Status", "Delivery Person", "Organization",
                     "Recipient", "Subject", "Ref #", "Delivered", "Received", "Received By"};
             for (String header : headers) {
                 table.addHeaderCell(new com.itextpdf.layout.element.Cell()

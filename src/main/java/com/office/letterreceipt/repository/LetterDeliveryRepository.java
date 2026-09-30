@@ -35,15 +35,13 @@ public interface LetterDeliveryRepository extends JpaRepository<LetterDelivery, 
         where d.deliveryPersonName = :personName
           and d.organizationName = :orgName
           and d.recipientName = :recipientName
-          and d.subject = :subject
           and d.deliveredAt > :threshold
         order by d.deliveredAt desc
         """)
-    Optional<LetterDelivery> findFirstByDeliveryPersonNameAndOrganizationNameAndRecipientNameAndSubjectAndDeliveredAtAfter(
+    Optional<LetterDelivery> findFirstByDeliveryPersonNameAndOrganizationNameAndRecipientNameAndDeliveredAtAfter(
         @Param("personName") String personName,
         @Param("orgName") String orgName,
         @Param("recipientName") String recipientName,
-        @Param("subject") String subject,
         @Param("threshold") LocalDateTime threshold);
 
     @Query("""
@@ -141,6 +139,37 @@ public interface LetterDeliveryRepository extends JpaRepository<LetterDelivery, 
         @Param("status") DeliveryStatus status,
         @Param("recipientPosition") String recipientPosition,
         @Param("organization") String organization,
+        @Param("dateFrom") LocalDateTime dateFrom,
+        @Param("dateTo") LocalDateTime dateTo);
+
+    // Report queries for "Other" organizations (not in predefined list)
+    @Query("""
+        select d from LetterDelivery d
+        where (:status is null or d.status = :status)
+          and (:recipientPosition is null or :recipientPosition = '' or lower(d.recipientName) = lower(:recipientPosition))
+          and lower(d.organizationName) not in ('gra', 'nca', 'bog')
+          and (:dateFrom is null or d.deliveredAt >= :dateFrom)
+          and (:dateTo is null or d.deliveredAt <= :dateTo)
+        order by d.deliveredAt desc
+        """)
+    List<LetterDelivery> findAllForReportOtherOrganizations(
+        @Param("status") DeliveryStatus status,
+        @Param("recipientPosition") String recipientPosition,
+        @Param("dateFrom") LocalDateTime dateFrom,
+        @Param("dateTo") LocalDateTime dateTo,
+        Pageable pageable);
+
+    @Query("""
+        select count(d) from LetterDelivery d
+        where (:status is null or d.status = :status)
+          and (:recipientPosition is null or :recipientPosition = '' or lower(d.recipientName) = lower(:recipientPosition))
+          and lower(d.organizationName) not in ('gra', 'nca', 'bog')
+          and (:dateFrom is null or d.deliveredAt >= :dateFrom)
+          and (:dateTo is null or d.deliveredAt <= :dateTo)
+        """)
+    long countForReportOtherOrganizations(
+        @Param("status") DeliveryStatus status,
+        @Param("recipientPosition") String recipientPosition,
         @Param("dateFrom") LocalDateTime dateFrom,
         @Param("dateTo") LocalDateTime dateTo);
 }

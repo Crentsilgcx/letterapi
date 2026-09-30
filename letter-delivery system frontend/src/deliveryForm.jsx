@@ -9,7 +9,6 @@ const DeliveryForm = () => {
     isCreatingPerson,
     submitMessage,
     recipientRoles,
-    organizations,
     deliveryPersons,
     selectedPerson,
     isNewPerson,
@@ -117,36 +116,6 @@ const DeliveryForm = () => {
                   />
                   {errors.email && <span className="field-error">{errors.email}</span>}
                 </div>
-
-                <div className="field">
-                  <label htmlFor="organizationId">Organization</label>
-                  <select
-                    id="organizationId"
-                    name="organizationId"
-                    value={values.organizationId}
-                    onChange={handleChange}
-                    disabled={isCreatingPerson}
-                  >
-                    <option value="" disabled>Select organization (optional)</option>
-                    {organizations.map(o => (
-                      <option key={o.id} value={o.id}>{o.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="field">
-                <label htmlFor="organizationName">Organization Name (if not in list)</label>
-                <input
-                  type="text"
-                  id="organizationName"
-                  name="organizationName"
-                  value={values.organizationName}
-                  onChange={handleChange}
-                  maxLength={180}
-                  placeholder="Organization name"
-                  disabled={isCreatingPerson}
-                />
               </div>
             </div>
           )}
@@ -155,7 +124,7 @@ const DeliveryForm = () => {
             <div className="form-section letter-section" style={{ animation: 'slideDown 0.2s ease' }}>
               <h3 className="section-title">Letter Details</h3>
               <div className="field">
-                <label htmlFor="recipientRole">Recipient Role *</label>
+                <label htmlFor="recipientRole">Recipient Position *</label>
                 <select
                   id="recipientRole"
                   name="recipientRole"
@@ -164,7 +133,7 @@ const DeliveryForm = () => {
                   required
                   disabled={isCreatingPerson}
                 >
-                  <option value="" disabled>Select recipient role</option>
+                  <option value="" disabled>Select recipient position</option>
                   {recipientRoles.map(role => (
                     <option key={role} value={role}>
                       {role}
@@ -174,52 +143,19 @@ const DeliveryForm = () => {
                 {errors.recipientRole && <span className="field-error">{errors.recipientRole}</span>}
               </div>
 
-              <div className="form-row">
-                <div className="field">
-                  <label htmlFor="subject">Subject *</label>
-                  <input
-                    type="text"
-                    id="subject"
-                    name="subject"
-                    value={values.subject}
-                    onChange={handleChange}
-                    maxLength={250}
-                    required
-                    placeholder="Delivery subject"
-                    disabled={isCreatingPerson}
-                  />
-                  {errors.subject && <span className="field-error">{errors.subject}</span>}
-                </div>
-
-                <div className="field">
-                  <label htmlFor="referenceNumber">Reference Number</label>
-                  <input
-                    type="text"
-                    id="referenceNumber"
-                    name="referenceNumber"
-                    value={values.referenceNumber}
-                    onChange={handleChange}
-                    maxLength={120}
-                    placeholder="Optional reference"
-                    disabled={isCreatingPerson}
-                  />
-                  {errors.referenceNumber && <span className="field-error">{errors.referenceNumber}</span>}
-                </div>
-              </div>
-
               <div className="field">
-                <label htmlFor="description">Description</label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={values.description}
+                <label htmlFor="organizationName">Organization Name</label>
+                <input
+                  type="text"
+                  id="organizationName"
+                  name="organizationName"
+                  value={values.organizationName}
                   onChange={handleChange}
-                  maxLength={5000}
-                  rows={4}
-                  placeholder="Additional details..."
+                  maxLength={180}
+                  placeholder="Organization name (optional)"
                   disabled={isCreatingPerson}
                 />
-                {errors.description && <span className="field-error">{errors.description}</span>}
+                {errors.organizationName && <span className="field-error">{errors.organizationName}</span>}
               </div>
             </div>
           )}

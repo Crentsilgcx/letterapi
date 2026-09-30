@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.Year;
 import java.util.Optional;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -52,16 +53,14 @@ public class DeliveryService {
 
     @Transactional
     public LetterDelivery create(CreateDeliveryRequest request, HttpServletRequest servletRequest) {
-        String subject = clean(request.subject(), 250);
-        if (!StringUtils.hasText(subject)) {
-            subject = "Delivery to " + request.recipientPosition();
-        }
+        // Subject and referenceNumber are legacy fields - not used for new deliveries
+        // organizationAddress is no longer captured - leave as null
 
-        // Prevent duplicate delivery submissions (same person, org, recipient, subject within 30 seconds)
+        // Prevent duplicate delivery submissions (same person, org, recipient within 30 seconds)
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime threshold = now.minusSeconds(30);
-        Optional<LetterDelivery> recentDuplicate = deliveries.findFirstByDeliveryPersonNameAndOrganizationNameAndRecipientNameAndSubjectAndDeliveredAtAfter(
-            request.fullName(), request.organizationName(), request.recipientPosition(), subject, threshold);
+        Optional<LetterDelivery> recentDuplicate = deliveries.findFirstByDeliveryPersonNameAndOrganizationNameAndRecipientNameAndDeliveredAtAfter(
+                request.fullName(), request.organizationName(), request.recipientPosition(), threshold);
         if (recentDuplicate.isPresent()) {
             throw new ResponseStatusException(CONFLICT, "A similar delivery was just submitted. Please wait before submitting again.");
         }
@@ -75,12 +74,14 @@ public class DeliveryService {
         delivery.setDeliveryPersonPhone(request.phone());
         delivery.setDeliveryPersonEmail(request.email());
         delivery.setOrganizationName(request.organizationName());
-        delivery.setOrganizationAddress(request.organizationAddress());
+        // organizationAddress is no longer captured - leave as null
+        delivery.setOrganizationAddress(null);
         delivery.setRecipientName(request.recipientPosition());
         delivery.setRecipientTitle(request.recipientPosition());
-        delivery.setSubject(subject);
-        delivery.setReferenceNumber(clean(request.referenceNumber(), 120));
-        delivery.setDescription(clean(request.description(), 5000));
+        // Legacy fields - not used for new deliveries
+        delivery.setSubject(null);
+        delivery.setReferenceNumber(null);
+        delivery.setDescription(null);
         delivery.setStatus(DeliveryStatus.DELIVERED);
         delivery.setDeliveredAt(now);
         delivery.setTrackingNumber(newTrackingNumber());
@@ -142,8 +143,9 @@ public class DeliveryService {
     }
 
     private String newTrackingNumber() {
+        String year = String.valueOf(Year.now().getValue());
         for (int attempt = 0; attempt < 8; attempt++) {
-            String token = randomTrackingToken();
+            String token = randomTrackingToken(year);
             if (!deliveries.existsByTrackingNumberIgnoreCase(token)) {
                 return token;
             }
@@ -151,14 +153,23 @@ public class DeliveryService {
         throw new IllegalStateException("Could not allocate a unique tracking number.");
     }
 
-    static String randomTrackingToken() {
-        char[] chars = new char[14];
-        for (int i = 0; i < chars.length; i++) {
-            if (i == 4 || i == 9) {
-                chars[i] = '-';
-            } else {
-                chars[i] = TRACKING_ALPHABET[RANDOM.nextInt(TRACKING_ALPHABET.length)];
-            }
+    // Format: REF-2026-7K4P92 (REF-YYYY-XXXXXX)
+    static String randomTrackingToken(String year) {
+        char[] chars = new char[13]; // REF-YYYY-XXXXXX = 4 + 1 + 4 + 1 + 6 = 16, but we only randomize the last 6
+        // REF- prefix (4 chars)
+        chars[0] = 'R';
+        chars[1] = 'E';
+        chars[2] = 'F';
+        chars[3] = '-';
+        // Year (4 chars)
+        chars[4] = year.charAt(0);
+        chars[5] = year.charAt(1);
+        chars[6] = year.charAt(2);
+        chars[7] = year.charAt(3);
+        chars[8] = '-';
+        // 6 random alphanumeric chars
+        for (int i = 0; i < 6; i++) {
+            chars[9 + i] = TRACKING_ALPHABET[RANDOM.nextInt(TRACKING_ALPHABET.length)];
         }
         return new String(chars);
     }
