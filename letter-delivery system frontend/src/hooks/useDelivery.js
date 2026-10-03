@@ -41,11 +41,7 @@ export function useDelivery() {
     }
   }, []);
 
-  const { isConnected, error: wsConnError, subscribe } = useStomp();
-
-  useEffect(() => {
-    if (wsConnError) setError(wsConnError);
-  }, [wsConnError]);
+  const { isConnected, subscribe } = useStomp();
 
   useEffect(() => {
     if (!isConnected) return;
@@ -54,7 +50,7 @@ export function useDelivery() {
       const { type, payload } = event;
 
       if (type === 'DELIVERY_STATUS_CHANGED' && payload) {
-        const { deliveryId, newStatus, delivery } = payload;
+        const { deliveryId, delivery } = payload;
         if (delivery) {
           if (lastCreatedDelivery?.id === deliveryId) {
             setLastCreatedDelivery(delivery);

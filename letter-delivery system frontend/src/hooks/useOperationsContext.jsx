@@ -6,15 +6,6 @@ const ReceptionContext = createContext(null);
 
 const DEFAULT_PAGE_SIZE = 10;
 
-const DATE_FILTER_OPTIONS = [
-  { value: '', label: 'All Time' },
-  { value: 'today', label: 'Today' },
-  { value: '7days', label: 'Last 7 Days' },
-  { value: '30days', label: 'Last 30 Days' },
-  { value: 'thisMonth', label: 'This Month' },
-  { value: 'custom', label: 'Custom Range' },
-];
-
 function getDateRange(filter) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -115,15 +106,19 @@ export function OperationsProvider({ children }) {
     }
   }, [searchQuery, dateFilter, customDateFrom, customDateTo]);
 
-  loadPendingRef.current = loadPending;
-  loadReceivedRef.current = loadReceived;
+  // Refs must not be written during render. Keeping the latest loaders here lets the
+  // handlers below stay referentially stable without re-subscribing on every state change.
+  useEffect(() => {
+    loadPendingRef.current = loadPending;
+    loadReceivedRef.current = loadReceived;
+  }, [loadPending, loadReceived]);
 
   const loadStatistics = useCallback(async () => {
     try {
       const stats = await receptionApi.getStatistics();
       setPendingTotalElements(stats.pendingCount || 0);
       setReceivedTodayCount(stats.receivedTodayCount || 0);
-    } catch (err) {
+    } catch {
       // Silently fail for statistics
     }
   }, []);
@@ -175,6 +170,7 @@ export function OperationsProvider({ children }) {
       try {
         await loadAll();
       } catch (e) {
+        // loadAll already records its own error state.
       }
     })();
     return () => { active = false; };

@@ -622,7 +622,7 @@ const buildApiParams = useCallback((page = 0) => {
     setSuccess(null);
   }, []);
 
-  const { subscribe } = useStomp();
+  const { subscribe, isConnected } = useStomp();
 
   // WebSocket events update the state rendered by the tables directly. Fetches that
   // were already in flight are ignored via the per-table revision refs, rather than
@@ -855,6 +855,7 @@ const buildApiParams = useCallback((page = 0) => {
     receivedTotalElements,
     receivedTodayCount,
     isLoading,
+    isConnected,
     error,
     success,
     receivingId,
@@ -890,6 +891,7 @@ const buildApiParams = useCallback((page = 0) => {
     receivedTotalElements,
     receivedTodayCount,
     isLoading,
+    isConnected,
     error,
     success,
     receivingId,

@@ -64,11 +64,7 @@ export function useReception() {
     setSuccess(null);
   }, []);
 
-  const { isConnected, error: wsConnError, subscribe } = useStomp();
-
-  useEffect(() => {
-    if (wsConnError) setError(wsConnError);
-  }, [wsConnError]);
+  const { isConnected, subscribe } = useStomp();
 
   useEffect(() => {
     let active = true;
@@ -77,6 +73,7 @@ export function useReception() {
       try {
         await loadAll();
       } catch (e) {
+        // loadAll already records its own error state.
       }
     })();
     return () => { active = false; };

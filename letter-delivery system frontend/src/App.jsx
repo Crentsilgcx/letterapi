@@ -9,13 +9,22 @@ import { ReceptionProvider } from './hooks/useReceptionContext';
 import Navbar from './Navbar';
 import HomePage from './HomePage';
 import ReceptionLayout from './ReceptionLayout';
+import ReceptionLoginPage from './ReceptionLoginPage';
+import AdministrationPage from './AdministrationPage';
+import { ErrorBoundary } from './ErrorBoundary';
 import './index.css';
 
 function AppRoutes() {
   return (
     <Routes>
+      {/* Public entry point: anyone may choose Delivery or Reception. */}
       <Route path="/" element={<HomePage />} />
       <Route path="/delivery" element={<DeliveryPersonHomepage />} />
+
+      {/* Reception login is a standalone login-only interface. ReceptionLayout
+          redirects here whenever the visitor has no reception role. */}
+      <Route path="/reception/login" element={<ReceptionLoginPage />} />
+
       <Route
         path="/reception"
         element={
@@ -35,12 +44,13 @@ function AppRoutes() {
           }
         />
       </Route>
+
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route
         path="/admin/*"
         element={
           <ProtectedRoute requiredRole="ADMIN">
-            <AdminLoginPage />
+            <AdministrationPage />
           </ProtectedRoute>
         }
       />
@@ -55,7 +65,9 @@ function App() {
       <AuthProvider>
         <Navbar />
         <main className="main-content">
-          <AppRoutes />
+          <ErrorBoundary>
+            <AppRoutes />
+          </ErrorBoundary>
         </main>
       </AuthProvider>
     </BrowserRouter>

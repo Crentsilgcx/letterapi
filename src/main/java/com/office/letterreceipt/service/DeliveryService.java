@@ -143,7 +143,7 @@ public class DeliveryService {
     }
 
     private String newTrackingNumber() {
-        String year = String.valueOf(Year.now().getValue());
+        String year = String.valueOf(Year.now(clock).getValue());
         for (int attempt = 0; attempt < 8; attempt++) {
             String token = randomTrackingToken(year);
             if (!deliveries.existsByTrackingNumberIgnoreCase(token)) {
@@ -155,7 +155,7 @@ public class DeliveryService {
 
     // Format: REF-2026-7K4P92 (REF-YYYY-XXXXXX)
     static String randomTrackingToken(String year) {
-        char[] chars = new char[13]; // REF-YYYY-XXXXXX = 4 + 1 + 4 + 1 + 6 = 16, but we only randomize the last 6
+        char[] chars = new char[16]; // REF-YYYY-XXXXXX = 4 + 1 + 4 + 1 + 6 = 16
         // REF- prefix (4 chars)
         chars[0] = 'R';
         chars[1] = 'E';

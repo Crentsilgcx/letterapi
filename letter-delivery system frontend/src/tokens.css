@@ -1,0 +1,186 @@
+/* Design Tokens - Global CSS Variables */
+
+:root {
+  /* Light theme (only theme) - Lime-Green/White Letter Delivery visual language */
+  --bg: #F0F4F2;
+  --card: #FFFFFF;
+  --ink: #10231F;
+  --sub: #687873;
+  --line: #DCE7E3;
+  --accent: #5A8C2E;
+  --accent-strong: #4A7526;
+  --accent-ink: #FFFFFF;
+  --tint: #EFF7E6;
+  --warn-bg: #FFF4DB;
+  --warn-ink: #8A5A00;
+  --err: #C0392B;
+  --err-bg: #FDEDED;
+  --disabled-opacity: 0.45;
+
+  /* Typography */
+  --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* Responsive typography scale */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 15px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
+  --text-3xl: 26px;
+  --text-4xl: 30px;
+  --text-5xl: 32px;
+
+  /* Radii */
+  --radius-card: 22px;
+  --radius-input: 12px;
+  --radius-button: 12px;
+  --radius-pill: 999px;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 40px;
+
+  /* Responsive spacing scale */
+  --space-container-xs: 12px;
+  --space-container-sm: 16px;
+  --space-container-md: 20px;
+  --space-container-lg: 24px;
+  --space-container-xl: 32px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+
+  /* Z-index */
+  --z-nav: 100;
+  --z-dropdown: 200;
+  --z-modal: 1000;
+
+  /* Table */
+  --table-header-bg: var(--bg);
+  --table-row-hover: var(--tint);
+
+  /* Skeleton */
+  --skeleton-base: var(--line);
+  --skeleton-highlight: var(--bg);
+
+  /* Touch targets */
+  --touch-target: 44px;
+
+  /* Breakpoints */
+  --bp-xs: 480px;
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1200px;
+}
+
+/* The application ships a single lime-green-on-white light theme on purpose:
+   white surfaces, lime-green accents and dark text across Delivery, Reception and
+   Administration. No automatic dark overrides. */
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0ms;
+    --transition-normal: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus visible for accessibility */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Base font loading.
+   The variable font is bundled with the app (same file the mobile app loads),
+   so Plus Jakarta Sans renders identically in both clients without any external
+   font request. Weight axis 400-800 covers every weight used in the UI. */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/fonts/PlusJakartaSans-Variable.ttf') format('truetype-variations');
+}
+
+/* Systems without variable-font support still get the family name and fall back
+   cleanly to the system stack declared on --font-family. */
+
+/* Global base styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* Visually hidden for accessibility */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

@@ -1,0 +1,101 @@
+/* Empty State */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-lg);
+  text-align: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  min-height: 280px;
+}
+
+.empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--tint);
+  color: var(--accent);
+  margin-bottom: var(--space-lg);
+}
+
+.empty-icon.filtered {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+
+.empty-title {
+  margin: 0 0 var(--space-sm);
+  font-size: 18px;
+  font-weight: var(--font-weight-bold);
+  color: var(--ink);
+}
+
+.empty-message {
+  margin: 0 0 var(--space-lg);
+  font-size: 14px;
+  color: var(--sub);
+  max-width: 320px;
+  line-height: 1.6;
+}
+
+.btn-clear-filters-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  color: var(--accent);
+  background: var(--tint);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.btn-clear-filters-inline:hover {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn-clear-filters-inline:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Received empty state variant */
+.empty-state.received .empty-icon {
+  background: var(--tint);
+  color: var(--accent);
+}
+
+.empty-state.received .empty-title {
+  color: var(--ink);
+}
+
+@media (max-width: 480px) {
+  .empty-state {
+    padding: var(--space-lg) var(--space-md);
+    min-height: 240px;
+  }
+
+  .empty-icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .empty-title {
+    font-size: 16px;
+  }
+
+  .empty-message {
+    font-size: 13px;
+  }
+}

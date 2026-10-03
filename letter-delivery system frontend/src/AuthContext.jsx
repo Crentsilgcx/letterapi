@@ -1,13 +1,14 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { adminApi } from './api';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 const AUTH_CACHE_KEY = 'currentUser';
 
 function getCachedUser() {
   try {
-    const cached = sessionStorage.getItem('currentUser');
+    const cached = sessionStorage.getItem(AUTH_CACHE_KEY);
     if (cached) {
       return JSON.parse(cached);
     }
@@ -19,7 +20,7 @@ function getCachedUser() {
 
 function setCachedUser(user) {
   try {
-    sessionStorage.setItem('currentUser', JSON.stringify(user));
+    sessionStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(user));
   } catch {
     // ignore storage errors
   }
@@ -27,7 +28,7 @@ function setCachedUser(user) {
 
 function clearCachedUser() {
   try {
-    sessionStorage.removeItem('currentUser');
+    sessionStorage.removeItem(AUTH_CACHE_KEY);
   } catch {
     // ignore storage errors
   }
@@ -62,11 +63,11 @@ export function AuthProvider({ children }) {
       setIsAuthenticated(true);
       // Update cache with fresh data
       try {
-        sessionStorage.setItem('currentUser', JSON.stringify(data));
+        sessionStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(data));
       } catch {
         // ignore storage errors
       }
-    } catch (err) {
+    } catch {
       // Auth failed - clear cache and mark unauthenticated
       clearCachedUser();
       setUser(null);
@@ -77,19 +78,36 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    let isMounted = true;
+
+    const initializeAuth = async () => {
+      const cachedUser = getCachedUser();
+      if (cachedUser && isMounted) {
+        setUser(cachedUser);
+        setIsAuthenticated(true);
+        setIsLoading(false);
+      }
+
+      // Skip background auth validation for public pages (delivery, home)
+      // Admin/reception pages will call checkAuth explicitly when needed
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    };
+
+    void initializeAuth();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const login = async (username, password) => {
     const data = await adminApi.login(username, password);
     setUser(data);
     setIsAuthenticated(true);
     // Cache the fresh login
-    try {
-      sessionStorage.setItem('currentUser', JSON.stringify(data));
-    } catch {
-      // ignore storage errors
-    }
+    setCachedUser(data);
     return data;
   };
 

@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { User, Phone, Mail, Send, Loader2, CheckCircle2 } from 'lucide-react';
 import { deliveryApi } from './api';
 import { useStomp } from './hooks/useStomp';
-import { RECIPIENT_POSITIONS } from './constants/recipientPositions';
+import './tokens.css';
+import './DeliveryPage.css';
 
 const initialValues = {
   deliveryPersonName: '',
   phone: '',
   email: '',
-  organizationName: '',
-  recipientPosition: '',
 };
 
 const validate = (values) => {
@@ -16,8 +17,6 @@ const validate = (values) => {
   if (!values.deliveryPersonName?.trim()) errors.deliveryPersonName = 'Delivery person name is required';
   if (values.phone && values.phone.length > 60) errors.phone = 'Phone too long (max 60)';
   if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) errors.email = 'Enter a valid email address';
-  if (values.organizationName && values.organizationName.length > 180) errors.organizationName = 'Organization name too long (max 180 characters)';
-  if (!values.recipientPosition) errors.recipientPosition = 'Recipient position is required';
   return errors;
 };
 
@@ -112,8 +111,6 @@ function DeliveryPersonHomepage() {
         fullName: values.deliveryPersonName.trim(),
         phone: values.phone?.trim() || null,
         email: values.email?.trim() || null,
-        organizationName: values.organizationName?.trim() || null,
-        recipientPosition: values.recipientPosition,
       };
 
       const response = await deliveryApi.createDelivery(payload);
@@ -130,120 +127,163 @@ function DeliveryPersonHomepage() {
   };
 
   return (
-    <div className="container">
-      <div className="form-card">
-        <div className="card-header">
-          <div>
-              <h2 className="card-title">Delivery Person</h2>
-          <p className="card-subtitle">Submit a new delivery</p>
-          </div>
-          
-        </div>
+    <div className="delivery-page">
+      <div className="delivery-main">
+        <header className="delivery-header">
+          <Link to="/" className="delivery-brand">
+            <span className="delivery-brand-mark" aria-hidden="true">
+              <Mail size={20} />
+            </span>
+            <span>Letter Delivery</span>
+          </Link>
+          <h1 className="delivery-title">Delivery Person</h1>
+          <p className="delivery-subtitle">Submit a new letter for delivery to reception.</p>
+        </header>
 
-        {submitMessage && (
-          <div className={`alert alert-${submitMessage.type}`}>{submitMessage.text}</div>
-        )}
-
-        {deliveryStatus && (
-          <div className={`status-indicator status-${deliveryStatus.toLowerCase()}`}>
-            Latest delivery status: <strong>{deliveryStatus}</strong>
-            {deliveryStatus === 'RECEIVED' && ' ✓'}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div className="form-row">
-            <div className="field">
-              <label htmlFor="deliveryPersonName">Delivery Person Name *</label>
-              <input
-                type="text"
-                id="deliveryPersonName"
-                name="deliveryPersonName"
-                value={values.deliveryPersonName}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Enter delivery person's name"
-                maxLength={160}
-                required
-                autoFocus
-              />
-              {errors.deliveryPersonName && <span className="field-error">{errors.deliveryPersonName}</span>}
+        <div className="delivery-card">
+          <div className="delivery-card-accent" aria-hidden="true" />
+          <div className="delivery-card-body">
+            <div className="delivery-card-header">
+              <span className="delivery-card-header-icon" aria-hidden="true">
+                <Send size={20} />
+              </span>
+              <div>
+                <h2 className="delivery-card-title">Submit a delivery</h2>
+                <p className="delivery-card-subtitle">All fields marked with an asterisk are required.</p>
+              </div>
             </div>
 
-            <div className="field">
-              <label htmlFor="recipientPosition">Recipient Position *</label>
-              <select
-                id="recipientPosition"
-                name="recipientPosition"
-                value={values.recipientPosition || ''}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                required
+            {submitMessage && (
+              <div className={`delivery-alert delivery-alert-${submitMessage.type}`} role="status" aria-live="polite">
+                {submitMessage.type === 'success' ? (
+                  <CheckCircle2 size={18} aria-hidden="true" />
+                ) : (
+                  <span className="delivery-status-dot" aria-hidden="true" />
+                )}
+                <span>{submitMessage.text}</span>
+              </div>
+            )}
+
+            {deliveryStatus && (
+              <div
+                className={`delivery-status${
+                  deliveryStatus.toLowerCase() === 'received' ? ' delivery-status-received' : ''
+                }`}
+                role="status"
+                aria-live="polite"
               >
-                <option value="" disabled>Select recipient position</option>
-                {RECIPIENT_POSITIONS.map(role => (
-                  <option key={role} value={role}>
-                    {role}
-                  </option>
-                ))}
-              </select>
-              {errors.recipientPosition && <span className="field-error">{errors.recipientPosition}</span>}
-            </div>
+                <span className="delivery-status-dot" aria-hidden="true" />
+                <span>
+                  Latest delivery status: <strong>{deliveryStatus}</strong>
+                  {deliveryStatus === 'RECEIVED' ? ' ✓' : ''}
+                </span>
+              </div>
+            )}
+
+            <form className="delivery-form" onSubmit={handleSubmit} noValidate>
+              <section className="delivery-section">
+                <h3 className="delivery-section-title">
+                  <User size={14} className="delivery-section-icon" aria-hidden="true" />
+                  Delivery details
+                </h3>
+
+                <div className="delivery-field">
+                  <label className="delivery-label" htmlFor="deliveryPersonName">
+                    Delivery Person Name <span className="delivery-required">*</span>
+                  </label>
+                  <div className={`delivery-input-wrap${errors.deliveryPersonName ? ' delivery-input-wrap-invalid' : ''}`}>
+                    <User className="delivery-input-icon" size={18} aria-hidden="true" />
+                    <input
+                      type="text"
+                      id="deliveryPersonName"
+                      name="deliveryPersonName"
+                      className="delivery-input"
+                      value={values.deliveryPersonName}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      placeholder="Enter delivery person's name"
+                      maxLength={160}
+                      aria-required="true"
+                      aria-invalid={errors.deliveryPersonName ? 'true' : undefined}
+                      autoFocus
+                    />
+                  </div>
+                  {errors.deliveryPersonName && <span className="delivery-error">{errors.deliveryPersonName}</span>}
+                </div>
+              </section>
+
+              <section className="delivery-section delivery-section--contact">
+                <h3 className="delivery-section-title">
+                  <Phone size={14} className="delivery-section-icon" aria-hidden="true" />
+                  Contact information
+                  <span className="delivery-optional">Optional</span>
+                </h3>
+
+                <div className="delivery-fields-row">
+                  <div className="delivery-field">
+                  <label className="delivery-label" htmlFor="phone">
+                    Phone <span className="delivery-optional">Optional</span>
+                  </label>
+                  <div className={`delivery-input-wrap${errors.phone ? ' delivery-input-wrap-invalid' : ''}`}>
+                    <Phone className="delivery-input-icon" size={18} aria-hidden="true" />
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      className="delivery-input"
+                      value={values.phone}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      placeholder="Phone number (optional)"
+                      maxLength={60}
+                      aria-invalid={errors.phone ? 'true' : undefined}
+                    />
+                  </div>
+                  {errors.phone && <span className="delivery-error">{errors.phone}</span>}
+                </div>
+
+                <div className="delivery-field">
+                  <label className="delivery-label" htmlFor="email">
+                    Email <span className="delivery-optional">Optional</span>
+                  </label>
+                  <div className={`delivery-input-wrap${errors.email ? ' delivery-input-wrap-invalid' : ''}`}>
+                    <Mail className="delivery-input-icon" size={18} aria-hidden="true" />
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      className="delivery-input"
+                      value={values.email}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      placeholder="delivery@example.com (optional)"
+                      maxLength={180}
+                      aria-invalid={errors.email ? 'true' : undefined}
+                    />
+                  </div>
+                  {errors.email && <span className="delivery-error">{errors.email}</span>}
+                </div>
+              </div>
+              </section>
+
+              <div className="delivery-actions">
+                <button type="submit" disabled={isSubmitting} className="delivery-submit">
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={18} className="delivery-spinner" aria-hidden="true" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={18} aria-hidden="true" />
+                      Deliver Letter
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
-
-          <div className="form-row">
-            <div className="field">
-              <label htmlFor="phone">Phone</label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={values.phone}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Phone number (optional)"
-                maxLength={60}
-              />
-              {errors.phone && <span className="field-error">{errors.phone}</span>}
-            </div>
-
-            <div className="field">
-              <label htmlFor="email">Email</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={values.email}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="delivery@example.com (optional)"
-                maxLength={180}
-              />
-              {errors.email && <span className="field-error">{errors.email}</span>}
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="field">
-              <label htmlFor="organizationName">Organization Name</label>
-              <input
-                type="text"
-                id="organizationName"
-                name="organizationName"
-                value={values.organizationName}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Organization name (optional)"
-                maxLength={180}
-              />
-              {errors.organizationName && <span className="field-error">{errors.organizationName}</span>}
-            </div>
-          </div>
-
-          <button type="submit" disabled={isSubmitting} className="btn btn-primary btn-full">
-            {isSubmitting ? 'Submitting...' : 'Deliver Letter'}
-          </button>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -1,41 +1,61 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useState } from 'react';
 import { useAuth } from './AuthContext';
+import { Menu, X } from 'lucide-react';
+import './tokens.css';
+import './Navbar.css';
 
 function Navbar() {
   const location = useLocation();
   const { isAuthenticated, user, logout } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
-  const isReceptionist = user?.role === 'RECEPTIONIST';
-  const hasReceptionAccess = isAdmin || isReceptionist;
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const navLinks = [
+    { path: '/delivery', label: 'Delivery' },
+    { path: '/reception', label: 'Reception' },
+    ...(isAdmin ? [{ path: '/admin/login', label: 'Administration' }] : []),
+  ];
 
   return (
     <nav className="navbar" role="navigation" aria-label="Main navigation">
       <Link to="/" className="nav-brand" aria-label="Letter Delivery Home">Letter Delivery</Link>
-      <ul className="nav-links">
-        <li>
-          <Link to="/delivery" className={location.pathname === '/delivery' ? 'active' : ''}>Delivery</Link>
-        </li>
-        {hasReceptionAccess && (
-          <li>
+
+      <button
+        className="nav-toggle"
+        onClick={() => setIsMenuOpen(!isMenuOpen)}
+        aria-expanded={isMenuOpen}
+        aria-controls="nav-links"
+        aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+      >
+        {isMenuOpen ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
+      </button>
+
+      <ul className={`nav-links${isMenuOpen ? ' open' : ''}`} id="nav-links" role="menubar">
+        {navLinks.map((link) => (
+          <li key={link.path} role="none">
             <Link
-              to="/reception/dashboard"
-              className={location.pathname.startsWith('/reception') ? 'active' : ''}
+              to={link.path}
+              className={location.pathname === link.path || (link.path === '/reception' && location.pathname.startsWith('/reception')) ? 'active' : ''}
+              role="menuitem"
+              onClick={() => setIsMenuOpen(false)}
             >
-              Reception
+              {link.label}
             </Link>
           </li>
-        )}
-        {isAdmin && (
-          <li>
-            <Link to="/admin/login" className={location.pathname.startsWith('/admin') ? 'active' : ''}>Administration</Link>
+        ))}
+        {isAuthenticated && (
+          <li role="none">
+            <button
+              className="btn btn-secondary btn-small navbar-logout"
+              onClick={() => { logout(); setIsMenuOpen(false); }}
+              role="menuitem"
+            >
+              Logout
+            </button>
           </li>
         )}
       </ul>
-      {isAuthenticated && (
-        <button className="btn btn-secondary btn-small" onClick={logout} style={{ marginLeft: '16px' }}>
-          Logout
-        </button>
-      )}
     </nav>
   );
 }

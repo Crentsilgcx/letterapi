@@ -1,3 +1,7 @@
+/* The redesigned pages ship their own token-driven stylesheets (tokens.css and
+   the per-page CSS). Only the base reset and the legacy component rules still
+   referenced by untouched screens live here. */
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -5,9 +9,9 @@
 }
 
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #fafafa;
-  color: #1a1a1a;
+  font-family: var(--font-family, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  background: var(--bg, #F0F4F2);
+  color: var(--ink, #10231F);
   line-height: 1.5;
   min-height: 100vh;
 }
@@ -19,6 +23,8 @@ a {
 
 ul {
   list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .container {
@@ -27,50 +33,11 @@ ul {
   padding: 0 20px;
 }
 
-.navbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: #fff;
-  border-bottom: 1px solid #e5e5e5;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.nav-brand {
-  font-weight: 600;
-  font-size: 18px;
-  color: #1a1a1a;
-}
-
-.nav-links {
-  display: flex;
-  gap: 24px;
-}
-
-.nav-links a {
-  font-size: 14px;
-  font-weight: 500;
-  color: #555;
-  padding: 8px 0;
-  border-bottom: 2px solid transparent;
-  transition: color 0.2s, border-color 0.2s;
-}
-
-.nav-links a:hover,
-.nav-links a:focus {
-  color: #1a1a1a;
-}
-
-.nav-links a[aria-current="page"] {
-  color: #1a1a1a;
-  border-bottom-color: #1a1a1a;
-}
+/* Navbar, nav links and .main-content are styled in Navbar.css with the
+   green/white design tokens. */
 
 .main-content {
-  padding: 40px 20px;
+  padding: 0;
 }
 
 .page-title {
@@ -589,7 +556,7 @@ tr:hover td {
 
 @media (max-width: 768px) {
   .main-content {
-    padding: 24px 12px;
+    padding: 0;
   }
   
   .card-header {
@@ -631,21 +598,8 @@ tr:hover td {
 }
 
 @media (max-width: 640px) {
-  .navbar {
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px 16px;
-  }
-  
-  .nav-links {
-    gap: 16px;
-    width: 100%;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  
   .main-content {
-    padding: 20px 12px;
+    padding: 0;
   }
   
   .page-title {
@@ -1279,106 +1233,10 @@ tr:hover td {
   animation: slideDown 0.2s ease;
 }
 
-/* Login Page */
-.login-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  background: linear-gradient(135deg, #f0fdf4 0%, #fafafa 100%);
-}
-
-.login-card {
-  background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  padding: 40px;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-.login-header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.login-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
-  font-size: 20px;
-  color: #1a1a1a;
-  margin-bottom: 24px;
-}
-
-.login-brand .brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: #4CAF50;
-  color: #fff;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 16px;
-}
-
-.login-header h1 {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 8px;
-}
-
-.login-subtitle {
-  color: #666;
-  font-size: 14px;
-  margin: 0;
-}
-
-.password-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.password-wrapper input {
-  padding-right: 50px !important;
-  width: 100%;
-}
-
-.password-toggle {
-  position: absolute;
-  right: 12px;
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 4px;
-  line-height: 1;
-  color: #888;
-  transition: color 0.15s;
-}
-
-.password-toggle:hover:not(:disabled) {
-  color: #1a1a1a;
-}
-
-.password-toggle:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.login-footer {
-  margin-top: 24px;
-  text-align: center;
-  padding-top: 20px;
-  border-top: 1px solid #e5e5e5;
-}
+/* Login Page
+   Both the Reception login and the Administration login are styled by
+   ReceptionLoginPage.css (the approved login-only design on the shared
+   green/white tokens), so the legacy login rules are no longer applied. */
 
 .btn-large {
   padding: 14px 28px;
@@ -1404,274 +1262,6 @@ tr:hover td {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-/* Reception Dashboard - Mobile Responsive Cards */
-.delivery-cards {
-  display: none;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.delivery-card {
-  background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 10px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.15s;
-}
-
-.delivery-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.delivery-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.delivery-card-org {
-  font-weight: 600;
-  font-size: 15px;
-  color: #1a1a1a;
-  flex: 1;
-  min-width: 0;
-}
-
-.delivery-card-status {
-  flex-shrink: 0;
-}
-
-.delivery-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 13px;
-}
-
-.delivery-card-row {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-
-.delivery-card-label {
-  color: #888;
-  font-weight: 500;
-  min-width: 90px;
-  flex-shrink: 0;
-}
-
-.delivery-card-value {
-  color: #1a1a1a;
-  flex: 1;
-  min-width: 0;
-  word-break: break-word;
-}
-
-.delivery-card-value strong {
-  font-weight: 600;
-}
-
-.delivery-card-subject {
-  margin-top: 4px;
-}
-
-.delivery-card-subject .delivery-card-label {
-  min-width: auto;
-}
-
-.delivery-card-actions {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #eef0f2;
-  display: flex;
-  justify-content: flex-end;
-}
-
-@media (max-width: 768px) {
-  .table-section {
-    display: none;
-  }
-  
-  .delivery-cards {
-    display: flex;
-  }
-}
-
-/* Expandable Delivery Cards */
-.delivery-card {
-  cursor: pointer;
-  transition: box-shadow 0.15s, background-color 0.15s;
-}
-
-.delivery-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.delivery-card.expanded {
-  background: #fafafa;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-.delivery-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.delivery-card-main {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  min-width: 0;
-}
-
-.delivery-card-position {
-  font-weight: 600;
-  font-size: 15px;
-  color: #1a1a1a;
-  white-space: normal;
-  word-break: break-word;
-}
-
-.delivery-card-org {
-  font-size: 13px;
-  color: #666;
-  white-space: normal;
-  word-break: break-word;
-}
-
-.delivery-card-date {
-  color: #888;
-  font-size: 12px;
-  margin-left: 4px;
-}
-
-.delivery-card-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.delivery-card-status {
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.status-delivered {
-  background: #fff3e0;
-  color: #e65100;
-}
-
-.status-received {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-
-.status-pending {
-  background: #e3f2fd;
-  color: #1565c0;
-}
-
-.status-failed {
-  background: #fce4ec;
-  color: #c62828;
-}
-
-.delivery-card-expand {
-  color: #888;
-  font-size: 14px;
-  line-height: 1;
-  user-select: none;
-  transition: transform 0.15s;
-}
-
-.delivery-card.expanded .delivery-card-expand {
-  transform: rotate(180deg);
-}
-
-.delivery-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 13px;
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.2s ease;
-  padding: 0 0;
-}
-
-.delivery-card.expanded .delivery-card-body {
-  max-height: 500px;
-  opacity: 1;
-  padding: 12px 0 0 0;
-}
-
-.delivery-card-row {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-
-.delivery-card-label {
-  color: #888;
-  font-weight: 500;
-  min-width: 90px;
-  flex-shrink: 0;
-}
-
-.delivery-card-value {
-  color: #1a1a1a;
-  flex: 1;
-  min-width: 0;
-  word-break: break-word;
-}
-
-.delivery-card-value strong {
-  font-weight: 600;
-}
-
-.delivery-card-subject {
-  margin-top: 4px;
-}
-
-.delivery-card-subject .delivery-card-label {
-  min-width: auto;
-}
-
-.delivery-card-actions {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #eef0f2;
-  display: flex;
-  justify-content: flex-end;
-}
-
-@media (max-width: 768px) {
-  .table-section {
-    display: none;
-  }
-  
-  .delivery-cards {
-    display: flex;
-  }
 }
 
 /* Pagination */
@@ -1757,14 +1347,9 @@ tr:hover td {
 
 
 
-/* Reception Sub-Navigation */
-.reception-subnav {
-  background: #fff;
-  border-bottom: 1px solid #e5e5e5;
-  padding: 0 20px;
-  margin: 0 -20px 24px -20px;
-}
-
+/* Reception Sub-Navigation
+   Presentation lives in components/ReceptionSubNav.css (design tokens).
+   Only the legacy list wrapper is kept here for screens that still use it. */
 .reception-subnav-list {
     justify-content: center;
     display: flex;
@@ -1773,42 +1358,11 @@ tr:hover td {
     margin: 0 auto;
     padding: 12px 0;
 }
-.reception-subnav-link {
-  padding: 10px 20px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #666;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: all 0.15s;
-  text-decoration: none;
-}
-
-.reception-subnav-link:hover {
-  color: #1a1a1a;
-}
-
-.reception-subnav-link.active {
-  color: #4CAF50;
-  border-bottom-color: #4CAF50;
-}
 
 @media (max-width: 768px) {
-  .reception-subnav {
-    padding: 0 12px;
-    margin: 0 -12px 16px -12px;
-  }
-  
   .reception-subnav-list {
     padding: 8px 0;
     gap: 2px;
-  }
-  
-  .reception-subnav-link {
-    padding: 8px 16px;
-    font-size: 13px;
   }
 }
 

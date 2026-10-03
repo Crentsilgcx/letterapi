@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Building2, LogOut, Plus, Search, Users } from 'lucide-react';
 import { adminApi } from './api';
 import { useAuth } from './AuthContext';
+import './tokens.css';
+import './AdministrationPage.css';
 
 const STATUSES = [
   { value: 'true', label: 'Active' },
@@ -253,73 +256,114 @@ function AdministrationPage() {
   const inactiveCount = activeTab === 'employees' ? inactiveRecipientCount : inactiveOrgCount;
   const totalCount = activeTab === 'employees' ? recipients.length : organizations.length;
 
+  const entityLabel = activeTab === 'employees' ? 'employee' : 'organization';
+  const entityPlural = activeTab === 'employees' ? 'employees' : 'organizations';
+
   return (
-    <div className="container">
-      <div className="form-card">
-        <div className="card-header">
-          <div>
-            <h2 className="card-title">Administration</h2>
-            <p className="card-subtitle">Manage employees and organisational information.</p>
+    <div className="admin-page">
+      <div className="admin-main">
+        <header className="admin-header">
+          <div className="admin-header-content">
+            <div className="admin-header-text">
+              <h1 className="admin-title">Administration</h1>
+              <p className="admin-subtitle">Manage employees and organisational information.</p>
+            </div>
+            <div className="admin-header-actions">
+              <button
+                type="button"
+                className="admin-btn admin-btn-primary"
+                onClick={() => handleOpenModal()}
+              >
+                <Plus size={18} aria-hidden="true" />
+                Add {activeTab === 'employees' ? 'Employee' : 'Organization'}
+              </button>
+              <button
+                type="button"
+                className="admin-btn admin-btn-secondary"
+                onClick={handleLogout}
+              >
+                <LogOut size={18} aria-hidden="true" />
+                Logout
+              </button>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button type="button" className="btn btn-primary" onClick={() => handleOpenModal()}>
-              + Add {activeTab === 'employees' ? 'Employee' : 'Organization'}
-            </button>
-            <button type="button" className="btn btn-secondary btn-small" onClick={handleLogout}>
-              Logout
-            </button>
+        </header>
+
+        {(success || error) && (
+          <div className="admin-messages">
+            {success && (
+              <div className="admin-alert admin-alert-success" role="status" aria-live="polite">
+                {success}
+              </div>
+            )}
+            {error && (
+              <div className="admin-alert admin-alert-error" role="alert" aria-live="assertive">
+                {error}
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
-        {success && <div className="alert alert-success">{success}</div>}
-        {error && <div className="alert alert-error">{error}</div>}
-
-        <div className="tab-nav" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <div className="admin-tabs" role="tablist" aria-label="Administration sections">
           <button
-            className={`btn ${activeTab === 'employees' ? 'btn-primary' : 'btn-secondary'}`}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'employees'}
+            className={`admin-tab${activeTab === 'employees' ? ' admin-tab-active' : ''}`}
             onClick={() => { setActiveTab('employees'); setSearchQuery(''); setStatusFilter('true'); }}
           >
-            Employees ({recipients.length})
+            <Users size={16} aria-hidden="true" />
+            <span>Employees</span>
+            <span className="admin-tab-count">{recipients.length}</span>
           </button>
           <button
-            className={`btn ${activeTab === 'organizations' ? 'btn-primary' : 'btn-secondary'}`}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'organizations'}
+            className={`admin-tab${activeTab === 'organizations' ? ' admin-tab-active' : ''}`}
             onClick={() => { setActiveTab('organizations'); setSearchQuery(''); setStatusFilter('true'); }}
           >
-            Organizations ({organizations.length})
+            <Building2 size={16} aria-hidden="true" />
+            <span>Organizations</span>
+            <span className="admin-tab-count">{organizations.length}</span>
           </button>
         </div>
 
-        <div className="stats">
-          <div className="stat">
-            <div className="stat-value" style={{ color: '#166534' }}>{activeCount}</div>
-            <div className="stat-label">Active</div>
+        <div className="admin-stats">
+          <div className="admin-stat">
+            <div className="admin-stat-value">{activeCount}</div>
+            <div className="admin-stat-label">Active</div>
           </div>
-          <div className="stat">
-            <div className="stat-value" style={{ color: '#991b1b' }}>{inactiveCount}</div>
-            <div className="stat-label">Inactive</div>
+          <div className="admin-stat">
+            <div className="admin-stat-value admin-stat-value--inactive">{inactiveCount}</div>
+            <div className="admin-stat-label">Inactive</div>
           </div>
-          <div className="stat">
-            <div className="stat-value" style={{ color: '#166534' }}>{user?.displayName || user?.username}</div>
-            <div className="stat-label">Signed in as</div>
+          <div className="admin-stat">
+            <div className="admin-stat-value admin-stat-value--text">{user?.displayName || user?.username}</div>
+            <div className="admin-stat-label">Signed in as</div>
           </div>
         </div>
 
-        <div className="form-row" style={{ marginBottom: '16px', gap: '16px' }}>
-          <div className="field" style={{ flex: 1, minWidth: '280px' }}>
-            <label htmlFor="searchEmployees">Search {activeTab === 'employees' ? 'employees' : 'organizations'}</label>
+        <div className="admin-filters">
+          <div className="admin-search">
+            <label className="admin-field-label" htmlFor="searchEntities">
+              Search {entityPlural}
+            </label>
             <input
               type="text"
-              id="searchEmployees"
+              id="searchEntities"
+              className="admin-input"
               placeholder={`Search by ${activeTab === 'employees' ? 'name, role, or department' : 'name'}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ paddingRight: '40px' }}
             />
+            <Search className="admin-search-icon" size={18} aria-hidden="true" />
           </div>
-          <div className="field" style={{ minWidth: '180px' }}>
-            <label htmlFor="statusFilter">Status</label>
+          <div className="admin-field-group">
+            <label className="admin-field-label" htmlFor="statusFilter">Status</label>
             <select
               id="statusFilter"
+              className="admin-select"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -331,139 +375,173 @@ function AdministrationPage() {
           </div>
         </div>
 
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                {activeTab === 'employees' ? (
-                  <>
-                    <th>Employee</th>
-                    <th>Job Role</th>
-                    <th>Department</th>
-                    <th>Status</th>
-                    <th style={{ width: '100px' }}>Actions</th>
-                  </>
-                ) : (
-                  <>
-                    <th>Organization</th>
-                    <th>Status</th>
-                    <th style={{ width: '100px' }}>Actions</th>
-                  </>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {currentIsLoading ? (
+        <div className="admin-table-card">
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
                 <tr>
-                  <td colSpan={activeTab === 'employees' ? 5 : 3} className="loading">
-                    Loading {activeTab === 'employees' ? 'employees' : 'organizations'}...
-                  </td>
+                  {activeTab === 'employees' ? (
+                    <>
+                      <th scope="col">Employee</th>
+                      <th scope="col">Job Role</th>
+                      <th scope="col">Department</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Actions</th>
+                    </>
+                  ) : (
+                    <>
+                      <th scope="col">Organization</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Actions</th>
+                    </>
+                  )}
                 </tr>
-              ) : currentFiltered.length === 0 ? (
-                <tr>
-                  <td colSpan={activeTab === 'employees' ? 5 : 3} className="empty">
-                    {totalCount === 0
-                      ? `No ${activeTab === 'employees' ? 'employees' : 'organizations'} registered yet. Click "Add ${activeTab === 'employees' ? 'Employee' : 'Organization'}" to get started.`
-                      : 'No results match your search/filters.'}
-                  </td>
-                </tr>
-              ) : (
-                currentFiltered.map(r => (
-                  <tr key={r.id}>
-                    {activeTab === 'employees' ? (
-                      <>
-                        <td>
-                          <strong>{r.fullName}</strong>
-                        </td>
-                        <td>{r.jobTitle || <span className="muted">—</span>}</td>
-                        <td>{r.department || <span className="muted">—</span>}</td>
-                        <td>
-                          <span className={`status-badge ${r.active ? 'status-received' : 'status-failed'}`}>
-                            {r.active ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button
-                              type="button"
-                              className="btn btn-link btn-small"
-                              onClick={() => handleOpenModal(r)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-link btn-small"
-                              onClick={() => handleToggle(r)}
-                              style={{ color: r.active ? '#dc2626' : '#166534' }}
-                            >
-                              {r.active ? 'Deactivate' : 'Activate'}
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td>
-                          <strong>{r.name}</strong>
-                        </td>
-                        <td>
-                          <span className={`status-badge ${r.active ? 'status-received' : 'status-failed'}`}>
-                            {r.active ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button
-                              type="button"
-                              className="btn btn-link btn-small"
-                              onClick={() => handleOpenModal(r)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-link btn-small"
-                              onClick={() => handleToggle(r)}
-                              style={{ color: r.active ? '#dc2626' : '#166534' }}
-                            >
-                              {r.active ? 'Deactivate' : 'Activate'}
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    )}
+              </thead>
+              <tbody>
+                {currentIsLoading ? (
+                  <tr>
+                    <td colSpan={activeTab === 'employees' ? 5 : 3}>
+                      <div className="admin-table-state">
+                        <span className="admin-loading">
+                          <span className="admin-spinner" />
+                          Loading {entityPlural}...
+                        </span>
+                      </div>
+                    </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : currentFiltered.length === 0 ? (
+                  <tr>
+                    <td colSpan={activeTab === 'employees' ? 5 : 3}>
+                      <div className="admin-empty">
+                        <span className="admin-empty-icon" aria-hidden="true">
+                          {activeTab === 'employees'
+                            ? <Users size={26} />
+                            : <Building2 size={26} />}
+                        </span>
+                        <h3 className="admin-empty-title">
+                          {totalCount === 0
+                            ? `No ${entityPlural} registered yet`
+                            : `No ${entityLabel}s match your search`}
+                        </h3>
+                        <p className="admin-empty-message">
+                          {totalCount === 0
+                            ? `Click "Add ${activeTab === 'employees' ? 'Employee' : 'Organization'}" to register the first one.`
+                            : 'Try a different search term or status filter.'}
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  currentFiltered.map(r => (
+                    <tr key={r.id} className="admin-row">
+                      {activeTab === 'employees' ? (
+                        <>
+                          <td className="admin-cell-primary">{r.fullName}</td>
+                          <td>{r.jobTitle || <span className="admin-cell-muted">—</span>}</td>
+                          <td>{r.department || <span className="admin-cell-muted">—</span>}</td>
+                          <td>
+                            <span className={`admin-status ${r.active ? 'admin-status-active' : 'admin-status-inactive'}`}>
+                              <span className="admin-status-dot" aria-hidden="true" />
+                              {r.active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="admin-cell-actions">
+                              <button
+                                type="button"
+                                className="admin-row-action"
+                                onClick={() => handleOpenModal(r)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className={`admin-row-action${r.active ? ' admin-row-action--danger' : ''}`}
+                                onClick={() => handleToggle(r)}
+                              >
+                                {r.active ? 'Deactivate' : 'Activate'}
+                              </button>
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="admin-cell-primary">{r.name}</td>
+                          <td>
+                            <span className={`admin-status ${r.active ? 'admin-status-active' : 'admin-status-inactive'}`}>
+                              <span className="admin-status-dot" aria-hidden="true" />
+                              {r.active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="admin-cell-actions">
+                              <button
+                                type="button"
+                                className="admin-row-action"
+                                onClick={() => handleOpenModal(r)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className={`admin-row-action${r.active ? ' admin-row-action--danger' : ''}`}
+                                onClick={() => handleToggle(r)}
+                              >
+                                {r.active ? 'Deactivate' : 'Activate'}
+                              </button>
+                            </div>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={handleCloseModal}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{editingItem ? `Edit ${activeTab === 'employees' ? 'Employee' : 'Organization'}` : `Add ${activeTab === 'employees' ? 'Employee' : 'Organization'}`}</h3>
-              <button type="button" className="modal-close" onClick={handleCloseModal} aria-label="Close">×</button>
+        <div className="admin-modal-overlay" onClick={handleCloseModal}>
+          <div className="admin-modal" onClick={e => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3 className="admin-modal-title">
+                <span className="admin-modal-title-icon" aria-hidden="true">
+                  {activeTab === 'employees' ? <Users size={18} /> : <Building2 size={18} />}
+                </span>
+                {editingItem
+                  ? `Edit ${activeTab === 'employees' ? 'Employee' : 'Organization'}`
+                  : `Add ${activeTab === 'employees' ? 'Employee' : 'Organization'}`}
+              </h3>
+              <button
+                type="button"
+                className="admin-modal-close"
+                onClick={handleCloseModal}
+                aria-label="Close"
+              >
+                &times;
+              </button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                <p className="form-hint" style={{ marginBottom: '20px', textAlign: 'left' }}>
-                  {editingItem 
-                    ? `Update ${activeTab === 'employees' ? 'employee' : 'organization'} details below.`
-                    : `Register a new ${activeTab === 'employees' ? 'employee' : 'organization'} in the organisation.`}
+              <div className="admin-modal-body">
+                <p className="admin-modal-hint">
+                  {editingItem
+                    ? `Update ${entityLabel} details below.`
+                    : `Register a new ${entityLabel} in the organisation.`}
                 </p>
-                
+
                 {activeTab === 'employees' ? (
                   <>
-                    <div className="field">
-                      <label htmlFor="fullName">Full Name <span style={{ color: '#dc2626' }}>*</span></label>
+                    <div className="admin-modal-field">
+                      <label className="admin-modal-label" htmlFor="fullName">
+                        Full Name <span className="admin-required">*</span>
+                      </label>
                       <input
                         type="text"
                         id="fullName"
                         name="fullName"
+                        className="admin-input"
                         value={formData.fullName}
                         onChange={handleFormChange}
                         onBlur={() => {
@@ -475,43 +553,47 @@ function AdministrationPage() {
                         required
                         autoFocus
                       />
-                      {formErrors.fullName && <span className="field-error">{formErrors.fullName}</span>}
+                      {formErrors.fullName && <span className="admin-field-error">{formErrors.fullName}</span>}
                     </div>
 
-                    <div className="form-row">
-                      <div className="field">
-                        <label htmlFor="jobTitle">Job Role</label>
+                    <div className="admin-modal-row">
+                      <div className="admin-modal-field">
+                        <label className="admin-modal-label" htmlFor="jobTitle">Job Role</label>
                         <input
                           type="text"
                           id="jobTitle"
                           name="jobTitle"
+                          className="admin-input"
                           value={formData.jobTitle}
                           onChange={handleFormChange}
                           maxLength={160}
                           placeholder="e.g. HR Manager"
                         />
-                        {formErrors.jobTitle && <span className="field-error">{formErrors.jobTitle}</span>}
+                        {formErrors.jobTitle && <span className="admin-field-error">{formErrors.jobTitle}</span>}
                       </div>
-                      <div className="field">
-                        <label htmlFor="department">Department</label>
+                      <div className="admin-modal-field">
+                        <label className="admin-modal-label" htmlFor="department">Department</label>
                         <input
                           type="text"
                           id="department"
                           name="department"
+                          className="admin-input"
                           value={formData.department}
                           onChange={handleFormChange}
                           maxLength={160}
                           placeholder="e.g. Human Resources"
                         />
-                        {formErrors.department && <span className="field-error">{formErrors.department}</span>}
+                        {formErrors.department && <span className="admin-field-error">{formErrors.department}</span>}
                       </div>
                     </div>
 
-                    <div className="field" style={{ display: 'flex', alignItems: 'flex-end' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', width: '100%' }}>
+                    <div className="admin-checkbox-row">
+                      <label className="admin-checkbox-label" htmlFor="active-employee">
                         <input
                           type="checkbox"
+                          id="active-employee"
                           name="active"
+                          className="admin-checkbox"
                           checked={formData.active}
                           onChange={handleFormChange}
                         />
@@ -521,12 +603,15 @@ function AdministrationPage() {
                   </>
                 ) : (
                   <>
-                    <div className="field">
-                      <label htmlFor="name">Organization Name <span style={{ color: '#dc2626' }}>*</span></label>
+                    <div className="admin-modal-field">
+                      <label className="admin-modal-label" htmlFor="name">
+                        Organization Name <span className="admin-required">*</span>
+                      </label>
                       <input
                         type="text"
                         id="name"
                         name="name"
+                        className="admin-input"
                         value={formData.name}
                         onChange={handleFormChange}
                         onBlur={() => {
@@ -539,14 +624,16 @@ function AdministrationPage() {
                         autoFocus
                         placeholder="e.g. ABC Logistics"
                       />
-                      {formErrors.name && <span className="field-error">{formErrors.name}</span>}
+                      {formErrors.name && <span className="admin-field-error">{formErrors.name}</span>}
                     </div>
 
-                    <div className="field" style={{ display: 'flex', alignItems: 'flex-end' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', width: '100%' }}>
+                    <div className="admin-checkbox-row">
+                      <label className="admin-checkbox-label" htmlFor="active-organization">
                         <input
                           type="checkbox"
+                          id="active-organization"
                           name="active"
+                          className="admin-checkbox"
                           checked={formData.active}
                           onChange={handleFormChange}
                         />
@@ -557,12 +644,25 @@ function AdministrationPage() {
                 )}
               </div>
 
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={handleCloseModal} disabled={isSubmitting}>
+              <div className="admin-modal-footer">
+                <button
+                  type="button"
+                  className="admin-btn admin-btn-secondary admin-btn-sm"
+                  onClick={handleCloseModal}
+                  disabled={isSubmitting}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : (editingItem ? `Update ${activeTab === 'employees' ? 'Employee' : 'Organization'}` : `Add ${activeTab === 'employees' ? 'Employee' : 'Organization'}`)}
+                <button
+                  type="submit"
+                  className="admin-btn admin-btn-primary admin-btn-sm"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting
+                    ? 'Saving...'
+                    : editingItem
+                      ? `Update ${activeTab === 'employees' ? 'Employee' : 'Organization'}`
+                      : `Add ${activeTab === 'employees' ? 'Employee' : 'Organization'}`}
                 </button>
               </div>
             </form>

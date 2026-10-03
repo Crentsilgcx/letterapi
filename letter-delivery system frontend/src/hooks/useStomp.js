@@ -1,142 +1,196 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 
-// Same-origin so it goes through the Vite /ws proxy in dev and the reverse proxy in production.
 const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
 
-export function useStomp() {
-  const clientRef = useRef(null);
-  const subscriptionsRef = useRef(new Map()); // destination -> { handler, unsubscribe }
-  const pendingSubscriptionsRef = useRef(new Map()); // destination -> handler
+let stompClient = null;
+let mountCount = 0;
+let pendingDisconnect = false;
+const pendingSubscriptions = new Map();
+const activeSubscriptions = new Map();
+const connectionListeners = new Set();
 
-  const connect = useCallback(() => {
-    // Prevent duplicate connections
-    if (clientRef.current?.active) {
-      return;
-    }
+function createClient() {
+  const client = new Client({
+    webSocketFactory: () => {
+      console.log('Connecting STOMP WebSocket to:', WS_URL);
+      return new WebSocket(WS_URL);
+    },
 
-    const client = new Client({
-      webSocketFactory: () => {
-        console.log('Connecting STOMP WebSocket to:', WS_URL);
-        return new WebSocket(WS_URL);
-      },
+    reconnectDelay: 0,
 
-      reconnectDelay: 5000,
+    heartbeatIncoming: 4000,
+    heartbeatOutgoing: 4000,
 
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
+    debug: (message) => {
+      console.log('[STOMP]', message);
+    },
 
-      debug: (message) => {
-        console.log('[STOMP]', message);
-      },
+    onConnect: (frame) => {
+      console.log('STOMP connected:', frame);
+      connectionListeners.forEach((listener) => listener(true));
 
-      onConnect: (frame) => {
-        // React Strict Mode can finish connecting a client that has already
-        // been replaced during its development-only remount. That stale client
-        // must not consume the active client's queued subscriptions.
-        if (clientRef.current !== client) {
-          console.log('Ignoring STOMP connection from an inactive client');
-          return;
-        }
-
-        console.log('STOMP connected:', frame);
-
-        // Execute all pending subscriptions now that we're connected
-        pendingSubscriptionsRef.current.forEach((handler, destination) => {
-          if (client.connected) {
-            let subscription = null;
+      pendingSubscriptions.forEach((handlers, destination) => {
+        if (client.connected) {
+          handlers.forEach((handler) => {
             try {
-              subscription = client.subscribe(
-                destination,
-                (message) => {
-                  try {
-                    const event = JSON.parse(message.body);
-                    const stored = subscriptionsRef.current.get(destination);
-                    if (stored) {
-                      stored.handler(event);
-                    }
-                  } catch (err) {
-                    console.error('Failed to parse STOMP message:', err);
-                  }
+              const subscription = client.subscribe(destination, (message) => {
+                try {
+                  const event = JSON.parse(message.body);
+                  handler(event);
+                } catch (err) {
+                  console.error('Failed to parse STOMP message:', err);
                 }
-              );
-              // Store subscription with unsubscribe function - subscription is in scope here
-              subscriptionsRef.current.set(destination, { 
-                handler,
-                unsubscribe: () => { if (subscription) subscription.unsubscribe(); } 
               });
-              pendingSubscriptionsRef.current.delete(destination);
-              console.log('Subscribed successfully to:', destination);
+              if (!activeSubscriptions.has(destination)) {
+                activeSubscriptions.set(destination, { handlers: new Set(), subscriptions: [] });
+              }
+              const subInfo = activeSubscriptions.get(destination);
+              subInfo.handlers.add(handler);
+              subInfo.subscriptions.push(subscription);
             } catch (err) {
               console.error('Failed to subscribe to:', destination, err);
             }
-          }
-        });
-      },
+          });
+          pendingSubscriptions.delete(destination);
+        }
+      });
+    },
 
-      onStompError: (frame) => {
-        console.error('STOMP error:', frame);
-      },
+    onStompError: (frame) => {
+      console.error('STOMP error:', frame);
+    },
 
-      onWebSocketError: (event) => {
-        console.error('WebSocket error:', event);
-      },
+    onWebSocketError: (event) => {
+      console.error('WebSocket error:', event);
+    },
 
-      onWebSocketClose: (event) => {
-        console.log(
-          'WebSocket closed:',
-          event.code,
-          event.reason
-        );
-      },
+    onWebSocketClose: (event) => {
+      console.log('WebSocket closed:', event.code, event.reason);
+      connectionListeners.forEach((listener) => listener(false));
+    },
 
-      onDisconnect: () => {
-        console.log('STOMP disconnected');
-      },
-    });
+    onDisconnect: () => {
+      console.log('STOMP disconnected');
+      connectionListeners.forEach((listener) => listener(false));
+    },
+  });
+  return client;
+}
 
-    clientRef.current = client;
-    client.activate();
+function getOrCreateClient() {
+  if (!stompClient) {
+    stompClient = createClient();
+  }
+  return stompClient;
+}
+
+function requestDisconnect() {
+  if (pendingDisconnect) {
+    return;
+  }
+  pendingDisconnect = true;
+  queueMicrotask(() => {
+    if (pendingDisconnect) {
+      pendingDisconnect = false;
+      mountCount--;
+      console.log('STOMP mount count (deferred):', mountCount);
+      if (mountCount === 0 && stompClient) {
+        stompClient.deactivate();
+        stompClient = null;
+        activeSubscriptions.clear();
+        pendingSubscriptions.clear();
+      }
+    }
+  });
+}
+
+function cancelDisconnect() {
+  pendingDisconnect = false;
+}
+
+export function useStomp() {
+  const [isConnected, setIsConnected] = useState(false);
+  const listenerRef = useRef(null);
+  const isMountedRef = useRef(false);
+
+  const connect = useCallback(() => {
+    if (isMountedRef.current) {
+      return;
+    }
+    isMountedRef.current = true;
+
+    cancelDisconnect();
+
+    if (mountCount === 0) {
+      mountCount = 1;
+    } else {
+      mountCount++;
+    }
+    console.log('STOMP mount count:', mountCount);
+
+    const client = getOrCreateClient();
+
+    if (mountCount === 1) {
+      listenerRef.current = (connected) => {
+        setIsConnected(connected);
+      };
+      connectionListeners.add(listenerRef.current);
+
+      if (!client.active) {
+        client.activate();
+      }
+    } else if (client.connected) {
+      queueMicrotask(() => setIsConnected(true));
+    }
   }, []);
 
-  const disconnect = useCallback(async () => {
-    const client = clientRef.current;
-    clientRef.current = null;
-    if (client) {
-      await client.deactivate();
+  const disconnect = useCallback(() => {
+    if (!isMountedRef.current) {
+      return;
     }
-    // Do not let an asynchronously disconnecting, superseded client erase
-    // subscriptions queued by the replacement client (React Strict Mode).
-    if (clientRef.current === null) {
-      subscriptionsRef.current.clear();
-      pendingSubscriptionsRef.current.clear();
+    isMountedRef.current = false;
+
+    if (listenerRef.current) {
+      connectionListeners.delete(listenerRef.current);
+      listenerRef.current = null;
     }
+
+    requestDisconnect();
   }, []);
 
   const subscribe = useCallback((destination, handler) => {
-    const client = clientRef.current;
+    const client = getOrCreateClient();
 
-    // Store handler for (re)subscription
-    pendingSubscriptionsRef.current.set(destination, handler);
+    if (!pendingSubscriptions.has(destination)) {
+      pendingSubscriptions.set(destination, new Set());
+    }
+    pendingSubscriptions.get(destination).add(handler);
 
-    // If already connected, subscribe immediately
-    if (client?.connected) {
-      let subscription = null;
+    if (client.connected) {
       try {
-        subscription = client.subscribe(
-          destination,
-          (message) => {
-            try {
-              const event = JSON.parse(message.body);
-              handler(event);
-            } catch (err) {
-              console.error('Failed to parse STOMP message:', err);
-            }
+        const subscription = client.subscribe(destination, (message) => {
+          try {
+            const event = JSON.parse(message.body);
+            handler(event);
+          } catch (err) {
+            console.error('Failed to parse STOMP message:', err);
           }
-        );
-        subscriptionsRef.current.set(destination, { handler, unsubscribe: () => subscription.unsubscribe() });
+        });
+
+        if (!activeSubscriptions.has(destination)) {
+          activeSubscriptions.set(destination, { handlers: new Set(), subscriptions: [] });
+        }
+        const subInfo = activeSubscriptions.get(destination);
+        subInfo.handlers.add(handler);
+        subInfo.subscriptions.push(subscription);
+
+        pendingSubscriptions.get(destination).delete(handler);
+        if (pendingSubscriptions.get(destination).size === 0) {
+          pendingSubscriptions.delete(destination);
+        }
+
         console.log('Subscribed successfully to:', destination);
-        pendingSubscriptionsRef.current.delete(destination);
       } catch (err) {
         console.error('Failed to subscribe to:', destination, err);
       }
@@ -144,20 +198,27 @@ export function useStomp() {
       console.log('STOMP not yet connected, queuing subscription for:', destination);
     }
 
-    // Return cleanup function
     return () => {
-      const stored = subscriptionsRef.current.get(destination);
-      if (stored) {
-        stored.unsubscribe();
-        subscriptionsRef.current.delete(destination);
+      if (pendingSubscriptions.has(destination)) {
+        pendingSubscriptions.get(destination).delete(handler);
+        if (pendingSubscriptions.get(destination).size === 0) {
+          pendingSubscriptions.delete(destination);
+        }
       }
-      pendingSubscriptionsRef.current.delete(destination);
+
+      if (activeSubscriptions.has(destination)) {
+        const subInfo = activeSubscriptions.get(destination);
+        subInfo.handlers.delete(handler);
+        if (subInfo.handlers.size === 0) {
+          subInfo.subscriptions.forEach((sub) => sub.unsubscribe());
+          activeSubscriptions.delete(destination);
+        }
+      }
     };
   }, []);
 
   useEffect(() => {
     connect();
-
     return () => {
       disconnect();
     };
@@ -167,5 +228,6 @@ export function useStomp() {
     subscribe,
     connect,
     disconnect,
+    isConnected,
   };
 }

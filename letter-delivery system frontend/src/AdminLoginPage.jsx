@@ -1,6 +1,19 @@
-import { useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { adminApi } from './api';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from './AuthContext';
+import {
+  Mail,
+  ShieldCheck,
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  ArrowLeft,
+  Loader2,
+} from 'lucide-react';
+import './tokens.css';
+import './ReceptionLoginPage.css';
 
 function AdminLoginPage() {
   const [username, setUsername] = useState('');
@@ -9,6 +22,7 @@ function AdminLoginPage() {
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,7 +40,7 @@ function AdminLoginPage() {
     setIsSubmitting(true);
 
     try {
-      await adminApi.login(username, password);
+      await login(username, password);
       navigate('/admin', { replace: true });
     } catch (err) {
       setError(err.message || 'Invalid username or password');
@@ -41,76 +55,111 @@ function AdminLoginPage() {
 
   return (
     <div className="login-page">
+      <div className="login-brand">
+        <span className="login-brand-icon" aria-hidden="true">
+          <Mail size={20} />
+        </span>
+        <span className="login-brand-text">Letter Delivery</span>
+      </div>
+
       <div className="login-card">
-        <div className="login-header">
-          <div className="login-brand">
-            <span className="brand-mark">LR</span>
-            <span>Letter Delivery</span>
-          </div>
-          <h1>Administration</h1>
-          <p className="login-subtitle">Sign in to access administration</p>
-        </div>
+        <div className="login-card-form">
+          <h1 className="login-heading">Administration</h1>
+          <p className="login-subtext">Sign in to access administration.</p>
 
-        {error && (
-          <div className="alert alert-error" style={{ marginBottom: '20px' }}>
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div className="field">
-            <label htmlFor="username">Username</label>
-            <input
-              type="text"
-              id="username"
-              name="username"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => { setUsername(e.target.value); handleInputChange(); }}
-              required
-              autoFocus
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <div className="password-wrapper">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                name="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); handleInputChange(); }}
-                required
-                disabled={isSubmitting}
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                disabled={isSubmitting}
-              >
-                {showPassword ? '👀' : '👁'}
-              </button>
+          {error && (
+            <div className="login-error" role="alert" aria-live="polite">
+              <AlertCircle className="login-error-icon" size={18} aria-hidden="true" />
+              <span>{error}</span>
             </div>
-          </div>
+          )}
+
+          <form className="login-form" onSubmit={handleSubmit} noValidate>
+            <div className="login-field">
+              <label htmlFor="username" className="login-label">Username</label>
+              <div className="login-input-wrapper">
+                <User className="login-input-icon" size={20} aria-hidden="true" />
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  autoComplete="username"
+                  className={`login-input ${error ? 'error' : ''}`}
+                  value={username}
+                  onChange={(e) => { setUsername(e.target.value); handleInputChange(); }}
+                  required
+                  autoFocus
+                  disabled={isSubmitting}
+                  aria-invalid={!!error}
+                />
+              </div>
+            </div>
+
+            <div className="login-field">
+              <label htmlFor="password" className="login-label">Password</label>
+              <div className="login-input-wrapper">
+                <Lock className="login-input-icon" size={20} aria-hidden="true" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  name="password"
+                  autoComplete="current-password"
+                  className={`login-input ${error ? 'error' : ''}`}
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); handleInputChange(); }}
+                  required
+                  disabled={isSubmitting}
+                  aria-invalid={!!error}
+                />
+                <button
+                  type="button"
+                  className="login-password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                  disabled={isSubmitting}
+                >
+                  {showPassword ? (
+                    <EyeOff size={20} aria-hidden="true" />
+                  ) : (
+                    <Eye size={20} aria-hidden="true" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="login-submit"
+              disabled={isSubmitting || !username.trim() || !password}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="login-submit-spinner" aria-hidden="true" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={18} aria-hidden="true" />
+                  Sign In
+                </>
+              )}
+            </button>
+          </form>
 
           <button
-            type="submit"
-            className="btn btn-primary btn-full btn-large"
+            type="button"
+            className="login-back"
+            onClick={() => navigate('/')}
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Signing in...' : 'Sign In'}
+            <ArrowLeft size={18} aria-hidden="true" />
+            Back
           </button>
-        </form>
 
-        <div className="login-footer">
-          <Link to="/" className="btn btn-link">
-            ← Back
-          </Link>
+          <p className="login-footer-text">
+            Administrator access only.
+          </p>
         </div>
       </div>
     </div>

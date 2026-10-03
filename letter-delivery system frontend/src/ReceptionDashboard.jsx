@@ -1,5 +1,9 @@
 import { useReception } from './hooks/useReceptionContext.jsx';
 import { useState } from 'react';
+import { Search, Package, PackageCheck, Loader2, Inbox, X } from 'lucide-react';
+import ConnectionStatus from './components/ConnectionStatus';
+import './tokens.css';
+import './ReceptionDashboard.css';
 
 const statusBadge = (status) => {
   const classes = {
@@ -31,16 +35,16 @@ const SearchFilterBar = ({
   customDateFrom, customDateTo, onCustomDateFromChange, onCustomDateToChange, 
   showCustomDate, 
   recipientPositionFilter, onRecipientPositionFilterChange,
-  organizationFilter, onOrganizationFilterChange,
 }) => {
   return (
     <div className="search-filter-bar">
       <div className="search-field">
         <label htmlFor="searchLetters" className="visually-hidden">Search letters</label>
+        <Search className="search-icon" size={18} aria-hidden="true" />
         <input
           type="text"
           id="searchLetters"
-          placeholder="Search letters..."
+          placeholder="Search recipient, position or reference code..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className="search-input"
@@ -49,7 +53,7 @@ const SearchFilterBar = ({
       
       <div className="filter-fields">
         <div className="filter-field">
-          <label htmlFor="dateFilter" className="visually-hidden">Date filter</label>
+          <label htmlFor="dateFilter">Date</label>
           <select
             id="dateFilter"
             value={dateFilter}
@@ -87,8 +91,8 @@ const SearchFilterBar = ({
           </div>
         )}
         
-        <div className="filter-field">
-          <label htmlFor="recipientPositionFilter" className="visually-hidden">Recipient Position filter</label>
+        <div className="filter-field filter-field--position">
+          <label htmlFor="recipientPositionFilter">Recipient position</label>
           <select
             id="recipientPositionFilter"
             value={recipientPositionFilter}
@@ -107,18 +111,6 @@ const SearchFilterBar = ({
             <option value="Accountant">Accountant</option>
             <option value="Procurement Officer">Procurement Officer</option>
           </select>
-        </div>
-        
-        <div className="filter-field">
-          <label htmlFor="organizationFilter" className="visually-hidden">Organization filter</label>
-          <input
-            type="text"
-            id="organizationFilter"
-            placeholder="Filter by organization..."
-            value={organizationFilter}
-            onChange={(e) => onOrganizationFilterChange(e.target.value)}
-            className="filter-input"
-          />
         </div>
       </div>
     </div>
@@ -141,51 +133,69 @@ const DeliveryTable = ({
   setExpandedId
 }) => {
   if (isLoading) {
-    return <div className="loading">Loading...</div>;
+    return (
+      <div className="dashboard-loading" role="status" aria-live="polite">
+        <Loader2 className="dashboard-spinner" size={28} aria-hidden="true" />
+        <span>Loading letters...</span>
+      </div>
+    );
   }
    
   if (deliveries.length === 0) {
-    return <div className="empty">{emptyMessage}</div>;
+    return (
+      <div className="dashboard-empty" role="status" aria-live="polite">
+        <span className="dashboard-empty-mark" aria-hidden="true">
+          <Inbox size={24} />
+        </span>
+        <p className="dashboard-empty-text">{emptyMessage}</p>
+      </div>
+    );
   }
 
   return (
     <>
       <div className="table-section desktop-table">
-        <h3 className="table-title">{title} <span className="count">({totalElements || deliveries.length})</span></h3>
-        <div className="table-wrap">
-          <table>
-            <thead>
+        <div className="table-wrap dashboard-table-wrap">
+<table className="dashboard-table">
+              <caption className="visually-hidden">{title}</caption>
+              <thead>
               <tr>
-                <th>External Organization</th>
-                <th>Recipient</th>
-                <th>Reference</th>
-                <th>Delivered</th>
-                <th>Received</th>
-                {showAction && <th>Action</th>}
+                <th scope="col">External Organization</th>
+                <th scope="col">Recipient</th>
+                <th scope="col">Reference</th>
+                <th scope="col">Delivered</th>
+                <th scope="col">Received</th>
+                {showAction && <th scope="col" className="dashboard-cell-action">Action</th>}
               </tr>
             </thead>
             <tbody>
               {deliveries.map((d) => (
                 <tr key={d.id}>
-                  <td>
+                  <td className="dashboard-cell-organization">
                     <strong>{d.organizationName || '—'}</strong>
                   </td>
                   <td>
-                    <strong>{d.recipientName}</strong><br />
-                    <span className="muted">{d.recipientTitle || ''}</span>
+                    <span className="dashboard-recipient-name">{d.recipientName}</span>
+                    {d.recipientTitle && <span className="dashboard-recipient-title">{d.recipientTitle}</span>}
                   </td>
-                  <td>
-                    <strong>{d.trackingNumber}</strong>
+                  <td className="dashboard-cell-reference">
+                    <code className="dashboard-reference-code">{d.trackingNumber}</code>
                   </td>
-                  <td className="nowrap">{formatDate(d.deliveredAt)}</td>
-                  <td className="nowrap">{d.receivedAt ? formatDate(d.receivedAt) : <span className="muted">—</span>}</td>
+                  <td className="dashboard-cell-date">{formatDate(d.deliveredAt)}</td>
+                  <td className="dashboard-cell-date">
+                    {d.receivedAt ? formatDate(d.receivedAt) : <span className="muted">—</span>}
+                  </td>
                   {showAction && (
-                    <td>
+                    <td className="dashboard-cell-action">
                       <button
-                        className="btn btn-primary btn-small"
+                        className="dashboard-confirm-btn"
                         onClick={(e) => { e.stopPropagation(); onReceive(d.id); }}
                         disabled={receivingId === d.id}
+                        aria-busy={receivingId === d.id}
                       >
+                        {receivingId === d.id && (
+                          <Loader2 size={16} className="dashboard-spinner" aria-hidden="true" />
+                        )}
                         {receivingId === d.id ? 'Confirming...' : 'Confirm Receipt'}
                       </button>
                     </td>
@@ -234,10 +244,14 @@ const DeliveryTable = ({
               {showAction && (
                 <div className="delivery-card-actions">
                   <button
-                    className="btn btn-primary btn-small"
+                    className="dashboard-confirm-btn"
                     onClick={(e) => { e.stopPropagation(); onReceive(d.id); }}
                     disabled={receivingId === d.id}
+                    aria-busy={receivingId === d.id}
                   >
+                    {receivingId === d.id && (
+                      <Loader2 size={16} className="dashboard-spinner" aria-hidden="true" />
+                    )}
                     {receivingId === d.id ? 'Confirming...' : 'Confirm Receipt'}
                   </button>
                 </div>
@@ -249,32 +263,38 @@ const DeliveryTable = ({
 
       {totalPages > 1 && (
         <div className="pagination">
-          <button className="pagination-btn" onClick={() => onPageChange(0)} disabled={page === 0} aria-label="First page">««</button>
-          <button className="pagination-btn" onClick={() => onPageChange(page - 1)} disabled={page === 0} aria-label="Previous page">«</button>
-          {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-            let pageNum;
-            if (totalPages <= 5) {
-              pageNum = i;
-            } else if (page <= 2) {
-              pageNum = i;
-            } else if (page >= totalPages - 3) {
-              pageNum = totalPages - 5 + i;
-            } else {
-              pageNum = page - 2 + i;
-            }
-            return (
-              <button
-                key={pageNum}
-                className={`pagination-btn ${pageNum === page ? 'active' : ''}`}
-                onClick={() => onPageChange(pageNum)}
-              >
-                {pageNum + 1}
-              </button>
-            );
-          })}
-          <button className="pagination-btn" onClick={() => onPageChange(page + 1)} disabled={page >= totalPages - 1} aria-label="Next page">»</button>
-          <button className="pagination-btn" onClick={() => onPageChange(totalPages - 1)} disabled={page >= totalPages - 1} aria-label="Last page">»»</button>
-          <span className="pagination-info">Page {page + 1} of {totalPages} ({totalElements} total)</span>
+          <span className="pagination-info">
+            Showing {page * 10 + 1} to {Math.min((page + 1) * 10, totalElements)} of {totalElements}
+          </span>
+          <div className="pagination-controls">
+            <button className="pagination-btn" onClick={() => onPageChange(0)} disabled={page === 0} aria-label="First page">««</button>
+            <button className="pagination-btn" onClick={() => onPageChange(page - 1)} disabled={page === 0} aria-label="Previous page">«</button>
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) {
+                pageNum = i;
+              } else if (page <= 2) {
+                pageNum = i;
+              } else if (page >= totalPages - 3) {
+                pageNum = totalPages - 5 + i;
+              } else {
+                pageNum = page - 2 + i;
+              }
+              return (
+                <button
+                  key={pageNum}
+                  className={`pagination-btn${pageNum === page ? ' active' : ''}`}
+                  onClick={() => onPageChange(pageNum)}
+                  aria-label={`Page ${pageNum + 1}`}
+                  aria-current={pageNum === page ? 'page' : undefined}
+                >
+                  {pageNum + 1}
+                </button>
+              );
+            })}
+            <button className="pagination-btn" onClick={() => onPageChange(page + 1)} disabled={page >= totalPages - 1} aria-label="Next page">»</button>
+            <button className="pagination-btn" onClick={() => onPageChange(totalPages - 1)} disabled={page >= totalPages - 1} aria-label="Last page">»»</button>
+          </div>
         </div>
       )}
     </>
@@ -312,8 +332,6 @@ const ReceptionDashboard = () => {
     showCustomDate,
     recipientPositionFilter,
     setRecipientPositionFilter,
-    organizationFilter,
-    setOrganizationFilter,
     isConnected,
   } = useReception();
 
@@ -321,17 +339,38 @@ const ReceptionDashboard = () => {
   const [expandedReceivedId, setExpandedReceivedId] = useState(null);
 
   return (
-    <div className="container">
-      <div className="form-card">
-        <div className="card-header">
-          <div>
-            <h2 className="card-title">Reception Staff</h2>
-            <p className="card-subtitle">Manage incoming deliveries and receipt confirmations</p>
+    <div className="reception-dashboard">
+      <div className="dashboard-main">
+        <header className="dashboard-header">
+          <div className="header-content">
+            <div className="header-text">
+              <h1 className="page-title">Reception Dashboard</h1>
+              <p className="page-subtitle">Manage incoming deliveries and receipt confirmations.</p>
+            </div>
+            <ConnectionStatus isConnected={isConnected} />
           </div>
-        </div>
+        </header>
 
-        {success && <div className="alert alert-success">{success}</div>}
-        {error && <div className="alert alert-error">{error}</div>}
+        {(success || error) && (
+          <div className="messages">
+            {success && (
+              <div className="alert alert-success" role="status" aria-live="polite">
+                <span>{success}</span>
+                <button className="alert-close" onClick={clearMessages} aria-label="Dismiss message" type="button">
+                  <X size={16} aria-hidden="true" />
+                </button>
+              </div>
+            )}
+            {error && (
+              <div className="alert alert-error" role="alert" aria-live="assertive">
+                <span>{error}</span>
+                <button className="alert-close" onClick={clearMessages} aria-label="Dismiss error" type="button">
+                  <X size={16} aria-hidden="true" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         <SearchFilterBar
           searchQuery={searchQuery}
@@ -345,64 +384,77 @@ const ReceptionDashboard = () => {
           showCustomDate={showCustomDate}
           recipientPositionFilter={recipientPositionFilter}
           onRecipientPositionFilterChange={setRecipientPositionFilter}
-          organizationFilter={organizationFilter}
-          onOrganizationFilterChange={setOrganizationFilter}
         />
 
-        <div className="tab-nav" role="tablist">
+        <div className="dashboard-tabs" role="tablist" aria-label="Delivery status">
           <button
-            className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
+            className={`dashboard-tab${activeTab === 'pending' ? ' active' : ''}`}
             onClick={() => setActiveTab('pending')}
             role="tab"
             aria-selected={activeTab === 'pending'}
+            aria-controls="pending-panel"
+            id="pending-tab"
           >
-            Awaiting Receipt
+            <Package size={16} aria-hidden="true" />
+            <span>Awaiting Receipt</span>
+            <span className="dashboard-tab-count">{pendingTotalElements}</span>
           </button>
           <button
-            className={`tab-btn ${activeTab === 'received' ? 'active' : ''}`}
+            className={`dashboard-tab${activeTab === 'received' ? ' active' : ''}`}
             onClick={() => setActiveTab('received')}
             role="tab"
             aria-selected={activeTab === 'received'}
+            aria-controls="received-panel"
+            id="received-tab"
           >
-            Received
+            <PackageCheck size={16} aria-hidden="true" />
+            <span>Received</span>
+            <span className="dashboard-tab-count">{receivedTotalElements}</span>
           </button>
         </div>
 
-        {activeTab === 'pending' && (
-          <DeliveryTable
-            title="Awaiting Receipt"
-            deliveries={pending}
-            emptyMessage="No letters are waiting for receipt confirmation."
-            isLoading={isLoading}
-            receivingId={receivingId}
-            onReceive={handleReceive}
-            showAction={true}
-            totalElements={pendingTotalElements}
-            page={pendingPage}
-            totalPages={pendingTotalPages}
-            onPageChange={goToPendingPage}
-            expandedId={expandedPendingId}
-            setExpandedId={setExpandedPendingId}
-          />
-        )}
+        <div
+          className="dashboard-panel"
+          role="tabpanel"
+          id={activeTab === 'pending' ? 'pending-panel' : 'received-panel'}
+          aria-labelledby={activeTab === 'pending' ? 'pending-tab' : 'received-tab'}
+        >
+          {activeTab === 'pending' && (
+            <DeliveryTable
+              title="Awaiting Receipt"
+              deliveries={pending}
+              emptyMessage="No letters are waiting for receipt confirmation."
+              isLoading={isLoading}
+              receivingId={receivingId}
+              onReceive={handleReceive}
+              showAction={true}
+              totalElements={pendingTotalElements}
+              page={pendingPage}
+              totalPages={pendingTotalPages}
+              onPageChange={goToPendingPage}
+              expandedId={expandedPendingId}
+              setExpandedId={setExpandedPendingId}
+            />
+          )}
 
-        {activeTab === 'received' && (
-          <DeliveryTable
-            title="Received Letters"
-            deliveries={received}
-            emptyMessage="No letters have been received yet."
-            isLoading={isLoading}
-            receivingId={receivingId}
-            onReceive={handleReceive}
-            showAction={false}
-            totalElements={receivedTotalElements}
-            page={receivedPage}
-            totalPages={receivedTotalPages}
-            onPageChange={goToReceivedPage}
-            expandedId={expandedReceivedId}
-            setExpandedId={setExpandedReceivedId}
-          />
-        )}
+          {activeTab === 'received' && (
+            <DeliveryTable
+              title="Received Letters"
+              deliveries={received}
+              emptyMessage="No letters have been received yet."
+              isLoading={isLoading}
+              receivingId={receivingId}
+              onReceive={handleReceive}
+              showAction={false}
+              totalElements={receivedTotalElements}
+              page={receivedPage}
+              totalPages={receivedTotalPages}
+              onPageChange={goToReceivedPage}
+              expandedId={expandedReceivedId}
+              setExpandedId={setExpandedReceivedId}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
