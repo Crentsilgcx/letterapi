@@ -36,6 +36,7 @@ public class BootstrapAdminInitializer implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         if (users.count() > 0) {
+            syncAdminPassword();
             return;
         }
         if (!StringUtils.hasText(password) || password.length() < 12) {
@@ -53,5 +54,25 @@ public class BootstrapAdminInitializer implements ApplicationRunner {
         log.info(
             "Bootstrap administrator '{}' created. Change its password after first login if the secret was shared.",
             admin.getUsername());
+    }
+
+    // .env is the source of truth for the bootstrap admin: the React dev proxy sends the same
+    // credentials, so keep the stored password in step when the environment value changes.
+    private void syncAdminPassword() {
+        if (!StringUtils.hasText(password)) {
+            return;
+        }
+        if (password.length() < 12) {
+            log.warn("APP_BOOTSTRAP_ADMIN_PASSWORD is shorter than 12 characters; existing admin password left unchanged.");
+            return;
+        }
+        users.findByUsernameIgnoreCase(username.trim()).ifPresent(admin -> {
+            if (!encoder.matches(password, admin.getPasswordHash())) {
+                admin.setPasswordHash(encoder.encode(password));
+                users.save(admin);
+                log.info("Bootstrap administrator '{}' password updated to match APP_BOOTSTRAP_ADMIN_PASSWORD.",
+                    admin.getUsername());
+            }
+        });
     }
 }

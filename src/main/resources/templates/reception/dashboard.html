@@ -58,9 +58,10 @@
         <thead>
           <tr>
             <th>Tracking</th>
-            <th>Delivered by / From</th>
+            <th>External Organization</th>
+            <th>Delivered by</th>
             <th>Addressed to</th>
-            <th>Letter</th>
+            <th>Letter Subject</th>
             <th>Delivered</th>
             <th>Action</th>
           </tr>
@@ -71,9 +72,9 @@
               <strong th:text="${d.trackingNumber}"></strong><br>
               <span class="status delivered">DELIVERED</span>
             </td>
+            <td th:text="${d.organizationName}"></td>
             <td>
-              <strong th:text="${d.deliveryPersonName}"></strong><br>
-              <span class="muted" th:text="${d.organizationName}"></span>
+              <strong th:text="${d.deliveryPersonName}"></strong>
             </td>
             <td>
               <strong th:text="${d.recipientName}"></strong><br>
@@ -107,8 +108,9 @@
           <tr>
             <th>Tracking</th>
             <th>Status</th>
-            <th>From</th>
-            <th>To</th>
+            <th>External Organization</th>
+            <th>Recipient</th>
+            <th>Subject</th>
             <th>Time</th>
           </tr>
         </thead>
@@ -120,6 +122,7 @@
             </td>
             <td th:text="${d.organizationName}"></td>
             <td th:text="${d.recipientName}"></td>
+            <td th:text="${d.subject}"></td>
             <td th:text="${#temporals.format(d.deliveredAt,'dd MMM HH:mm')}"></td>
           </tr>
         </tbody>

@@ -3,7 +3,9 @@ package com.office.letterreceipt.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -14,12 +16,30 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 public class SecurityConfig {
 
     @Bean
+    AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
     @Order(1)
-    SecurityFilterChain staffApiSecurity(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
+    SecurityFilterChain websocketSecurity(HttpSecurity http) throws Exception {
         http
-            .securityMatcher("/api/reception/**", "/api/admin/**")
+            .securityMatcher("/ws/**")
+            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+            .csrf(csrf -> csrf.disable());
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
+    SecurityFilterChain apiSecurity(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
+        http
+            .securityMatcher("/api/**")
             .userDetailsService(userDetailsService)
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/public/**").permitAll()
+                .requestMatchers("/api/admin/login").permitAll()
+                .requestMatchers("/api/admin/me").authenticated()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/reception/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                 .anyRequest().authenticated())
@@ -30,7 +50,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(2)
+    @Order(3)
     SecurityFilterChain webSecurity(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
         http
             .userDetailsService(userDetailsService)
@@ -40,7 +60,6 @@ public class SecurityConfig {
                     "/deliver",
                     "/track",
                     "/track/**",
-                    "/api/public/**",
                     "/css/**",
                     "/js/**",
                     "/favicon.svg",
@@ -48,14 +67,13 @@ public class SecurityConfig {
                     "/actuator/health")
                 .permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/reception/**").hasAnyRole("ADMIN", "RECEPTIONIST")
+                .requestMatchers("/reception/**", "/operations/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                 .anyRequest().authenticated())
             .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                .ignoringRequestMatchers("/api/public/**"))
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/reception", true)
+                .defaultSuccessUrl("/operations", true)
                 .permitAll())
             .logout(logout -> logout
                 .logoutSuccessUrl("/")

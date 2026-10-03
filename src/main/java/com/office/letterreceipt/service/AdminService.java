@@ -43,14 +43,17 @@ public class AdminService {
         Recipient recipient = id == null
             ? new Recipient()
             : recipients.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND));
-        recipient.setFullName(request.fullName().trim());
+        String fullName = request.fullName().trim();
+        if (id == null) {
+            recipients.findByFullNameIgnoreCase(fullName).ifPresent(existing -> {
+                throw new ResponseStatusException(CONFLICT, "An employee with this name already exists. This delivery person is already registered in the system.");
+            });
+        }
+        recipient.setFullName(fullName);
         recipient.setJobTitle(clean(request.jobTitle()));
         recipient.setDepartment(clean(request.department()));
         if (request.active() != null) {
             recipient.setActive(request.active());
-        }
-        if (request.sortOrder() != null) {
-            recipient.setSortOrder(request.sortOrder());
         }
         return recipients.save(recipient);
     }

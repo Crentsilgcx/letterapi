@@ -47,7 +47,7 @@ public class AdminWebController {
     @GetMapping
     public String admin(Model model) {
         model.addAttribute("organizationName", organizationName);
-        model.addAttribute("recipients", recipients.findAllByOrderBySortOrderAscFullNameAsc());
+        model.addAttribute("recipients", recipients.findAllByOrderByFullNameAsc());
         model.addAttribute("organizations", organizations.findAllByOrderByNameAsc());
         model.addAttribute("users", users.findAllByOrderByDisplayNameAsc());
         model.addAttribute("roles", Role.values());

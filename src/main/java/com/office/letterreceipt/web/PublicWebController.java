@@ -35,7 +35,7 @@ public class PublicWebController {
     @GetMapping({"/", "/deliver"})
     public String home(Model model) {
         base(model);
-        model.addAttribute("recipients", recipients.findByActiveTrueOrderBySortOrderAscFullNameAsc());
+        model.addAttribute("recipients", recipients.findByActiveTrueOrderByFullNameAsc());
         model.addAttribute("organizations", organizations.findByActiveTrueOrderByNameAsc());
         model.addAttribute("people", people.findTop100ByActiveTrueOrderByFullNameAsc());
         return "public/deliver";

@@ -50,9 +50,10 @@
             <th>Tracking</th>
             <th>Status</th>
             <th>Delivery person</th>
-            <th>Organization</th>
+            <th>External Organization</th>
             <th>Recipient</th>
-            <th>Subject / Reference</th>
+            <th>Subject</th>
+            <th>Reference</th>
             <th>Delivered</th>
             <th>Received</th>
           </tr>
@@ -67,14 +68,14 @@
             <td th:text="${d.organizationName}"></td>
             <td th:text="${d.recipientName}"></td>
             <td>
-              <strong th:text="${d.subject}"></strong><br>
-              <span class="muted" th:text="${d.referenceNumber}"></span>
+              <strong th:text="${d.subject}"></strong>
             </td>
+            <td th:text="${d.referenceNumber ?: '—'}"></td>
             <td class="nowrap" th:text="${#temporals.format(d.deliveredAt,'dd MMM yyyy HH:mm')}"></td>
             <td class="nowrap" th:text="${d.receivedAt != null ? #temporals.format(d.receivedAt,'dd MMM yyyy HH:mm') : '—'}"></td>
           </tr>
           <tr th:if="${#lists.isEmpty(deliveries.content)}">
-            <td colspan="8" class="empty">No matching deliveries.</td>
+            <td colspan="9" class="empty">No matching deliveries.</td>
           </tr>
         </tbody>
       </table>

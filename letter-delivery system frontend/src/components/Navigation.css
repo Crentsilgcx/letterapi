@@ -1,0 +1,197 @@
+/* Global Navigation */
+
+.global-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding: 0 var(--space-lg);
+  height: 64px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-nav);
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: var(--font-weight-extrabold);
+  font-size: 20px;
+  color: var(--ink);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--tint);
+  color: var(--accent);
+  border-radius: 8px;
+}
+
+.brand-text {
+  letter-spacing: -0.02em;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  color: var(--sub);
+  background: none;
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+  text-decoration: none;
+}
+
+.nav-link:hover {
+  color: var(--ink);
+  background: var(--bg);
+}
+
+.nav-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.nav-link.active {
+  color: var(--accent);
+  background: var(--tint);
+}
+
+.nav-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  color: var(--sub);
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.nav-logout:hover {
+  color: var(--err);
+  background: var(--bg);
+  border-color: var(--err);
+}
+
+.nav-logout:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Mobile Bottom Navigation */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  padding: var(--space-xs) var(--space-sm) env(safe-area-inset-bottom, var(--space-sm));
+  z-index: var(--z-nav);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.mobile-nav-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: var(--space-xs);
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.mobile-nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-sm) var(--space-xs);
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  color: var(--sub);
+  background: none;
+  border: none;
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+  text-decoration: none;
+  min-height: 56px;
+  min-width: 44px;
+}
+
+.mobile-nav-link:hover,
+.mobile-nav-link:focus {
+  color: var(--ink);
+  background: var(--bg);
+}
+
+.mobile-nav-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.mobile-nav-link.active {
+  color: var(--accent);
+  background: var(--tint);
+}
+
+.mobile-nav-logout {
+  color: var(--sub);
+}
+
+.mobile-nav-logout:hover,
+.mobile-nav-logout:focus {
+  color: var(--err);
+  background: var(--warn-bg);
+}
+
+@media (max-width: 720px) {
+  .global-nav .nav-links {
+    display: none;
+  }
+
+  .mobile-bottom-nav {
+    display: block;
+  }
+
+  /* Add bottom padding to main content so it's not covered by bottom nav */
+  .main-content {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0));
+  }
+}
+
+/* Tablet and desktop - hide mobile nav */
+@media (min-width: 721px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
