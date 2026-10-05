@@ -4,19 +4,16 @@ const DeliveryForm = () => {
   const {
     values,
     errors,
-    touched,
     isSubmitting,
     isCreatingPerson,
     submitMessage,
     recipientRoles,
     deliveryPersons,
-    selectedPerson,
     isNewPerson,
     isDuplicateName,
     handleChange,
     handleDeliveryPersonChange,
     handleSubmit,
-    handleNewPersonCreated,
   } = useDeliveryForm();
 
   const showDeliveryPersonFields = isNewPerson || !values.deliveryPersonId;

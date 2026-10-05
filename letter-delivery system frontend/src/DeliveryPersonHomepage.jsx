@@ -10,6 +10,8 @@ const initialValues = {
   deliveryPersonName: '',
   phone: '',
   email: '',
+  organizationName: '',
+  recipientPosition: '',
 };
 
 const validate = (values) => {
@@ -106,14 +108,16 @@ function DeliveryPersonHomepage() {
     setSubmitMessage(null);
     setDeliveryStatus(null);
 
-    try {
-      const payload = {
-        fullName: values.deliveryPersonName.trim(),
-        phone: values.phone?.trim() || null,
-        email: values.email?.trim() || null,
-      };
+try {
+        const payload = {
+          fullName: values.deliveryPersonName.trim(),
+          phone: values.phone?.trim() || null,
+          email: values.email?.trim() || null,
+          organizationName: values.organizationName?.trim() || 'Our Office',
+          recipientPosition: values.recipientPosition?.trim() || 'Reception',
+        };
 
-      const response = await deliveryApi.createDelivery(payload);
+        const response = await deliveryApi.createDelivery(payload);
       setSubmitMessage({ type: 'success', text: 'Delivery submitted successfully!' });
       setLastSubmittedDeliveryId(response.id);
       setDeliveryStatus('DELIVERED');

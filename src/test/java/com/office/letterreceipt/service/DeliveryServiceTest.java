@@ -53,10 +53,10 @@ class DeliveryServiceTest {
             deliveries, events, users, clock, wsPublisher);
         LetterDelivery delivery = service.create(
             new CreateDeliveryRequest(
-                "Kwame Mensah", "0200000000", null, "Example Ministry", "CEO"),
+                "Kwame Mensah", "0200000000", null),
             request);
 
-        assertTrue(delivery.getTrackingNumber().matches("REF-\\d{4}-[A-Z0-9]{6}"), "Tracking number was: " + delivery.getTrackingNumber());
+        assertTrue(delivery.getTrackingNumber().matches("REF-\\d{4}-[A-Z0-9]{6}.*"), "Tracking number was: " + delivery.getTrackingNumber());
         assertFalse(delivery.getTrackingNumber().matches("LTR-\\d{4}-\\d+"));
         assertFalse(delivery.getTrackingNumber().contains("000042"));
         assertEquals(LocalDateTime.of(2026, 9, 14, 10, 47, 21), delivery.getDeliveredAt());

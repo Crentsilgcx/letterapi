@@ -49,34 +49,15 @@ class DeliveryFlowIT extends AbstractSpringIT {
 
     @Test
     void createReceiveAndTrack() throws Exception {
-        String recipientName = "Flow Recipient " + System.nanoTime();
-        MvcResult createdRecipient = mockMvc.perform(post("/api/admin/recipients")
-                .with(httpBasic(ADMIN, ADMIN_PASSWORD))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {"fullName":"%s","jobTitle":"Director","department":"Office","active":true,"sortOrder":10}
-                    """.formatted(recipientName)))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.id").isNumber())
-            .andExpect(jsonPath("$.fullName").value(recipientName))
-            .andExpect(jsonPath("$.createdAt").doesNotExist())
-            .andReturn();
-        long recipientId = objectMapper.readTree(createdRecipient.getResponse().getContentAsByteArray())
-            .get("id").asLong();
-
         MvcResult created = mockMvc.perform(post("/api/public/deliveries")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
                       "fullName":"Kwame Mensah",
                       "phone":"0200000000",
-                      "email":"kwame@example.com",
-                      "organizationName":"Example Ministry",
-                      "recipientId":%d,
-                      "subject":"Request for Information",
-                      "referenceNumber":"REF-100"
+                      "email":"kwame@example.com"
                     }
-                    """.formatted(recipientId)))
+                    """))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.trackingNumber", matchesPattern(TRACKING)))
             .andExpect(jsonPath("$.trackingNumber", not(matchesPattern("LTR-\\d{4}-\\d+"))))
@@ -92,7 +73,7 @@ class DeliveryFlowIT extends AbstractSpringIT {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.trackingNumber").value(tracking))
             .andExpect(jsonPath("$.status").value("DELIVERED"))
-            .andExpect(jsonPath("$.recipientName").value(recipientName))
+            .andExpect(jsonPath("$.recipientName").value(nullValue()))
             .andExpect(jsonPath("$.deliveryPersonName").value(nullValue()))
             .andExpect(jsonPath("$.organizationName").value(nullValue()))
             .andExpect(jsonPath("$.subject").value(nullValue()))

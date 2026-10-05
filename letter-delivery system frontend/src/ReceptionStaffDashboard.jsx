@@ -1,4 +1,4 @@
-import { useReception } from './hooks/useReceptionContext';
+import { useReception } from './hooks/useReception';
 import { useState } from 'react';
 
 const statusBadge = (status) => {
@@ -9,11 +9,6 @@ const statusBadge = (status) => {
     FAILED: 'status-failed',
   };
   return <span className={`status-badge ${classes[status] || ''}`}>{status}</span>;
-};
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleString();
 };
 
 const formatDateShort = (dateStr) => {
@@ -110,7 +105,7 @@ const DeliveryCard = ({ delivery, onReceive, receivingId, showAction = true }) =
   );
 };
 
-const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId, onReceive, showAction = true, count, totalElements, page, totalPages, onPageChange, showDeliveryPerson = false }) => {
+const DeliveryTable = ({ deliveries, emptyMessage, isLoading, receivingId, onReceive, showAction = true, page, totalPages, totalElements, onPageChange }) => {
   if (isLoading) {
     return <div className="loading">Loading...</div>;
   }
@@ -221,7 +216,6 @@ const SearchFilterBar = ({
   showCustomDate, 
   recipientPositionFilter, onRecipientPositionFilterChange,
   organizationFilter, onOrganizationFilterChange,
-  totalElements 
 }) => {
   const DATE_FILTER_OPTIONS = [
     { value: '', label: 'All Time' },
@@ -366,12 +360,9 @@ const ReceptionStaffDashboard = () => {
     activeTab,
     setActiveTab,
     handleReceive,
-    clearMessages,
     goToPendingPage,
     goToReceivedPage,
-    searchQuery,
     searchInput,
-    setSearchQuery,
     setSearchInput,
     dateFilter,
     setDateFilter,
@@ -427,41 +418,34 @@ const ReceptionStaffDashboard = () => {
           onRecipientPositionFilterChange={setRecipientPositionFilter}
           organizationFilter={organizationFilter}
           onOrganizationFilterChange={setOrganizationFilter}
-          totalElements={activeTab === 'pending' ? pendingTotalElements : receivedTotalElements}
         />
 
         {activeTab === 'pending' && (
           <DeliveryTable
-            title=""
             deliveries={pending}
             emptyMessage="No letters are currently awaiting receipt."
             isLoading={isLoading}
             receivingId={receivingId}
             onReceive={handleReceive}
             showAction={true}
-            showDeliveryPerson={true}
-            count={pending.length}
-            totalElements={pendingTotalElements}
             page={pendingPage}
             totalPages={pendingTotalPages}
+            totalElements={pendingTotalElements}
             onPageChange={goToPendingPage}
           />
         )}
 
         {activeTab === 'received' && (
           <DeliveryTable
-            title=""
             deliveries={received}
             emptyMessage="No received letters match your current search or filter."
             isLoading={isLoading}
             receivingId={receivingId}
             onReceive={handleReceive}
             showAction={false}
-            showDeliveryPerson={true}
-            count={received.length}
-            totalElements={receivedTotalElements}
             page={receivedPage}
             totalPages={receivedTotalPages}
+            totalElements={receivedTotalElements}
             onPageChange={goToReceivedPage}
           />
         )}

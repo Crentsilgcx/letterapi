@@ -1,4 +1,4 @@
-import { useOperations } from './hooks/useOperationsContext';
+import { useOperations } from './hooks/useOperations';
 
 const statusBadge = (status) => {
   const classes = {
@@ -8,11 +8,6 @@ const statusBadge = (status) => {
     FAILED: 'status-failed',
   };
   return <span className={`status-badge ${classes[status] || ''}`}>{status}</span>;
-};
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleString();
 };
 
 const formatDateShort = (dateStr) => {
@@ -25,7 +20,7 @@ const formatDateShort = (dateStr) => {
   });
 };
 
-const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId, onReceive, showAction = true, count, totalElements, page, totalPages, onPageChange, showDeliveryPerson = false }) => {
+const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId, onReceive, showAction = true, page, totalPages, totalElements, onPageChange, showDeliveryPerson = false }) => {
   if (isLoading) {
     return <div className="loading">Loading...</div>;
   }
@@ -171,7 +166,7 @@ const DeliveryTable = ({ title, deliveries, emptyMessage, isLoading, receivingId
   );
 };
 
-const SearchFilterBar = ({ searchQuery, onSearchChange, dateFilter, onDateFilterChange, customDateFrom, customDateTo, onCustomDateFromChange, onCustomDateToChange, showCustomDate, totalElements }) => {
+const SearchFilterBar = ({ searchQuery, onSearchChange, dateFilter, onDateFilterChange, customDateFrom, customDateTo, onCustomDateFromChange, onCustomDateToChange, showCustomDate }) => {
   const DATE_FILTER_OPTIONS = [
     { value: '', label: 'All Time' },
     { value: 'today', label: 'Today' },
@@ -257,7 +252,6 @@ const OperationsDashboard = () => {
     activeTab,
     setActiveTab,
     handleReceive,
-    clearMessages,
     goToPendingPage,
     goToReceivedPage,
     searchQuery,
@@ -318,55 +312,52 @@ const OperationsDashboard = () => {
           </button>
         </div>
 
-        {activeTab === 'pending' && (
-          <DeliveryTable
-            title="Pending Letters"
-            deliveries={pending}
-            emptyMessage="No letters are waiting for receipt confirmation."
-            isLoading={isLoading}
-            receivingId={receivingId}
-            onReceive={handleReceive}
-            showAction={true}
-            showDeliveryPerson={false}
-            count={pending.length}
-            totalElements={pendingTotalElements}
-            page={pendingPage}
-            totalPages={pendingTotalPages}
-            onPageChange={goToPendingPage}
-          />
-        )}
-
-        {activeTab === 'received' && (
-          <>
-            <SearchFilterBar
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              dateFilter={dateFilter}
-              onDateFilterChange={setDateFilter}
-              customDateFrom={customDateFrom}
-              customDateTo={customDateTo}
-              onCustomDateFromChange={setCustomDateFrom}
-              onCustomDateToChange={setCustomDateTo}
-              showCustomDate={showCustomDate}
-              totalElements={receivedTotalElements}
-            />
+{activeTab === 'pending' && (
             <DeliveryTable
-              title="Received Letters / Recent Activity"
-              deliveries={received}
-              emptyMessage="No letters have been received yet."
+              title="Pending Letters"
+              deliveries={pending}
+              emptyMessage="No letters are waiting for receipt confirmation."
               isLoading={isLoading}
               receivingId={receivingId}
               onReceive={handleReceive}
-              showAction={false}
-              showDeliveryPerson={true}
-              count={received.length}
-              totalElements={receivedTotalElements}
-              page={receivedPage}
-              totalPages={receivedTotalPages}
-              onPageChange={goToReceivedPage}
+              showAction={true}
+              showDeliveryPerson={false}
+              page={pendingPage}
+              totalPages={pendingTotalPages}
+              totalElements={pendingTotalElements}
+              onPageChange={goToPendingPage}
             />
-          </>
-        )}
+          )}
+
+          {activeTab === 'received' && (
+            <>
+              <SearchFilterBar
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                dateFilter={dateFilter}
+                onDateFilterChange={setDateFilter}
+                customDateFrom={customDateFrom}
+                customDateTo={customDateTo}
+                onCustomDateFromChange={setCustomDateFrom}
+                onCustomDateToChange={setCustomDateTo}
+                showCustomDate={showCustomDate}
+              />
+              <DeliveryTable
+                title="Received Letters / Recent Activity"
+                deliveries={received}
+                emptyMessage="No letters have been received yet."
+                isLoading={isLoading}
+                receivingId={receivingId}
+                onReceive={handleReceive}
+                showAction={false}
+                showDeliveryPerson={true}
+                page={receivedPage}
+                totalPages={receivedTotalPages}
+                totalElements={receivedTotalElements}
+                onPageChange={goToReceivedPage}
+              />
+            </>
+          )}
       </div>
     </div>
   );

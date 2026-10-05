@@ -1,6 +1,7 @@
-import { useReception } from './hooks/useReceptionContext.jsx';
-import { useState } from 'react';
-import { Search, Package, PackageCheck, Loader2, Inbox, X } from 'lucide-react';
+import { useReception } from './hooks/useReception';
+import { useAuth } from './hooks/useAuth';
+import React, { useState } from 'react';
+import { Search, Package, PackageCheck, Loader2, Inbox, X, LogOut, ChevronDown, User, Phone, Mail, Briefcase } from 'lucide-react';
 import ConnectionStatus from './components/ConnectionStatus';
 import './tokens.css';
 import './ReceptionDashboard.css';
@@ -156,30 +157,41 @@ const DeliveryTable = ({
     <>
       <div className="table-section desktop-table">
         <div className="table-wrap dashboard-table-wrap">
-<table className="dashboard-table">
-              <caption className="visually-hidden">{title}</caption>
-              <thead>
-              <tr>
-                <th scope="col">External Organization</th>
-                <th scope="col">Recipient</th>
-                <th scope="col">Reference</th>
-                <th scope="col">Delivered</th>
-                <th scope="col">Received</th>
-                {showAction && <th scope="col" className="dashboard-cell-action">Action</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {deliveries.map((d) => (
-                <tr key={d.id}>
-                  <td className="dashboard-cell-organization">
-                    <strong>{d.organizationName || '—'}</strong>
+          <table className="dashboard-table">
+            <caption className="visually-hidden">{title}</caption>
+            <thead>
+            <tr>
+              <th scope="col">Reference</th>
+              <th scope="col">Delivered By</th>
+              <th scope="col">Recipient</th>
+              <th scope="col">Receipt Role</th>
+              <th scope="col">Date</th>
+              <th scope="col">Status</th>
+              {showAction && <th scope="col" className="dashboard-cell-action">Action</th>}
+            </tr>
+          </thead>
+          <tbody>
+{deliveries.map((d) => (
+              <React.Fragment key={d.id}>
+                <tr 
+                  className={`clickable-row ${expandedId === d.id ? 'expanded' : ''}`}
+                  onClick={() => setExpandedId(expandedId === d.id ? null : d.id)}
+                >
+                  <td className="dashboard-cell-reference">
+                    <code className="dashboard-reference-code">{d.trackingNumber}</code>
+                  </td>
+                  <td>
+                    <span className="dashboard-recipient-name">{d.deliveryPersonName}</span>
                   </td>
                   <td>
                     <span className="dashboard-recipient-name">{d.recipientName}</span>
-                    {d.recipientTitle && <span className="dashboard-recipient-title">{d.recipientTitle}</span>}
                   </td>
-                  <td className="dashboard-cell-reference">
-                    <code className="dashboard-reference-code">{d.trackingNumber}</code>
+                  <td className="dashboard-cell-receipt-role">
+                    {d.recipientTitle ? (
+                      <span className="dashboard-receipt-role-badge">{d.recipientTitle}</span>
+                    ) : (
+                      <span className="muted">—</span>
+                    )}
                   </td>
                   <td className="dashboard-cell-date">{formatDate(d.deliveredAt)}</td>
                   <td className="dashboard-cell-date">
@@ -201,9 +213,52 @@ const DeliveryTable = ({
                     </td>
                   )}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+                {expandedId === d.id && (
+                  <tr className="expanded-row">
+                    <td colSpan={showAction ? 7 : 6} className="expanded-cell">
+                      <div className="delivery-person-details">
+                        <div className="details-header">
+                          <ChevronDown className="expand-icon" size={16} aria-hidden="true" />
+                          <span className="details-title">Delivery Person Details</span>
+                        </div>
+                        <div className="details-grid">
+                          <div className="detail-item">
+                            <User size={16} aria-hidden="true" />
+                            <div>
+                              <span className="detail-label">Name</span>
+                              <span className="detail-value">{d.deliveryPersonName}</span>
+                            </div>
+                          </div>
+                          <div className="detail-item">
+                            <Phone size={16} aria-hidden="true" />
+                            <div>
+                              <span className="detail-label">Phone</span>
+                              <span className="detail-value">{d.deliveryPersonPhone || 'Not provided'}</span>
+                            </div>
+                          </div>
+                          <div className="detail-item">
+                            <Mail size={16} aria-hidden="true" />
+                            <div>
+                              <span className="detail-label">Email</span>
+                              <span className="detail-value">{d.deliveryPersonEmail || 'Not provided'}</span>
+                            </div>
+                          </div>
+                          <div className="detail-item">
+                            <Briefcase size={16} aria-hidden="true" />
+                            <div>
+                              <span className="detail-label">Receipt Role</span>
+                              <span className="detail-value">{d.recipientTitle || 'Not provided'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
         </div>
       </div>
 
@@ -216,22 +271,27 @@ const DeliveryTable = ({
           >
             <div className="delivery-card-header">
               <div className="delivery-card-main">
-                <span className="delivery-card-position">{d.recipientName}</span>
-                <span className="delivery-card-org">{d.organizationName || '—'}</span>
+                <span className="delivery-card-reference">{d.trackingNumber}</span>
+                <span className="delivery-card-delivered-by">{d.deliveryPersonName}</span>
+                {d.recipientTitle && <span className="delivery-card-receipt-role">{d.recipientTitle}</span>}
               </div>
               <div className="delivery-card-right">
                 {statusBadge(d.status)}
-                <span className="delivery-card-expand">▾</span>
+                <span className="delivery-card-expand">{expandedId === d.id ? '▾' : '▸'}</span>
               </div>
             </div>
             <div className="delivery-card-body">
               <div className="delivery-card-row">
-                <span className="delivery-card-label">Recipient:</span>
-                <span className="delivery-card-value"><strong>{d.recipientName}</strong>{d.recipientTitle && <span className="muted"> — {d.recipientTitle}</span>}</span>
-              </div>
-              <div className="delivery-card-row delivery-card-subject">
                 <span className="delivery-card-label">Reference:</span>
                 <span className="delivery-card-value"><strong>{d.trackingNumber}</strong></span>
+              </div>
+              <div className="delivery-card-row">
+                <span className="delivery-card-label">Delivered By:</span>
+                <span className="delivery-card-value">{d.deliveryPersonName}</span>
+              </div>
+              <div className="delivery-card-row">
+                <span className="delivery-card-label">Recipient:</span>
+                <span className="delivery-card-value"><strong>{d.recipientName}</strong>{d.recipientTitle && <span className="muted"> — {d.recipientTitle}</span>}</span>
               </div>
               <div className="delivery-card-row">
                 <span className="delivery-card-label">Delivered:</span>
@@ -252,11 +312,49 @@ const DeliveryTable = ({
                     {receivingId === d.id && (
                       <Loader2 size={16} className="dashboard-spinner" aria-hidden="true" />
                     )}
-                    {receivingId === d.id ? 'Confirming...' : 'Confirm Receipt'}
+{receivingId === d.id ? 'Confirming...' : 'Confirm Receipt'}
                   </button>
                 </div>
               )}
             </div>
+            {expandedId === d.id && (
+              <div className="delivery-card-expanded">
+                <div className="details-header">
+                  <ChevronDown className="expand-icon" size={16} aria-hidden="true" />
+                  <span className="details-title">Delivery Person Details</span>
+                </div>
+                <div className="details-grid">
+                  <div className="detail-item">
+                    <User size={16} aria-hidden="true" />
+                    <div>
+                      <span className="detail-label">Name</span>
+                      <span className="detail-value">{d.deliveryPersonName}</span>
+                    </div>
+                  </div>
+                  <div className="detail-item">
+                    <Phone size={16} aria-hidden="true" />
+                    <div>
+                      <span className="detail-label">Phone</span>
+                      <span className="detail-value">{d.deliveryPersonPhone || 'Not provided'}</span>
+                    </div>
+                  </div>
+                  <div className="detail-item">
+                    <Mail size={16} aria-hidden="true" />
+                    <div>
+                      <span className="detail-label">Email</span>
+                      <span className="detail-value">{d.deliveryPersonEmail || 'Not provided'}</span>
+                    </div>
+                  </div>
+                  <div className="detail-item">
+                    <Briefcase size={16} aria-hidden="true" />
+                    <div>
+                      <span className="detail-label">Receipt Role</span>
+                      <span className="detail-value">{d.recipientTitle || 'Not provided'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -302,6 +400,7 @@ const DeliveryTable = ({
 };
 
 const ReceptionDashboard = () => {
+  const { logout } = useAuth();
   const {
     pending,
     received,
@@ -332,7 +431,7 @@ const ReceptionDashboard = () => {
     showCustomDate,
     recipientPositionFilter,
     setRecipientPositionFilter,
-    isConnected,
+    isConnected
   } = useReception();
 
   const [expandedPendingId, setExpandedPendingId] = useState(null);
@@ -347,7 +446,18 @@ const ReceptionDashboard = () => {
               <h1 className="page-title">Reception Dashboard</h1>
               <p className="page-subtitle">Manage incoming deliveries and receipt confirmations.</p>
             </div>
-            <ConnectionStatus isConnected={isConnected} />
+            <div className="header-actions">
+              <ConnectionStatus isConnected={isConnected} />
+              <button
+                className="reception-dashboard-logout"
+                onClick={logout}
+                aria-label="Logout"
+                title="Logout"
+              >
+                <LogOut size={18} aria-hidden="true" />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </header>
 

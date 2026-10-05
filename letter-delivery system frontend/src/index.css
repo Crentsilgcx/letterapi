@@ -1079,14 +1079,15 @@ tr:hover td {
 }
 
 .modal-body .field label:has(input[type="checkbox"]:focus-visible) {
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+  border-color: #34D755;
+  box-shadow: 0 0 0 3px rgba(52, 215, 85, 0.15);
 }
 
 .modal-body .field input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  accent-color: #4CAF50;
+ 
+  accent-color: #34D755;
   cursor: pointer;
 }
 

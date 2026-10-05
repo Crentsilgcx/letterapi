@@ -1,5 +1,6 @@
 import * as Font from 'expo-font';
 import { useFonts } from 'expo-font';
+import { useColorScheme } from 'react-native';
 import {
   PlusJakartaSans_400Regular,
   PlusJakartaSans_500Medium,
@@ -8,47 +9,74 @@ import {
   PlusJakartaSans_800ExtraBold,
 } from '@expo-google-fonts/plus-jakarta-sans';
 
-/**
- * Single app theme.
- *
- * The app ships light only (app.json pins userInterfaceStyle to "light"), so
- * there is a single palette rather than two themes that only differ by intent.
- * Colours are the shared Letter Delivery tokens - white surfaces, green accents,
- * dark text - and every component reads them from here instead of hard-coding
- * hex values, so the palette can never drift between screens.
- */
-export const AppTheme = {
-  bg: '#FFFFFF',
+const lightTheme = {
+  // New theme tokens
+  page: '#F6F7F9',
   card: '#FFFFFF',
-  ink: '#10231F',
-  subtext: '#687873',
-  border: '#DCE7E3',
-  accent: '#0E5C4E',
-  accentStrong: '#084C3F',
-  accentText: '#FFFFFF',
-  accentTint: '#E3F1EE',
-  accentLight: '#3FC1A5',
-  error: '#C0392B',
+  ink: '#101828',
+  sub: '#667085',
+  line: '#E1E5EB',
+  field: '#F9FAFB',
+  accent: '#34D755',
+  accentInk: '#FFFFFF',
+  tint: '#E6F2EF',
+  error: '#C0352B',
   errorBg: '#FDEDED',
   placeholder: '#8A9A95',
-  inputBg: '#FFFFFF',
-  inputBorder: '#DCE7E3',
-  inputBorderFocused: '#0E5C4E',
-  inputBgFocused: '#FFFFFF',
+  inputBorder: '#E1E5EB',
+  inputBorderFocused: '#34D755',
   disabledOpacity: 0.45,
+  // Backward compatibility aliases
+  bg: '#FFFFFF',
+  subtext: '#667085',
+  border: '#E1E5EB',
+  accentText: '#FFFFFF',
+  accentStrong: '#084C3F',
+  accentTint: '#E3F1EE',
+  accentLight: '#3FC1A5',
+  inputBg: '#FFFFFF',
 };
 
-export type Theme = typeof AppTheme;
+const darkTheme = {
+  // New theme tokens
+  page: '#0B1220',
+  card: '#131C2E',
+  ink: '#EDF1F8',
+  sub: '#9AA6BC',
+  line: '#26324A',
+  field: '#0F1829',
+  accent: '#3FC1A5',
+  accentInk: '#06231D',
+  tint: '#14302B',
+  error: '#FF8A80',
+  errorBg: '#3D1A1A',
+  placeholder: '#6B7A9A',
+  inputBorder: '#26324A',
+  inputBorderFocused: '#3FC1A5',
+  disabledOpacity: 0.45,
+  // Backward compatibility aliases
+  bg: '#131C2E',
+  subtext: '#9AA6BC',
+  border: '#26324A',
+  accentText: '#06231D',
+  accentStrong: '#2EC1A5',
+  accentTint: '#14302B',
+  accentLight: '#3FC1A5',
+  inputBg: '#0F1829',
+};
 
-export function useTheme(): Theme {
-  return AppTheme;
+export function useTheme() {
+  const colorScheme = useColorScheme();
+  return colorScheme === 'dark' ? darkTheme : lightTheme;
 }
 
+export type Theme = typeof lightTheme;
+
 export const Radii = {
-  card: 22,
+  card: 20,
   input: 14,
-  chip: 999,
   button: 16,
+  iconButton: 14,
 };
 
 export const Spacing = {
@@ -68,17 +96,19 @@ export const Typography = {
   fontFamilySemiBold: 'PlusJakartaSans_600SemiBold',
   fontFamilyBold: 'PlusJakartaSans_700Bold',
   fontFamilyExtraBold: 'PlusJakartaSans_800ExtraBold',
-  fontFamilyFallback: 'system-ui',
   fontSize: {
     xs: 11,
-    sm: 13,
+    sm: 12,
+    md: 13,
     base: 14,
-    md: 15,
-    lg: 16,
-    xl: 18,
-    xxl: 22,
-    xxxl: 26,
-    display: 32,
+    lg: 15,
+    xl: 16,
+    xxl: 18,
+    xxxl: 22,
+    display: 26,
+    pageTitlePhone: 21,
+    pageTitleTablet: 26,
+    cardTitle: 16,
   },
   fontWeight: {
     regular: '400' as const,
@@ -95,17 +125,19 @@ export const Typography = {
   letterSpacing: {
     tight: -0.5,
     normal: 0,
+    tightTitle: -0.4,
   },
 };
 
 export const Shadows = {
   card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
   },
+  // Backward compatibility
   cardDark: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },

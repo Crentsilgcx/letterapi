@@ -7,7 +7,7 @@ import { useTheme, Radii, Spacing, Typography, Shadows } from '../theme';
 interface SuccessBottomSheetProps {
   visible: boolean;
   onClose: () => void;
-  position: string;
+  position?: string;
   trackingNumber?: string | null;
   testID?: string;
 }

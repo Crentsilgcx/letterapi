@@ -17,11 +17,7 @@
   border: 1px solid var(--accent);
 }
 
-.connection-status.reconnecting {
-  background: var(--warn-bg);
-  color: var(--warn-ink);
-  border: 1px solid var(--warn-ink);
-}
+
 
 .status-dot {
   display: inline-flex;

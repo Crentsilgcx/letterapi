@@ -28,6 +28,74 @@
   min-width: 0;
 }
 
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-shrink: 0;
+}
+
+.reception-dashboard-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 13px;
+  font-weight: var(--font-weight-medium);
+  color: var(--sub);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.reception-dashboard-logout:hover {
+  color: var(--err);
+  background: var(--warn-bg);
+  border-color: var(--err);
+}
+
+.reception-dashboard-logout:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.reception-dashboard-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  color: var(--ink);
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.reception-dashboard-refresh:hover:not(:disabled) {
+  color: var(--accent);
+  background: var(--tint);
+  border-color: var(--accent);
+}
+
+.reception-dashboard-refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reception-dashboard-refresh .spinning {
+  animation: dashboard-spin 1s linear infinite;
+}
+
+.reception-dashboard-refresh:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .page-title {
   margin: 0 0 var(--space-xs);
   font-size: 28px;
@@ -357,12 +425,103 @@
   transition: background-color var(--transition-fast);
 }
 
-.dashboard-table tbody tr:hover {
+.dashboard-table tbody tr.clickable-row {
+  cursor: pointer;
+}
+
+.dashboard-table tbody tr.clickable-row:hover {
   background: var(--table-row-hover);
 }
 
-.dashboard-table tbody tr:last-child td {
+.dashboard-table tbody tr.clickable-row.expanded {
+  background: var(--tint);
+}
+
+.dashboard-table tbody tr.expanded-row {
+  background: var(--tint);
+}
+
+.dashboard-table tbody tr.expanded-row td {
   border-bottom: none;
+  padding: 0;
+}
+
+.expanded-cell {
+  padding: var(--space-md) var(--space-lg) !important;
+}
+
+.delivery-person-details {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  padding: var(--space-lg);
+}
+
+.details-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--line);
+}
+
+.expand-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.details-title {
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
+  color: var(--ink);
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-lg);
+}
+
+.detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.detail-item svg {
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.detail-label {
+  display: block;
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--sub);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.detail-value {
+  display: block;
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  color: var(--ink);
+}
+
+.dashboard-receipt-role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-pill);
+  background: var(--tint);
+  color: var(--accent);
+  white-space: nowrap;
 }
 
 .dashboard-recipient-name {
@@ -707,6 +866,111 @@
 .reception-dashboard .status-failed {
   color: var(--err);
   background: var(--err-bg);
+}
+
+/* Mobile card expanded details */
+.reception-dashboard .delivery-card-expanded {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--line);
+  animation: slideDown 0.25s ease;
+}
+
+.reception-dashboard .delivery-card.expanded .delivery-card-expanded {
+  max-height: 500px;
+  opacity: 1;
+}
+
+.reception-dashboard .delivery-card-expanded .details-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--line);
+}
+
+.reception-dashboard .delivery-card-expanded .expand-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.reception-dashboard .delivery-card-expanded .details-title {
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
+  color: var(--ink);
+}
+
+.reception-dashboard .delivery-card-expanded .details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-md);
+}
+
+.reception-dashboard .delivery-card-expanded .detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.reception-dashboard .delivery-card-expanded .detail-item svg {
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.reception-dashboard .delivery-card-expanded .detail-label {
+  display: block;
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--sub);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.reception-dashboard .delivery-card-expanded .detail-value {
+  display: block;
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  color: var(--ink);
+}
+
+.reception-dashboard .delivery-card-receipt-role {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-pill);
+  background: var(--tint);
+  color: var(--accent);
+  white-space: nowrap;
+  margin-left: var(--space-sm);
+}
+
+.reception-dashboard .delivery-card-reference {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--accent);
+}
+
+.reception-dashboard .delivery-card-delivered-by {
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  color: var(--ink);
+}
+
+.reception-dashboard .delivery-card-expand {
+  color: var(--sub);
+  line-height: 1;
+  user-select: none;
+  transition: transform var(--transition-fast);
+}
+
+.reception-dashboard .delivery-card.expanded .delivery-card-expand {
+  transform: rotate(180deg);
 }
 
 /* Responsive */

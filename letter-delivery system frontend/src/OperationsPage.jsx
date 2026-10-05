@@ -1,13 +1,12 @@
 import { useAuth } from './AuthContext';
-import { Link, useLocation, useNavigate, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Link, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import ReceptionDashboard from './ReceptionDashboard';
 import AdministrationPage from './AdministrationPage';
 import { ReceptionProvider } from './hooks/useReceptionContext';
 
 function OperationsTabs() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
 
   const tabs = [
@@ -33,7 +32,7 @@ function OperationsTabs() {
 }
 
 function OperationsLayout() {
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
 
   return (

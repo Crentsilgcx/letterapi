@@ -2,7 +2,7 @@ export interface CreateDeliveryRequest {
   fullName: string;
   phone: string | null;
   email: string | null;
-  recipientPosition: string;
+  recipientPosition: string | null;
 }
 
 export interface DeliveryResponse {

@@ -42,8 +42,7 @@ export function useDeliveryForm(onSubmit: (payload: CreateDeliveryRequest) => Pr
           fullName: typeof parsed.fullName === 'string' ? parsed.fullName : prev.fullName,
           phone: typeof parsed.phone === 'string' ? parsed.phone : prev.phone,
           email: typeof parsed.email === 'string' ? parsed.email : prev.email,
-          recipientPosition:
-            typeof parsed.recipientPosition === 'string' ? parsed.recipientPosition : prev.recipientPosition,
+          recipientPosition: typeof parsed.recipientPosition === 'string' ? parsed.recipientPosition : prev.recipientPosition,
         }));
       } catch {
         // A missing or corrupt draft simply means an empty form.
@@ -97,8 +96,10 @@ export function useDeliveryForm(onSubmit: (payload: CreateDeliveryRequest) => Pr
       newErrors.email = 'Enter a valid email address';
     }
 
-    if (!formValues.recipientPosition) {
-      newErrors.recipientPosition = 'Select a recipient position';
+    // recipientPosition is optional in current API contract - not validated as required
+    // but if provided, it must be a valid value
+    if (formValues.recipientPosition && formValues.recipientPosition.length > 160) {
+      newErrors.recipientPosition = 'Position is too long (max 160 characters)';
     }
 
     return newErrors;
@@ -130,7 +131,6 @@ export function useDeliveryForm(onSubmit: (payload: CreateDeliveryRequest) => Pr
         fullName: true,
         phone: true,
         email: true,
-        recipientPosition: true,
       });
       return;
     }
@@ -144,7 +144,7 @@ export function useDeliveryForm(onSubmit: (payload: CreateDeliveryRequest) => Pr
         fullName: values.fullName.trim(),
         phone: values.phone?.trim() || null,
         email: values.email?.trim() || null,
-        recipientPosition: values.recipientPosition,
+        recipientPosition: values.recipientPosition?.trim() || null,
       };
 
       await onSubmit(payload);

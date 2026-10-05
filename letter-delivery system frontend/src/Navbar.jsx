@@ -7,14 +7,12 @@ import './Navbar.css';
 
 function Navbar() {
   const location = useLocation();
-  const { isAuthenticated, user, logout } = useAuth();
-  const isAdmin = user?.role === 'ADMIN';
+  const { isAuthenticated, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navLinks = [
     { path: '/delivery', label: 'Delivery' },
     { path: '/reception', label: 'Reception' },
-    ...(isAdmin ? [{ path: '/admin/login', label: 'Administration' }] : []),
   ];
 
   return (

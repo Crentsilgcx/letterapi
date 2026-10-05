@@ -1,7 +1,7 @@
 import { getApiUrl, API_BASE_URL, API_ENDPOINTS } from '../config/api';
 import { CreateDeliveryRequest, DeliveryResponse, RecipientPosition } from '../types';
 
-const REQUEST_TIMEOUT = 15000;
+const REQUEST_TIMEOUT = 30000;
 
 export class ApiError extends Error {
   constructor(
@@ -16,7 +16,7 @@ export class ApiError extends Error {
 /**
  * Determines if an error is caused by request cancellation (AbortController).
  * React Native's fetch may report cancellation as AbortError (DOMException)
- * or as a TypeError with message containing "cancel" / "abort".
+ * or as a TypeError/Error with message containing "cancel" / "abort".
  */
 export function isAbortError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
@@ -25,18 +25,31 @@ export function isAbortError(error: unknown): boolean {
     const message = error.message?.toLowerCase() || '';
     return message.includes('abort') || message.includes('cancel');
   }
+  if (error instanceof Error) {
+    const message = error.message?.toLowerCase() || '';
+    return message.includes('abort') || message.includes('cancel');
+  }
   return false;
 }
 
 async function fetchJson<T>(url: string, options?: RequestInit, debugLabel = 'api', timeoutMs = REQUEST_TIMEOUT): Promise<T> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutId = setTimeout(() => {
+    if (__DEV__) {
+      console.log(`[Delivery] ${debugLabel} request TIMEOUT (${timeoutMs}ms) -> aborting`);
+    }
+    controller.abort();
+  }, timeoutMs);
+
+  if (__DEV__) {
+    console.log(`[Delivery] ${debugLabel} request started`);
+    console.log(`[Delivery] ${debugLabel} request URL ->`, url);
+    if (options?.body) {
+      console.log(`[Delivery] ${debugLabel} request payload ->`, options.body);
+    }
+  }
 
   try {
-    if (__DEV__) {
-      console.log(`[Delivery] ${debugLabel} request ->`, url);
-    }
-
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
@@ -47,7 +60,16 @@ async function fetchJson<T>(url: string, options?: RequestInit, debugLabel = 'ap
       },
     });
 
+    if (__DEV__) {
+      console.log(`[Delivery] ${debugLabel} fetch completed`);
+      console.log(`[Delivery] ${debugLabel} response status ->`, response.status);
+    }
+
     const responseText = await response.text();
+
+    if (__DEV__) {
+      console.log(`[Delivery] ${debugLabel} response body ->`, responseText);
+    }
 
     let parsed: unknown = null;
     if (responseText) {
@@ -82,6 +104,9 @@ async function fetchJson<T>(url: string, options?: RequestInit, debugLabel = 'ap
       throw error;
     }
     if (isAbortError(error)) {
+      if (__DEV__) {
+        console.error(`[Delivery] ${debugLabel} request ABORTED:`, error);
+      }
       throw new ApiError('Request timed out. Please try again.', 408);
     }
     if (error instanceof TypeError) {
@@ -92,6 +117,9 @@ async function fetchJson<T>(url: string, options?: RequestInit, debugLabel = 'ap
         `Could not reach ${API_BASE_URL || 'the server'}. Check the API URL and that the device is on the same network.`,
         0
       );
+    }
+    if (__DEV__) {
+      console.error(`[Delivery] ${debugLabel} unexpected error:`, error);
     }
     throw error;
   } finally {
@@ -104,11 +132,15 @@ async function fetchJson<T>(url: string, options?: RequestInit, debugLabel = 'ap
  * Uses the same logic as fetchJson but without an AbortController timeout.
  */
 async function fetchJsonNoTimeout<T>(url: string, options?: RequestInit, debugLabel = 'api'): Promise<T> {
-  try {
-    if (__DEV__) {
-      console.log(`[Delivery] ${debugLabel} request (no timeout) ->`, url);
+  if (__DEV__) {
+    console.log(`[Delivery] ${debugLabel} request (no timeout) started`);
+    console.log(`[Delivery] ${debugLabel} request URL ->`, url);
+    if (options?.body) {
+      console.log(`[Delivery] ${debugLabel} request payload ->`, options.body);
     }
+  }
 
+  try {
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -118,7 +150,16 @@ async function fetchJsonNoTimeout<T>(url: string, options?: RequestInit, debugLa
       },
     });
 
+    if (__DEV__) {
+      console.log(`[Delivery] ${debugLabel} fetch completed`);
+      console.log(`[Delivery] ${debugLabel} response status ->`, response.status);
+    }
+
     const responseText = await response.text();
+
+    if (__DEV__) {
+      console.log(`[Delivery] ${debugLabel} response body ->`, responseText);
+    }
 
     let parsed: unknown = null;
     if (responseText) {
@@ -155,6 +196,9 @@ async function fetchJsonNoTimeout<T>(url: string, options?: RequestInit, debugLa
     if (isAbortError(error)) {
       // Cancellation without timeout - this is intentional (e.g. component unmount)
       // Re-throw as a plain error so callers can detect it via isAbortError
+      if (__DEV__) {
+        console.error(`[Delivery] ${debugLabel} request ABORTED (no timeout):`, error);
+      }
       throw error;
     }
     if (error instanceof TypeError) {
@@ -165,6 +209,9 @@ async function fetchJsonNoTimeout<T>(url: string, options?: RequestInit, debugLa
         `Could not reach ${API_BASE_URL || 'the server'}. Check the API URL and that the device is on the same network.`,
         0
       );
+    }
+    if (__DEV__) {
+      console.error(`[Delivery] ${debugLabel} unexpected error:`, error);
     }
     throw error;
   }

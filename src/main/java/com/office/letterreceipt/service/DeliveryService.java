@@ -56,14 +56,7 @@ public class DeliveryService {
         // Subject and referenceNumber are legacy fields - not used for new deliveries
         // organizationAddress is no longer captured - leave as null
 
-        // Prevent duplicate delivery submissions (same person, org, recipient within 30 seconds)
         LocalDateTime now = LocalDateTime.now(clock);
-        LocalDateTime threshold = now.minusSeconds(30);
-        Optional<LetterDelivery> recentDuplicate = deliveries.findFirstByDeliveryPersonNameAndOrganizationNameAndRecipientNameAndDeliveredAtAfter(
-                request.fullName(), request.organizationName(), request.recipientPosition(), threshold);
-        if (recentDuplicate.isPresent()) {
-            throw new ResponseStatusException(CONFLICT, "A similar delivery was just submitted. Please wait before submitting again.");
-        }
 
         LetterDelivery delivery = new LetterDelivery();
         // Store denormalized data directly - no entity creation
@@ -73,9 +66,11 @@ public class DeliveryService {
         delivery.setDeliveryPersonName(request.fullName());
         delivery.setDeliveryPersonPhone(request.phone());
         delivery.setDeliveryPersonEmail(request.email());
-        delivery.setOrganizationName(request.organizationName());
+        // organizationName is no longer captured - leave as null
+        delivery.setOrganizationName(null);
         // organizationAddress is no longer captured - leave as null
         delivery.setOrganizationAddress(null);
+        // recipientPosition captured from mobile - store in recipientTitle
         delivery.setRecipientName(request.recipientPosition());
         delivery.setRecipientTitle(request.recipientPosition());
         // Legacy fields - not used for new deliveries

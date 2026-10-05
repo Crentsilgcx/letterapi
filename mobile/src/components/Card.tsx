@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, TextStyle, ViewStyle, Platform } from 'react-native';
+import { View, StyleSheet, ViewStyle, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { AppText } from './AppText';
 import { useTheme, Radii, Spacing, Typography, Shadows } from '../theme';
 
 interface CardProps {
@@ -10,7 +11,7 @@ interface CardProps {
   testID?: string;
 }
 
-const paddingMap = {
+const paddingMap: Record<string, ViewStyle> = {
   none: {},
   sm: { paddingBottom: Spacing.sm },
   md: { paddingBottom: Spacing.md },
@@ -21,7 +22,7 @@ const paddingMap = {
 export const Card: React.FC<CardProps> = ({ children, style, padding = 'xl', testID }) => {
   const theme = useTheme();
 
-  const basePadding = {
+  const basePadding: ViewStyle = {
     paddingTop: 20,
     paddingHorizontal: 18,
   };
@@ -32,13 +33,16 @@ export const Card: React.FC<CardProps> = ({ children, style, padding = 'xl', tes
   };
 
   return (
-    <View style={[
-      styles.card,
-      { backgroundColor: theme.card, borderColor: theme.border },
-      Platform.OS === 'android' ? Shadows.cardDark : Shadows.card,
-      contentPadding,
-      style,
-    ]} testID={testID}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: theme.card, borderColor: theme.line },
+        Platform.OS === 'android' ? Shadows.card : Shadows.card,
+        contentPadding,
+        style,
+      ]}
+      testID={testID}
+    >
       {children}
     </View>
   );
@@ -48,9 +52,10 @@ interface CardHeaderProps {
   title: string;
   subtitle?: string;
   style?: ViewStyle;
+  icon?: keyof typeof Feather.glyphMap;
 }
 
-export const CardHeader: React.FC<CardHeaderProps> = ({ title, subtitle, style }) => {
+export const CardHeader: React.FC<CardHeaderProps> = ({ title, subtitle, style, icon = 'user' }) => {
   const theme = useTheme();
 
   return (
@@ -59,46 +64,22 @@ export const CardHeader: React.FC<CardHeaderProps> = ({ title, subtitle, style }
         <View style={styles.iconContainer}>
           <View style={[
             styles.iconBackground,
-            { backgroundColor: theme.accentTint },
+            { backgroundColor: theme.tint, borderRadius: 10, width: 36, height: 36 },
           ]}>
-            <Feather name="mail" size={20} color={theme.accent} />
+            <Feather name={icon} size={20} color={theme.accent} />
           </View>
         </View>
         <View style={styles.textContainer}>
-          <Text style={[
-            styles.cardTitle,
-            { color: theme.ink, fontFamily: Typography.fontFamily },
-          ]}>
+          <AppText variant="cardTitle" weight="bold" color={theme.ink} style={styles.cardTitle}>
             {title}
-          </Text>
-          {subtitle && <Text style={[
-            styles.cardSubtitle,
-            { color: theme.subtext, fontFamily: Typography.fontFamily },
-          ]}>
+          </AppText>
+          {subtitle && <AppText variant="sm" weight="regular" color={theme.sub} style={styles.cardSubtitle}>
             {subtitle}
-          </Text>}
+          </AppText>}
         </View>
       </View>
+      <View style={[styles.divider, { backgroundColor: theme.line }]} />
     </View>
-  );
-};
-
-interface SectionTitleProps {
-  children: React.ReactNode;
-  style?: ViewStyle;
-}
-
-export const SectionTitle: React.FC<SectionTitleProps> = ({ children, style }) => {
-  const theme = useTheme();
-
-  return (
-    <Text style={[
-      styles.sectionTitle,
-      { color: theme.ink, fontFamily: Typography.fontFamily },
-      style,
-    ]}>
-      {children}
-    </Text>
   );
 };
 
@@ -107,14 +88,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.card,
     overflow: 'hidden',
-  } as ViewStyle,
+  },
   cardHeader: {
-    marginBottom: Spacing.lg,
-  } as ViewStyle,
+    marginBottom: 0,
+    paddingBottom: 16,
+  },
   cardHeaderContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.md,
+    marginBottom: 16,
   },
   iconContainer: {
     flexShrink: 0,
@@ -130,19 +113,32 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
     marginBottom: Spacing.xs,
-  } as TextStyle,
+  },
   cardSubtitle: {
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.regular,
-  } as TextStyle,
+    lineHeight: Math.round(Typography.fontSize.sm * Typography.lineHeight.base),
+  },
+  divider: {
+    height: 1,
+    marginBottom: 18,
+  },
   sectionTitle: {
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
     marginBottom: Spacing.lg,
     paddingBottom: Spacing.xs,
     borderBottomWidth: 2,
-  } as TextStyle,
+  } as ViewStyle,
 });
+
+export default Card;
+
+export const SectionTitle: React.FC<{ children: React.ReactNode; style?: ViewStyle }> = ({ children, style }) => {
+  const theme = useTheme();
+
+  return (
+    <AppText variant="lg" weight="semibold" color={theme.ink} style={[styles.sectionTitle, style]}>
+      {children}
+    </AppText>
+  );
+};

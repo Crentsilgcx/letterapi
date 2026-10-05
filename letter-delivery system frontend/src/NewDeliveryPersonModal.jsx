@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { adminApi } from '../api';
 
 const NewDeliveryPersonModal = ({ isOpen, onClose, onSuccess, organizations, deliveryPersons }) => {
@@ -11,9 +11,14 @@ const NewDeliveryPersonModal = ({ isOpen, onClose, onSuccess, organizations, del
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const isFirstOpen = useRef(true);
 
   useEffect(() => {
     if (isOpen) {
+      if (isFirstOpen.current) {
+        isFirstOpen.current = false;
+        return;
+      }
       setForm({ fullName: '', phone: '', email: '', organizationId: '' });
       setErrors({});
       setSubmitError(null);

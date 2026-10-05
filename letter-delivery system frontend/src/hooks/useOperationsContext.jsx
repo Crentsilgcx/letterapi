@@ -1,8 +1,7 @@
-import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { receptionApi } from '../api';
 import { useStomp } from './useStomp';
-
-const ReceptionContext = createContext(null);
+import { ReceptionContext } from '../context/OperationsContext';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -169,7 +168,7 @@ export function OperationsProvider({ children }) {
       if (!active) return;
       try {
         await loadAll();
-      } catch (e) {
+      } catch {
         // loadAll already records its own error state.
       }
     })();
@@ -285,12 +284,4 @@ export function OperationsProvider({ children }) {
       {children}
     </ReceptionContext.Provider>
   );
-}
-
-export function useOperations() {
-  const context = useContext(ReceptionContext);
-  if (!context) {
-    throw new Error('useOperations must be used within a OperationsProvider');
-  }
-  return context;
 }

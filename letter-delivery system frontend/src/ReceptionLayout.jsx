@@ -1,6 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import ReceptionSubNav from './components/ReceptionSubNav';
 
 function ReceptionLayout() {
   const location = useLocation();
@@ -25,7 +24,6 @@ function ReceptionLayout() {
 
   return (
     <div className="reception-layout">
-      <ReceptionSubNav />
       <Outlet />
     </div>
   );

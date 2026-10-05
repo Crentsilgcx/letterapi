@@ -35,6 +35,10 @@ export function useDeliveryForm() {
   const [deliveryPersons, setDeliveryPersons] = useState([]);
   const [isCreatingPerson, setIsCreatingPerson] = useState(false);
 
+  const isNewPerson = useCallback((values = initialValues) => {
+    return values.deliveryPersonId === '__new__';
+  }, []);
+
   const form = useForm(initialValues, (values) => validate(values, isNewPerson(values)));
 
   const fetchDeliveryPersons = useCallback(() => {
@@ -45,10 +49,6 @@ export function useDeliveryForm() {
     deliveryApi.getRecipientRoles().then(setRecipientRoles).catch(() => {});
     fetchDeliveryPersons();
   }, [fetchDeliveryPersons]);
-
-  const isNewPerson = useCallback((values = form.values) => {
-    return values.deliveryPersonId === '__new__';
-  }, [form.values]);
 
   const selectedPerson = useMemo(() => {
     if (!form.values.deliveryPersonId || form.values.deliveryPersonId === '__new__') return null;
@@ -119,7 +119,7 @@ export function useDeliveryForm() {
     recipientRoles,
     deliveryPersons,
     selectedPerson,
-    isNewPerson: isNewPerson(),
+    isNewPerson: isNewPerson(form.values),
     isDuplicateName,
     isCreatingPerson,
     isSubmitting: form.isSubmitting || isCreatingPerson,

@@ -32,20 +32,6 @@ public interface LetterDeliveryRepository extends JpaRepository<LetterDelivery, 
 
     @Query("""
         select d from LetterDelivery d
-        where d.deliveryPersonName = :personName
-          and d.organizationName = :orgName
-          and d.recipientName = :recipientName
-          and d.deliveredAt > :threshold
-        order by d.deliveredAt desc
-        """)
-    Optional<LetterDelivery> findFirstByDeliveryPersonNameAndOrganizationNameAndRecipientNameAndDeliveredAtAfter(
-        @Param("personName") String personName,
-        @Param("orgName") String orgName,
-        @Param("recipientName") String recipientName,
-        @Param("threshold") LocalDateTime threshold);
-
-    @Query("""
-        select d from LetterDelivery d
         where (:status is null or d.status = :status)
           and (
             :q is null or :q = ''

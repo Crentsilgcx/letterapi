@@ -3,7 +3,7 @@ import { Text, TextStyle, TextProps, StyleProp } from 'react-native';
 import { Typography } from '../theme';
 
 type FontWeight = keyof typeof Typography.fontWeight;
-type Variant = 'display' | 'xxxl' | 'xxl' | 'xl' | 'lg' | 'md' | 'base' | 'sm' | 'xs';
+type Variant = 'display' | 'xxxl' | 'xxl' | 'xl' | 'lg' | 'md' | 'base' | 'sm' | 'xs' | 'pageTitlePhone' | 'pageTitleTablet' | 'cardTitle';
 
 interface AppTextProps extends TextProps {
   variant?: Variant;
@@ -14,6 +14,7 @@ interface AppTextProps extends TextProps {
   letterSpacing?: keyof typeof Typography.letterSpacing;
   style?: StyleProp<TextStyle>;
   children?: React.ReactNode;
+  maxFontSizeMultiplier?: number;
 }
 
 const variantMap: Record<Variant, keyof typeof Typography.fontSize> = {
@@ -26,6 +27,9 @@ const variantMap: Record<Variant, keyof typeof Typography.fontSize> = {
   base: 'base',
   sm: 'sm',
   xs: 'xs',
+  pageTitlePhone: 'pageTitlePhone',
+  pageTitleTablet: 'pageTitleTablet',
+  cardTitle: 'cardTitle',
 };
 
 const fontFamilyMap: Record<FontWeight, string> = {
@@ -45,6 +49,7 @@ export const AppText: React.FC<AppTextProps> = ({
   letterSpacing = 'normal',
   style,
   children,
+  maxFontSizeMultiplier = 1.15,
   ...props
 }) => {
   const fontSize = Typography.fontSize[variantMap[variant]];
@@ -64,6 +69,7 @@ export const AppText: React.FC<AppTextProps> = ({
         },
         style,
       ]}
+      maxFontSizeMultiplier={maxFontSizeMultiplier}
       {...props}
     >
       {children}

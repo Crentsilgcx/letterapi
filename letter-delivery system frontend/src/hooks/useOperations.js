@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { ReceptionContext } from '../contexts/ReceptionContext';
+import { ReceptionContext } from '../context/OperationsContext';
 
 export function useOperations() {
   const context = useContext(ReceptionContext);

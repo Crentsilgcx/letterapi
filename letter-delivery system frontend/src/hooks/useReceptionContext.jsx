@@ -1,8 +1,7 @@
-import { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { receptionApi } from '../api';
 import { useStomp } from './useStomp';
-
-const ReceptionContext = createContext(null);
+import { ReceptionStaffContext } from '../context/ReceptionStaffContext';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -118,61 +117,6 @@ function buildCacheState(state) {
     recipientPositionFilter: state.recipientPositionFilter,
     organizationFilter: state.organizationFilter,
   };
-}
-
-// Helper to check if a delivery matches current filters
-function matchesFilters(delivery, filters) {
-  if (!delivery) return false;
-  
-  const { searchQuery, dateFilter, customDateFrom, customDateTo, recipientPositionFilter, organizationFilter } = filters;
-  
-  // Search query match
-  if (searchQuery) {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch = 
-      (delivery.recipientName?.toLowerCase().includes(query)) ||
-      (delivery.organizationName?.toLowerCase().includes(query)) ||
-      (delivery.subject?.toLowerCase().includes(query)) ||
-      (delivery.deliveryPersonName?.toLowerCase().includes(query)) ||
-      (delivery.trackingNumber?.toLowerCase().includes(query)) ||
-      (delivery.referenceNumber?.toLowerCase().includes(query));
-    if (!matchesSearch) return false;
-  }
-  
-  // Recipient position filter
-  if (recipientPositionFilter && delivery.recipientName?.toLowerCase() !== recipientPositionFilter.toLowerCase()) {
-    return false;
-  }
-  
-  // Organization filter
-  if (organizationFilter && delivery.organizationName?.toLowerCase() !== organizationFilter.toLowerCase()) {
-    return false;
-  }
-  
-  // Date filter
-  if (dateFilter) {
-    const { from, to } = getDateRange(dateFilter);
-    const deliveredAt = new Date(delivery.deliveredAt);
-    if (from && deliveredAt < new Date(from)) return false;
-    if (to) {
-      const endOfDay = new Date(to);
-      endOfDay.setHours(23, 59, 59, 999);
-      if (deliveredAt > endOfDay) return false;
-    }
-  }
-  
-  // Custom date range
-  if (customDateFrom || customDateTo) {
-    const deliveredAt = new Date(delivery.deliveredAt);
-    if (customDateFrom && deliveredAt < new Date(customDateFrom)) return false;
-    if (customDateTo) {
-      const endOfDay = new Date(customDateTo);
-      endOfDay.setHours(23, 59, 59, 999);
-      if (deliveredAt > endOfDay) return false;
-    }
-  }
-  
-  return true;
 }
 
 export function ReceptionProvider({ children }) {
@@ -636,58 +580,33 @@ const buildApiParams = useCallback((page = 0) => {
       // Use refs to access current state without causing re-renders
       const state = stateRefs.current;
 
-      if (type === 'DELIVERY_CREATED' && delivery) {
-        const eventKey = `created:${delivery.id}`;
-        if (processedEventKeysRef.current.has(eventKey)) return;
+      if (type === 'DELIVERY_CREATED') {
+        const eventKey = `created:${deliveryId ?? delivery?.id}`;
+        if (eventKey && processedEventKeysRef.current.has(eventKey)) return;
+        if (eventKey) processedEventKeysRef.current.add(eventKey);
 
-        // New delivery arrived - add to pending list if it matches current filters
-        const filters = {
-          searchQuery: state.searchQuery,
-          dateFilter: state.dateFilter,
-          customDateFrom: state.customDateFrom,
-          customDateTo: state.customDateTo,
-          recipientPositionFilter: state.recipientPositionFilter,
-          organizationFilter: state.organizationFilter,
-        };
-        
-        const matches = matchesFilters(delivery, filters);
-        const alreadyVisible = state.pending.some(d => String(d.id) === String(delivery.id));
-        const affectsCurrentResult = matches && !alreadyVisible;
-        if (!affectsCurrentResult) {
-          processedEventKeysRef.current.add(eventKey);
-          return;
-        }
-
-        processedEventKeysRef.current.add(eventKey);
         pendingRealtimeRevisionRef.current += 1;
 
-        // The API sorts pending deliveries by deliveredAt descending, so a new
-        // delivery belongs on page 0. Do not place it incorrectly on later pages.
-        const isFirstPendingPage = state.pendingPage === 0;
-        const newPending = isFirstPendingPage
-          ? [delivery, ...state.pending].slice(0, DEFAULT_PAGE_SIZE)
-          : state.pending;
-        const newPendingTotalElements = state.pendingTotalElements + 1;
-        const newPendingTotalPages = Math.max(1, Math.ceil(newPendingTotalElements / DEFAULT_PAGE_SIZE));
+        // If we're viewing the pending tab, refetch page 0 to get the new delivery.
+        // This is more reliable than trying to manually prepend to the array,
+        // especially when filters are active or the user is on a later page.
+        if (state.activeTab === 'pending') {
+          loadPendingRef.current?.(0, false);
+        } else {
+          // Just update totals when not on the pending tab
+          setPendingTotalElements(prev => prev + 1);
+          setPendingTotalPages(prev => Math.max(1, Math.ceil((prev + 1) / DEFAULT_PAGE_SIZE)));
+        }
 
-        // Keep the refs, rendered state, and cache on the same snapshot. Updating
-        // the ref synchronously also closes the duplicate-event window before React
-        // has committed this render.
-        stateRefs.current.pending = newPending;
-        stateRefs.current.pendingTotalElements = newPendingTotalElements;
-        stateRefs.current.pendingTotalPages = newPendingTotalPages;
-        if (isFirstPendingPage) setPending(newPending);
-        setPendingTotalElements(newPendingTotalElements);
-        setPendingTotalPages(newPendingTotalPages);
-
+        // Update cache with new totals (pending array will be refreshed by loadPending if on that tab)
         setCache(buildCacheState({
-          pending: newPending,
+          pending: state.pending,
           received: state.received,
           pendingPage: state.pendingPage,
           receivedPage: state.receivedPage,
-          pendingTotalPages: newPendingTotalPages,
+          pendingTotalPages: Math.max(1, Math.ceil((state.pendingTotalElements + 1) / DEFAULT_PAGE_SIZE)),
           receivedTotalPages: state.receivedTotalPages,
-          pendingTotalElements: newPendingTotalElements,
+          pendingTotalElements: state.pendingTotalElements + 1,
           receivedTotalElements: state.receivedTotalElements,
           receivedTodayCount: state.receivedTodayCount,
           searchQuery: state.searchQuery,
@@ -709,58 +628,38 @@ const buildApiParams = useCallback((page = 0) => {
         pendingRealtimeRevisionRef.current += 1;
         receivedRealtimeRevisionRef.current += 1;
 
-        const filters = {
-          searchQuery: state.searchQuery,
-          dateFilter: state.dateFilter,
-          customDateFrom: state.customDateFrom,
-          customDateTo: state.customDateTo,
-          recipientPositionFilter: state.recipientPositionFilter,
-          organizationFilter: state.organizationFilter,
-        };
-        const matches = !delivery || matchesFilters(delivery, filters);
-        const wasAlreadyReceived = state.received.some(d => String(d.id) === String(id));
-        const newPending = state.pending.filter(d => String(d.id) !== String(id));
-        const isFirstReceivedPage = state.receivedPage === 0;
-        const shouldMove = matches && !wasAlreadyReceived;
-        const newReceived = delivery && isFirstReceivedPage && shouldMove
-          ? [delivery, ...state.received].slice(0, DEFAULT_PAGE_SIZE)
-          : state.received;
-        const newPendingTotalElements = !shouldMove
-          ? state.pendingTotalElements
-          : Math.max(0, state.pendingTotalElements - 1);
-        const newReceivedTotalElements = !shouldMove
-          ? state.receivedTotalElements
-          : state.receivedTotalElements + 1;
-        const newPendingTotalPages = Math.max(1, Math.ceil(newPendingTotalElements / DEFAULT_PAGE_SIZE));
-        const newReceivedTotalPages = Math.max(1, Math.ceil(newReceivedTotalElements / DEFAULT_PAGE_SIZE));
+        // If viewing pending tab, refetch to remove the received delivery
+        if (state.activeTab === 'pending') {
+          loadPendingRef.current?.(0, false);
+        } else {
+          // Optimistic update for totals when not on pending tab
+          setPendingTotalElements(prev => Math.max(0, prev - 1));
+          setPendingTotalPages(prev => Math.max(1, Math.ceil(Math.max(0, prev - 1) / DEFAULT_PAGE_SIZE)));
+        }
 
-        stateRefs.current.pending = newPending;
-        stateRefs.current.received = newReceived;
-        stateRefs.current.pendingTotalElements = newPendingTotalElements;
-        stateRefs.current.receivedTotalElements = newReceivedTotalElements;
-        stateRefs.current.pendingTotalPages = newPendingTotalPages;
-        stateRefs.current.receivedTotalPages = newReceivedTotalPages;
-        if (shouldMove) stateRefs.current.receivedTodayCount += 1;
+        // If viewing received tab, refetch to add the received delivery
+        if (state.activeTab === 'received') {
+          loadReceivedRef.current?.(0, false);
+        } else {
+          // Optimistic update for totals when not on received tab
+          setReceivedTotalElements(prev => prev + 1);
+          setReceivedTodayCount(prev => prev + 1);
+          setReceivedTotalPages(prev => Math.max(1, Math.ceil((prev + 1) / DEFAULT_PAGE_SIZE)));
+        }
 
-        setPending(newPending);
-        if (isFirstReceivedPage && shouldMove) setReceived(newReceived);
-        setPendingTotalElements(newPendingTotalElements);
-        setReceivedTotalElements(newReceivedTotalElements);
-        if (shouldMove) setReceivedTodayCount(stateRefs.current.receivedTodayCount);
-        setPendingTotalPages(newPendingTotalPages);
-        setReceivedTotalPages(newReceivedTotalPages);
-        
-        // Update cache with correct arrays
+        // Update cache
+        const newPendingTotalElements = Math.max(0, state.pendingTotalElements - 1);
+        const newReceivedTotalElements = state.receivedTotalElements + 1;
         setCache(buildCacheState({
-          pending: newPending,
-          received: newReceived,
+          pending: state.pending,
+          received: state.received,
           pendingPage: state.pendingPage,
           receivedPage: state.receivedPage,
-          pendingTotalPages: newPendingTotalPages,
-          receivedTotalPages: newReceivedTotalPages,
+          pendingTotalPages: Math.max(1, Math.ceil(newPendingTotalElements / DEFAULT_PAGE_SIZE)),
+          receivedTotalPages: Math.max(1, Math.ceil(newReceivedTotalElements / DEFAULT_PAGE_SIZE)),
           pendingTotalElements: newPendingTotalElements,
           receivedTotalElements: newReceivedTotalElements,
-          receivedTodayCount: stateRefs.current.receivedTodayCount,
+          receivedTodayCount: state.receivedTodayCount + 1,
           searchQuery: state.searchQuery,
           dateFilter: state.dateFilter,
           customDateFrom: state.customDateFrom,
@@ -769,7 +668,6 @@ const buildApiParams = useCallback((page = 0) => {
           recipientPositionFilter: state.recipientPositionFilter,
           organizationFilter: state.organizationFilter,
         }));
-        
       }
     });
 
@@ -844,6 +742,22 @@ const buildApiParams = useCallback((page = 0) => {
     };
   }, []);
 
+  const refreshActiveTab = useCallback(() => {
+    if (activeTab === 'pending') {
+      if (pendingAbortRef.current) pendingAbortRef.current.abort();
+      const controller = new AbortController();
+      pendingAbortRef.current = controller;
+      setPendingPage(0);
+      loadPending(0, false, controller.signal);
+    } else {
+      if (receivedAbortRef.current) receivedAbortRef.current.abort();
+      const controller = new AbortController();
+      receivedAbortRef.current = controller;
+      setReceivedPage(0);
+      loadReceived(0, false, controller.signal);
+    }
+  }, [activeTab, loadPending, loadReceived]);
+
   const value = useMemo(() => ({
     pending,
     received,
@@ -880,6 +794,7 @@ const buildApiParams = useCallback((page = 0) => {
     setRecipientPositionFilter: handleRecipientPositionFilterChange,
     organizationFilter,
     setOrganizationFilter: handleOrganizationFilterChange,
+    refreshActiveTab,
   }), [
     pending,
     received,
@@ -907,16 +822,8 @@ const buildApiParams = useCallback((page = 0) => {
   ]);
 
   return (
-    <ReceptionContext.Provider value={value}>
+    <ReceptionStaffContext.Provider value={value}>
       {children}
-    </ReceptionContext.Provider>
+    </ReceptionStaffContext.Provider>
   );
-}
-
-export function useReception() {
-  const context = useContext(ReceptionContext);
-  if (!context) {
-    throw new Error('useReception must be used within a ReceptionProvider');
-  }
-  return context;
 }

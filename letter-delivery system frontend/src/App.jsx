@@ -1,8 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import DeliveryPersonHomepage from './DeliveryPersonHomepage';
 import ReceptionDashboard from './ReceptionDashboard';
-import AdminLoginPage from './AdminLoginPage';
-import ReportsPage from './ReportsPage';
 import ProtectedRoute from './ProtectedRoute';
 import { AuthProvider } from './AuthContext';
 import { ReceptionProvider } from './hooks/useReceptionContext';
@@ -10,7 +8,6 @@ import Navbar from './Navbar';
 import HomePage from './HomePage';
 import ReceptionLayout from './ReceptionLayout';
 import ReceptionLoginPage from './ReceptionLoginPage';
-import AdministrationPage from './AdministrationPage';
 import { ErrorBoundary } from './ErrorBoundary';
 import './index.css';
 
@@ -39,38 +36,30 @@ function AppRoutes() {
           path="record"
           element={
             <ProtectedRoute requiredRoles={['ADMIN', 'RECEPTIONIST']}>
-              <ReportsPage />
+              <ReceptionDashboard />
             </ProtectedRoute>
           }
         />
       </Route>
 
-      <Route path="/admin/login" element={<AdminLoginPage />} />
-      <Route
-        path="/admin/*"
-        element={
-          <ProtectedRoute requiredRole="ADMIN">
-            <AdministrationPage />
-          </ProtectedRoute>
-        }
-      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
 function App() {
+  const location = useLocation();
+  const isReceptionAuthenticatedRoute = location.pathname.startsWith('/reception/') && !location.pathname.startsWith('/reception/login');
+
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Navbar />
-        <main className="main-content">
-          <ErrorBoundary>
-            <AppRoutes />
-          </ErrorBoundary>
-        </main>
-      </AuthProvider>
-    </BrowserRouter>
+    <AuthProvider>
+      {!isReceptionAuthenticatedRoute && <Navbar />}
+      <main className="main-content">
+        <ErrorBoundary>
+          <AppRoutes />
+        </ErrorBoundary>
+      </main>
+    </AuthProvider>
   );
 }
 
