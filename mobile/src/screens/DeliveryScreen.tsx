@@ -62,9 +62,9 @@ export const DeliveryScreen: React.FC = () => {
 
   // Refs for keyboard-aware scrolling
   const scrollViewRef = useRef<ScrollView>(null);
-  const fullNameRef = useRef<TextInput | null>(null);
-  const phoneRef = useRef<TextInput | null>(null);
-  const emailRef = useRef<TextInput | null>(null);
+  const fullNameRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
 
   const positionOptions = useMemo(() => POSITIONS.filter(p => p.value !== 'Other'), []);
 
@@ -97,39 +97,39 @@ export const DeliveryScreen: React.FC = () => {
   const renderPositionChips = () => (
     <View style={styles.positionChipsContainer}>
       <AppText variant="sm" weight="semibold" color={theme.ink} style={styles.positionLabel}>
-        Recipient position
+        Recipient
       </AppText>
       <View style={styles.positionChipsWrapper}>
         {positionOptions.map((option) => (
           <Pressable
             key={option.value}
-            onPress={() => handleChange('recipientPosition', values.recipientPosition === option.value ? '' : option.value)}
+            onPress={() => handleChange('recipient', (prev) => prev === option.value ? '' : option.value)}
             style={({ pressed }) => [
               styles.positionChip,
               {
-                backgroundColor: values.recipientPosition === option.value ? theme.tint : theme.field,
-                borderColor: values.recipientPosition === option.value ? theme.accent : theme.line,
+                backgroundColor: values.recipient === option.value ? theme.tint : theme.field,
+                borderColor: values.recipient === option.value ? theme.accent : theme.line,
               },
               pressed && styles.positionChipPressed,
             ]}
             accessibilityRole="radio"
-            accessibilityState={{ selected: values.recipientPosition === option.value }}
+            accessibilityState={{ selected: values.recipient === option.value }}
             accessibilityLabel={option.label}
             testID={`position-chip-${option.value}`}
           >
             <AppText
               variant="sm"
-              weight={values.recipientPosition === option.value ? 'semibold' : 'medium'}
-              color={values.recipientPosition === option.value ? theme.accent : theme.ink}
+              weight={values.recipient === option.value ? 'semibold' : 'medium'}
+              color={values.recipient === option.value ? theme.accent : theme.ink}
             >
               {option.label}
             </AppText>
           </Pressable>
         ))}
       </View>
-      {touched.recipientPosition && errors.recipientPosition && (
+      {touched.recipient && errors.recipient && (
         <AppText variant="xs" weight="medium" color={theme.error} style={styles.positionError}>
-          {errors.recipientPosition}
+          {errors.recipient}
         </AppText>
       )}
     </View>
@@ -215,8 +215,6 @@ export const DeliveryScreen: React.FC = () => {
         testID="fullName-input"
       />
 
-      {renderPositionChips()}
-
       {isTablet ? (
         <View style={styles.tabletRow}>
           <View style={styles.tabletColumn}>
@@ -297,6 +295,7 @@ export const DeliveryScreen: React.FC = () => {
           />
         </>
       )}
+      {renderPositionChips()}
     </>
   );
 
@@ -376,6 +375,7 @@ export const DeliveryScreen: React.FC = () => {
                   name={values.fullName}
                   phone={values.phone}
                   email={values.email}
+                  recipient={values.recipient}
                   testID="summary-card"
                 />
               </View>

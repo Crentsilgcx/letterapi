@@ -2,7 +2,7 @@ export interface CreateDeliveryRequest {
   fullName: string;
   phone: string | null;
   email: string | null;
-  recipientPosition: string | null;
+  recipient: string | null;
 }
 
 export interface DeliveryResponse {
@@ -11,8 +11,13 @@ export interface DeliveryResponse {
   trackingNumber: string;
   status: string;
   deliveryPersonName: string;
+  deliveryPersonPhone: string | null;
+  deliveryPersonEmail: string | null;
+  organizationName: string | null;
   recipientName: string;
-  recipientTitle: string;
+  recipientTitle: string | null;
+  subject: string | null;
+  referenceNumber: string | null;
   deliveredAt: string;
   receivedAt: string | null;
   receivedBy: string | null;
@@ -32,14 +37,14 @@ export interface FormErrors {
   fullName?: string;
   phone?: string;
   email?: string;
-  recipientPosition?: string;
+  recipient?: string;
 }
 
 export interface DeliveryFormValues {
   fullName: string;
   phone: string;
   email: string;
-  recipientPosition: string;
+  recipient: string;
 }
 
 export interface SubmitMessage {

@@ -936,7 +936,7 @@
   color: var(--ink);
 }
 
-.reception-dashboard .delivery-card-receipt-role {
+.reception-dashboard .delivery-card-recipient {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;

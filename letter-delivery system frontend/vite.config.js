@@ -45,6 +45,12 @@ export default defineConfig(({ mode }) => {
           target: 'http://localhost:8081',
           changeOrigin: true,
           ws: true,
+          configure: (proxy) => {
+            proxy.on('proxyReqWs', (proxyReq) => {
+              const auth = staffAuthHeader(mode)
+              if (auth) proxyReq.setHeader('Authorization', auth)
+            })
+          },
         }
       }
     }

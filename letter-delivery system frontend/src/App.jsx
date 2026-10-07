@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import DeliveryPersonHomepage from './DeliveryPersonHomepage';
 import ReceptionDashboard from './ReceptionDashboard';
+import ReportsPage from './ReportsPage';
 import ProtectedRoute from './ProtectedRoute';
 import { AuthProvider } from './AuthContext';
 import { ReceptionProvider } from './hooks/useReceptionContext';
@@ -36,7 +37,7 @@ function AppRoutes() {
           path="record"
           element={
             <ProtectedRoute requiredRoles={['ADMIN', 'RECEPTIONIST']}>
-              <ReceptionDashboard />
+              <ReportsPage />
             </ProtectedRoute>
           }
         />

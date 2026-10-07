@@ -51,6 +51,7 @@ public class LetterDelivery {
     public String getOrganizationAddress(){return organizationAddress;} public void setOrganizationAddress(String v){organizationAddress=v;}
     public String getRecipientName(){return recipientName;} public void setRecipientName(String v){recipientName=v;}
     public String getRecipientTitle(){return recipientTitle;} public void setRecipientTitle(String v){recipientTitle=v;}
+    public String getReceipt(){return recipientTitle;}
     public String getSubject(){return subject;} public void setSubject(String v){subject=v;}
     public String getReferenceNumber(){return referenceNumber;} public void setReferenceNumber(String v){referenceNumber=v;}
     public String getDescription(){return description;} public void setDescription(String v){description=v;}

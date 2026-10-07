@@ -161,7 +161,7 @@ const ReportsPage = () => {
   const [datePreset, setDatePreset] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [recipientPosition, setRecipientPosition] = useState('');
+  const [recipient, setRecipient] = useState('');
   const [status, setStatus] = useState('');
 
   const [reportData, setReportData] = useState(null);
@@ -193,9 +193,9 @@ const ReportsPage = () => {
   const buildFilters = useCallback(() => ({
     dateFrom: dateFrom || null,
     dateTo: dateTo || null,
-    recipientPosition: recipientPosition || null,
+    recipientPosition: recipient || null,
     status: status || null,
-  }), [dateFrom, dateTo, recipientPosition, status]);
+  }), [dateFrom, dateTo, recipient, status]);
 
   const handleDatePresetChange = useCallback((value) => {
     setDatePreset(value);
@@ -264,7 +264,7 @@ const ReportsPage = () => {
     setDatePreset('');
     setDateFrom('');
     setDateTo('');
-    setRecipientPosition('');
+    setRecipient('');
     setStatus('');
     setError(null);
   }, []);
@@ -362,14 +362,14 @@ const ReportsPage = () => {
 
             <div className="report-field-group report-field-group--grid">
               <div className="report-field">
-                <label className="report-field-label" htmlFor="report-recipient-position">Recipient position</label>
+                <label className="report-field-label" htmlFor="report-recipient">Recipient</label>
                 <select
-                  id="report-recipient-position"
+                  id="report-recipient"
                   className="report-control"
-                  value={recipientPosition}
-                  onChange={(e) => setRecipientPosition(e.target.value)}
+                  value={recipient}
+                  onChange={(e) => setRecipient(e.target.value)}
                 >
-                  <option value="">All positions</option>
+                  <option value="">All recipients</option>
                   {RECIPIENT_POSITIONS.map((position) => (
                     <option key={position} value={position}>{position}</option>
                   ))}
@@ -518,7 +518,7 @@ const ReportsPage = () => {
                         type="search"
                         id="record-search"
                         className="filter-input"
-                        placeholder="Recipient, position, reference code or delivery person"
+                        placeholder="Reference, recipient, delivered by, or tracking number"
                         value={searchInput}
                         onChange={(e) => setSearchInput(e.target.value)}
                         aria-describedby="record-search-hint"
@@ -558,72 +558,58 @@ const ReportsPage = () => {
                     <>
                       <div className="report-table-wrap">
                         <table className="report-table">
-                          <caption className="visually-hidden">
+<caption className="visually-hidden">
                             Incoming letter record for {appliedRange}, {filteredRecords.length} letters shown
                           </caption>
-                          <thead>
-                            <tr>
-                              <th scope="col">Recipient</th>
-                              <th scope="col">Recipient position</th>
-                              <th scope="col">Reference</th>
-                              <th scope="col">Delivered</th>
-                              <th scope="col">Received</th>
-                              <th scope="col">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {visibleRecords.map((record, index) => {
-                              const recipientName = record.recipientName || '—';
-                              const position = record.recipientTitle || record.recipientName || '—';
-                              const reference = getReference(record);
-                              const statusMeta = statusPresentation(record.status);
-                              const rowKey = record.id ?? `${record.trackingNumber}-${index}`;
-                              const positionMatchesRecipient =
-                                position.trim().toLowerCase() === recipientName.trim().toLowerCase();
+<thead>
+                             <tr>
+                               <th scope="col">Reference</th>
+                               <th scope="col">Delivered By</th>
+                               <th scope="col">Recipient</th>
+                               <th scope="col">Date</th>
+                               <th scope="col">Status</th>
+                             </tr>
+                           </thead>
+<tbody>
+                             {visibleRecords.map((record, index) => {
+                               const reference = getReference(record);
+                               const statusMeta = statusPresentation(record.status);
+                               const rowKey = record.id ?? `${record.trackingNumber}-${index}`;
 
-                              return (
-                                <tr key={rowKey}>
-                                  <td className="report-cell">{recipientName}</td>
-                                  <td className="report-cell">
-                                    <span className={positionMatchesRecipient ? 'report-position-muted' : 'report-position'}>
-                                      {position}
-                                    </span>
-                                  </td>
-                                  <td className="report-cell">
-                                    <div className="reference-cell">
-                                      <code className="reference-code">{reference}</code>
-                                      {reference !== '—' && (
-                                        <button
-                                          type="button"
-                                          className="btn-copy"
-                                          onClick={() => handleCopy(reference, rowKey)}
-                                          aria-label={`Copy reference ${reference}`}
-                                          title={copiedKey === rowKey ? 'Copied' : 'Copy reference'}
-                                        >
-                                          {copiedKey === rowKey ? (
-                                            <span className="copy-success" aria-live="polite">Copied</span>
-                                          ) : (
-                                            <Copy size={16} aria-hidden="true" />
-                                          )}
-                                        </button>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="report-cell report-cell--delivered">
-                                    {formatDateTime(record.deliveredAt)}
-                                  </td>
-                                  <td className="report-cell report-cell--delivered">
-                                    {record.receivedAt ? formatDateTime(record.receivedAt) : '—'}
-                                  </td>
-                                  <td className="report-cell report-cell--status">
-                                    <span className={`report-status-pill report-status-pill--${statusMeta.tone}`}>
-                                      {statusMeta.label}
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
+                               return (
+                                 <tr key={rowKey}>
+                                   <td className="report-cell">
+                                     <div className="reference-cell">
+                                       <code className="reference-code">{reference}</code>
+                                       {reference !== '—' && (
+                                         <button
+                                           type="button"
+                                           className="btn-copy"
+                                           onClick={() => handleCopy(reference, rowKey)}
+                                           aria-label={`Copy reference ${reference}`}
+                                           title={copiedKey === rowKey ? 'Copied' : 'Copy reference'}
+                                         >
+                                           {copiedKey === rowKey ? (
+                                             <span className="copy-success" aria-live="polite">Copied</span>
+                                           ) : (
+                                             <Copy size={16} aria-hidden="true" />
+                                           )}
+                                         </button>
+                                       )}
+                                     </div>
+                                   </td>
+                                   <td className="report-cell">{record.deliveryPersonName || '—'}</td>
+                                   <td className="report-cell">{record.recipientTitle || '—'}</td>
+                                   <td className="report-cell report-cell--delivered">{formatDateTime(record.deliveredAt)}</td>
+                                   <td className="report-cell report-cell--status">
+                                     <span className={`report-status-pill report-status-pill--${statusMeta.tone}`}>
+                                       {statusMeta.label}
+                                     </span>
+                                   </td>
+                                 </tr>
+                               );
+                             })}
+                           </tbody>
                         </table>
                       </div>
 

@@ -35,7 +35,7 @@ const SearchFilterBar = ({
   dateFilter, onDateFilterChange, 
   customDateFrom, customDateTo, onCustomDateFromChange, onCustomDateToChange, 
   showCustomDate, 
-  recipientPositionFilter, onRecipientPositionFilterChange,
+  recipientFilter, onRecipientFilterChange,
 }) => {
   return (
     <div className="search-filter-bar">
@@ -45,7 +45,7 @@ const SearchFilterBar = ({
         <input
           type="text"
           id="searchLetters"
-          placeholder="Search recipient, position or reference code..."
+          placeholder="Search recipient or reference code..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className="search-input"
@@ -93,14 +93,14 @@ const SearchFilterBar = ({
         )}
         
         <div className="filter-field filter-field--position">
-          <label htmlFor="recipientPositionFilter">Recipient position</label>
+          <label htmlFor="recipientFilter">Recipient</label>
           <select
-            id="recipientPositionFilter"
-            value={recipientPositionFilter}
-            onChange={(e) => onRecipientPositionFilterChange(e.target.value)}
+            id="recipientFilter"
+            value={recipientFilter}
+            onChange={(e) => onRecipientFilterChange(e.target.value)}
             className="filter-select"
           >
-            <option value="">All Positions</option>
+            <option value="">All Recipients</option>
             <option value="HR Officer">HR Officer</option>
             <option value="IT Officer">IT Officer</option>
             <option value="Finance Manager">Finance Manager</option>
@@ -164,14 +164,13 @@ const DeliveryTable = ({
               <th scope="col">Reference</th>
               <th scope="col">Delivered By</th>
               <th scope="col">Recipient</th>
-              <th scope="col">Receipt Role</th>
               <th scope="col">Date</th>
               <th scope="col">Status</th>
               {showAction && <th scope="col" className="dashboard-cell-action">Action</th>}
             </tr>
           </thead>
-          <tbody>
-{deliveries.map((d) => (
+<tbody>
+            {deliveries.map((d) => (
               <React.Fragment key={d.id}>
                 <tr 
                   className={`clickable-row ${expandedId === d.id ? 'expanded' : ''}`}
@@ -182,9 +181,6 @@ const DeliveryTable = ({
                   </td>
                   <td>
                     <span className="dashboard-recipient-name">{d.deliveryPersonName}</span>
-                  </td>
-                  <td>
-                    <span className="dashboard-recipient-name">{d.recipientName}</span>
                   </td>
                   <td className="dashboard-cell-receipt-role">
                     {d.recipientTitle ? (
@@ -215,7 +211,7 @@ const DeliveryTable = ({
                 </tr>
                 {expandedId === d.id && (
                   <tr className="expanded-row">
-                    <td colSpan={showAction ? 7 : 6} className="expanded-cell">
+                    <td colSpan={showAction ? 6 : 5} className="expanded-cell">
                       <div className="delivery-person-details">
                         <div className="details-header">
                           <ChevronDown className="expand-icon" size={16} aria-hidden="true" />
@@ -246,7 +242,7 @@ const DeliveryTable = ({
                           <div className="detail-item">
                             <Briefcase size={16} aria-hidden="true" />
                             <div>
-                              <span className="detail-label">Receipt Role</span>
+                              <span className="detail-label">Recipient</span>
                               <span className="detail-value">{d.recipientTitle || 'Not provided'}</span>
                             </div>
                           </div>
@@ -273,7 +269,7 @@ const DeliveryTable = ({
               <div className="delivery-card-main">
                 <span className="delivery-card-reference">{d.trackingNumber}</span>
                 <span className="delivery-card-delivered-by">{d.deliveryPersonName}</span>
-                {d.recipientTitle && <span className="delivery-card-receipt-role">{d.recipientTitle}</span>}
+                {d.recipientTitle && <span className="delivery-card-recipient">{d.recipientTitle}</span>}
               </div>
               <div className="delivery-card-right">
                 {statusBadge(d.status)}
@@ -288,10 +284,6 @@ const DeliveryTable = ({
               <div className="delivery-card-row">
                 <span className="delivery-card-label">Delivered By:</span>
                 <span className="delivery-card-value">{d.deliveryPersonName}</span>
-              </div>
-              <div className="delivery-card-row">
-                <span className="delivery-card-label">Recipient:</span>
-                <span className="delivery-card-value"><strong>{d.recipientName}</strong>{d.recipientTitle && <span className="muted"> — {d.recipientTitle}</span>}</span>
               </div>
               <div className="delivery-card-row">
                 <span className="delivery-card-label">Delivered:</span>
@@ -348,7 +340,7 @@ const DeliveryTable = ({
                   <div className="detail-item">
                     <Briefcase size={16} aria-hidden="true" />
                     <div>
-                      <span className="detail-label">Receipt Role</span>
+                      <span className="detail-label">Recipient</span>
                       <span className="detail-value">{d.recipientTitle || 'Not provided'}</span>
                     </div>
                   </div>
@@ -429,8 +421,8 @@ const ReceptionDashboard = () => {
     setCustomDateFrom,
     setCustomDateTo,
     showCustomDate,
-    recipientPositionFilter,
-    setRecipientPositionFilter,
+    recipientFilter,
+    setRecipientFilter,
     isConnected
   } = useReception();
 
@@ -492,8 +484,8 @@ const ReceptionDashboard = () => {
           onCustomDateFromChange={setCustomDateFrom}
           onCustomDateToChange={setCustomDateTo}
           showCustomDate={showCustomDate}
-          recipientPositionFilter={recipientPositionFilter}
-          onRecipientPositionFilterChange={setRecipientPositionFilter}
+          recipientFilter={recipientFilter}
+          onRecipientFilterChange={setRecipientFilter}
         />
 
         <div className="dashboard-tabs" role="tablist" aria-label="Delivery status">

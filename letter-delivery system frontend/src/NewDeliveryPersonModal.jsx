@@ -35,12 +35,13 @@ const NewDeliveryPersonModal = ({ isOpen, onClose, onSuccess, organizations, del
   const validate = () => {
     const newErrors = {};
     if (!form.fullName?.trim()) newErrors.fullName = 'Full name is required';
-    if (form.fullName && form.fullName.length > 160) newErrors.fullName = 'Name too long (max 160)';
-    if (form.phone && form.phone.length > 60) newErrors.phone = 'Phone too long (max 60)';
+    if(form.phone && form.phone.length < 10) newErrors.phone = 'Phone too short (min 10 characters)';
+    if (form.fullName && form.fullName.length > 160) newErrors.fullName = 'Name too long (max 160 characters)';
+    if (form.phone && form.phone.length > 60) newErrors.phone = 'Phone too long (max 60 characters)';
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       newErrors.email = 'Invalid email format';
     }
-    if (form.email && form.email.length > 180) newErrors.email = 'Email too long (max 180)';
+    if (form.email && form.email.length > 180) newErrors.email = 'Email too long (max 180 characters)';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };

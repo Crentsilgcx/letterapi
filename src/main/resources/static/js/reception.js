@@ -6,19 +6,24 @@
   let awaitingPage = 0;
   let receivedPage = 0;
   const pageSize = 10;
-  let awaitingFilters = { q: '', recipientPosition: '', organization: '', dateFrom: '', dateTo: '' };
-  let receivedFilters = { q: '', recipientPosition: '', organization: '', dateFrom: '', dateTo: '' };
+  let awaitingFilters = { q: '', receipt: '', dateFrom: '', dateTo: '' };
+  let receivedFilters = { q: '', receipt: '', dateFrom: '', dateTo: '' };
   let awaitingTotalPages = 1;
   let receivedTotalPages = 1;
   let isLoadingAwaiting = false;
   let isLoadingReceived = false;
+  let expandedRowId = null;
   const highlightDuration = 3000;
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const tabAwaiting = document.getElementById('tab-awaiting');
   const tabReceived = document.getElementById('tab-received');
+  const tabDashboard = document.getElementById('tab-dashboard');
+  const tabRecord = document.getElementById('tab-record');
   const panelAwaiting = document.getElementById('panel-awaiting');
   const panelReceived = document.getElementById('panel-received');
+  const panelDashboard = document.getElementById('panel-dashboard');
+  const panelRecord = document.getElementById('panel-record');
   const awaitingTbody = document.getElementById('awaitingTbody');
   const receivedTbody = document.getElementById('receivedTbody');
   const awaitingEmpty = document.getElementById('awaitingEmpty');
@@ -29,8 +34,7 @@
   const receivedPageInfo = document.getElementById('receivedPageInfo');
   const filterForm = document.getElementById('filterForm');
   const searchInput = document.getElementById('searchInput');
-  const recipientPositionFilter = document.getElementById('recipientPositionFilter');
-  const organizationFilter = document.getElementById('organizationFilter');
+  const receiptFilter = document.getElementById('receiptFilter');
   const dateFromInput = document.getElementById('dateFrom');
   const dateToInput = document.getElementById('dateTo');
   const clearFiltersBtn = document.getElementById('clearFilters');
@@ -121,8 +125,7 @@
     params.set('page', page);
     params.set('size', pageSize);
     if (filters.q) params.set('q', filters.q);
-    if (filters.recipientPosition) params.set('recipientPosition', filters.recipientPosition);
-    if (filters.organization) params.set('organization', filters.organization);
+    if (filters.receipt) params.set('receipt', filters.receipt);
     if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
     if (filters.dateTo) params.set('dateTo', filters.dateTo);
     return params;
@@ -131,7 +134,7 @@
   async function fetchAwaiting(page = 0) {
     if (isLoadingAwaiting) return;
     isLoadingAwaiting = true;
-    showSkeletonRows(awaitingTbody, 5, 5);
+    showSkeletonRows(awaitingTbody, 5, 6);
     awaitingEmpty.classList.add('hidden');
     awaitingPagination.hidden = true;
 
@@ -160,7 +163,7 @@
   async function fetchReceived(page = 0) {
     if (isLoadingReceived) return;
     isLoadingReceived = true;
-    showSkeletonRows(receivedTbody, 5, 5);
+    showSkeletonRows(receivedTbody, 5, 6);
     receivedEmpty.classList.add('hidden');
     receivedPagination.hidden = true;
 
@@ -197,18 +200,25 @@
     deliveries.forEach(delivery => {
       const tr = document.createElement('tr');
       tr.dataset.id = delivery.id;
+      tr.className = 'clickable-row';
       tr.innerHTML = `
         <td class="nowrap"><strong>${escapeHtml(delivery.trackingNumber)}</strong></td>
+        <td>${escapeHtml(delivery.deliveryPersonName)}</td>
         <td>${escapeHtml(delivery.recipientName)}</td>
-        <td>${escapeHtml(delivery.recipientTitle || '—')}</td>
+        <td>${escapeHtml(delivery.receipt || '—')}</td>
         <td class="nowrap">${formatDateTime(delivery.deliveredAt)}</td>
         <td>
-          <button class="btn primary btn-small receive-btn" data-id="${delivery.id}" data-tracking="${escapeHtml(delivery.trackingNumber)}">
-            Receive
-          </button>
+          <span class="status delivered">Awaiting</span>
         </td>
       `;
       awaitingTbody.appendChild(tr);
+
+      // Add click handler for row expansion
+      tr.addEventListener('click', (e) => {
+        // Don't expand if clicking the receive button
+        if (e.target.closest('.receive-btn')) return;
+        toggleRowExpansion(tr, delivery);
+      });
     });
 
     awaitingTbody.querySelectorAll('.receive-btn').forEach(btn => {
@@ -230,13 +240,65 @@
       const statusClass = delivery.status === 'RECEIVED' ? 'received' : 'delivered';
       tr.innerHTML = `
         <td class="nowrap"><strong>${escapeHtml(delivery.trackingNumber)}</strong></td>
+        <td>${escapeHtml(delivery.deliveryPersonName)}</td>
         <td>${escapeHtml(delivery.recipientName)}</td>
-        <td>${escapeHtml(delivery.recipientTitle || '—')}</td>
+        <td>${escapeHtml(delivery.receipt || '—')}</td>
         <td class="nowrap">${formatDateTime(delivery.receivedAt)}</td>
         <td><span class="status ${statusClass}">${escapeHtml(delivery.status)}</span></td>
       `;
       receivedTbody.appendChild(tr);
     });
+  }
+
+  function toggleRowExpansion(tr, delivery) {
+    const existingExpanded = awaitingTbody.querySelector('.expanded-row');
+    const isSameRow = tr.dataset.id === expandedRowId;
+
+    // Remove any existing expanded row
+    if (existingExpanded) {
+      existingExpanded.remove();
+      const prevRow = awaitingTbody.querySelector('.clickable-row.expanded');
+      if (prevRow) prevRow.classList.remove('expanded');
+    }
+
+    if (isSameRow) {
+      expandedRowId = null;
+      return;
+    }
+
+    // Mark this row as expanded
+    tr.classList.add('expanded');
+    expandedRowId = tr.dataset.id;
+
+    // Create expanded row with delivery person details
+    const expandedTr = document.createElement('tr');
+    expandedTr.className = 'expanded-row';
+    expandedTr.innerHTML = `
+      <td colspan="6">
+        <div class="expanded-details">
+          <h4>DELIVERY PERSON</h4>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Name</span>
+              <span class="detail-value">${escapeHtml(delivery.deliveryPersonName)}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Phone</span>
+              <span class="detail-value">${escapeHtml(delivery.deliveryPersonPhone || 'Not provided')}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Email</span>
+              <span class="detail-value">${escapeHtml(delivery.deliveryPersonEmail || 'Not provided')}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Receipt</span>
+              <span class="detail-value">${escapeHtml(delivery.receipt || 'Not provided')}</span>
+            </div>
+          </div>
+        </div>
+      </td>
+    `;
+    tr.after(expandedTr);
   }
 
   function escapeHtml(text) {
@@ -287,28 +349,78 @@
       tabAwaiting.setAttribute('aria-selected', 'true');
       tabReceived.classList.remove('active');
       tabReceived.setAttribute('aria-selected', 'false');
+      tabDashboard.classList.remove('active');
+      tabDashboard.setAttribute('aria-selected', 'false');
+      tabRecord.classList.remove('active');
+      tabRecord.setAttribute('aria-selected', 'false');
       panelAwaiting.hidden = false;
       panelReceived.hidden = true;
+      panelDashboard.hidden = true;
+      panelRecord.hidden = true;
       if (awaitingTbody.children.length === 0 && !isLoadingAwaiting) {
         fetchAwaiting(0);
       }
-    } else {
+    } else if (tab === 'received') {
       tabReceived.classList.add('active');
       tabReceived.setAttribute('aria-selected', 'true');
       tabAwaiting.classList.remove('active');
       tabAwaiting.setAttribute('aria-selected', 'false');
+      tabDashboard.classList.remove('active');
+      tabDashboard.setAttribute('aria-selected', 'false');
+      tabRecord.classList.remove('active');
+      tabRecord.setAttribute('aria-selected', 'false');
       panelReceived.hidden = false;
       panelAwaiting.hidden = true;
+      panelDashboard.hidden = true;
+      panelRecord.hidden = true;
       if (receivedTbody.children.length === 0 && !isLoadingReceived) {
         fetchReceived(0);
       }
+    } else if (tab === 'dashboard') {
+      tabDashboard.classList.add('active');
+      tabDashboard.setAttribute('aria-selected', 'true');
+      tabAwaiting.classList.remove('active');
+      tabAwaiting.setAttribute('aria-selected', 'false');
+      tabReceived.classList.remove('active');
+      tabReceived.setAttribute('aria-selected', 'false');
+      tabRecord.classList.remove('active');
+      tabRecord.setAttribute('aria-selected', 'false');
+      panelDashboard.hidden = false;
+      panelAwaiting.hidden = true;
+      panelReceived.hidden = true;
+      panelRecord.hidden = true;
+      loadDashboard();
+    } else if (tab === 'record') {
+      tabRecord.classList.add('active');
+      tabRecord.setAttribute('aria-selected', 'true');
+      tabAwaiting.classList.remove('active');
+      tabAwaiting.setAttribute('aria-selected', 'false');
+      tabReceived.classList.remove('active');
+      tabReceived.setAttribute('aria-selected', 'false');
+      tabDashboard.classList.remove('active');
+      tabDashboard.setAttribute('aria-selected', 'false');
+      panelRecord.hidden = false;
+      panelAwaiting.hidden = true;
+      panelReceived.hidden = true;
+      panelDashboard.hidden = true;
+      loadRecord();
     }
+  }
+
+  async function loadDashboard() {
+    // Dashboard is already loaded via Thymeleaf, but we can refresh stats
+    await loadStatistics();
+  }
+
+  async function loadRecord() {
+    // Record view - could load full register
+    await loadStatistics();
   }
 
   async function refreshCurrentTab() {
     if (currentTab === 'awaiting') {
       await fetchAwaiting(awaitingPage);
-    } else {
+    } else if (currentTab === 'received') {
       await fetchReceived(receivedPage);
     }
     await loadStatistics();
@@ -330,7 +442,7 @@
 
   function updateTabCounts() {
     if (tabCountAwaiting) {
-      const awaitingRows = awaitingTbody.querySelectorAll('tr:not(.skeleton-row)');
+      const awaitingRows = awaitingTbody.querySelectorAll('tr:not(.skeleton-row):not(.expanded-row)');
       tabCountAwaiting.textContent = awaitingRows.length;
     }
     if (tabCountReceived) {
@@ -344,43 +456,35 @@
     const formData = new FormData(filterForm);
     awaitingFilters = {
       q: formData.get('q') || '',
-      recipientPosition: formData.get('recipientPosition') || '',
-      organization: formData.get('organization') || '',
+      receipt: formData.get('receipt') || '',
       dateFrom: formData.get('dateFrom') || '',
       dateTo: formData.get('dateTo') || ''
     };
     receivedFilters = { ...awaitingFilters };
     if (currentTab === 'awaiting') {
       fetchAwaiting(0);
-    } else {
+    } else if (currentTab === 'received') {
       fetchReceived(0);
     }
   }
 
   function clearFilters() {
     filterForm.reset();
-    awaitingFilters = { q: '', recipientPosition: '', organization: '', dateFrom: '', dateTo: '' };
-    receivedFilters = { q: '', recipientPosition: '', organization: '', dateFrom: '', dateTo: '' };
+    awaitingFilters = { q: '', receipt: '', dateFrom: '', dateTo: '' };
+    receivedFilters = { q: '', receipt: '', dateFrom: '', dateTo: '' };
     if (currentTab === 'awaiting') {
       fetchAwaiting(0);
-    } else {
+    } else if (currentTab === 'received') {
       fetchReceived(0);
     }
   }
 
   async function loadFilterOptions() {
     try {
-      const [positionsRes, orgsRes] = await Promise.all([
-        fetch('/api/reception/filter-options/positions'),
-        fetch('/api/reception/filter-options/organizations')
-      ]);
+      const positionsRes = await fetch('/api/reception/filter-options/positions');
       if (positionsRes.ok) {
         const positions = await positionsRes.json();
-        populateSelect(recipientPositionFilter, positions);
-      }
-      if (orgsRes.ok) {
-        const orgs = await orgsRes.json();
-        populateSelect(organizationFilter, orgs);
+        populateSelect(receiptFilter, positions);
       }
     } catch (err) {
       console.error('Failed to load filter options:', err);
@@ -388,6 +492,7 @@
   }
 
   function populateSelect(select, options) {
+    if (!select) return;
     const currentValue = select.value;
     select.innerHTML = '<option value="">All</option>';
     options.forEach(opt => {
@@ -456,11 +561,12 @@
 
     const tr = document.createElement('tr');
     tr.dataset.id = delivery.id;
-    tr.className = 'new-highlight';
+    tr.className = 'clickable-row new-highlight';
     tr.innerHTML = `
       <td class="nowrap"><strong>${escapeHtml(delivery.trackingNumber)}</strong></td>
+      <td>${escapeHtml(delivery.deliveryPersonName)}</td>
       <td>${escapeHtml(delivery.recipientName)}</td>
-      <td>${escapeHtml(delivery.recipientTitle || '—')}</td>
+      <td>${escapeHtml(delivery.receipt || '—')}</td>
       <td class="nowrap">${formatDateTime(delivery.deliveredAt)}</td>
       <td>
         <button class="btn primary btn-small receive-btn" data-id="${delivery.id}" data-tracking="${escapeHtml(delivery.trackingNumber)}">
@@ -469,6 +575,11 @@
       </td>
     `;
     awaitingTbody.insertBefore(tr, awaitingTbody.firstChild);
+
+    tr.addEventListener('click', (e) => {
+      if (e.target.closest('.receive-btn')) return;
+      toggleRowExpansion(tr, delivery);
+    });
 
     const btn = tr.querySelector('.receive-btn');
     btn.addEventListener('click', handleReceiveClick);
@@ -490,12 +601,14 @@
     const tr = document.createElement('tr');
     tr.dataset.id = delivery.id;
     tr.className = 'new-highlight';
+    const statusClass = delivery.status === 'RECEIVED' ? 'received' : 'delivered';
     tr.innerHTML = `
       <td class="nowrap"><strong>${escapeHtml(delivery.trackingNumber)}</strong></td>
+      <td>${escapeHtml(delivery.deliveryPersonName)}</td>
       <td>${escapeHtml(delivery.recipientName)}</td>
-      <td>${escapeHtml(delivery.recipientTitle || '—')}</td>
+      <td>${escapeHtml(delivery.receipt || '—')}</td>
       <td class="nowrap">${formatDateTime(delivery.receivedAt)}</td>
-      <td><span class="status received">${escapeHtml(delivery.status)}</span></td>
+      <td><span class="status ${statusClass}">${escapeHtml(delivery.status)}</span></td>
     `;
     receivedTbody.insertBefore(tr, receivedTbody.firstChild);
 
@@ -511,7 +624,14 @@
 
   function removeAwaitingRow(id) {
     const row = awaitingTbody.querySelector(`tr[data-id="${id}"]`);
-    if (row) row.remove();
+    if (row) {
+      // Also remove expanded row if it's the one expanded
+      const expandedRow = row.nextElementSibling;
+      if (expandedRow && expandedRow.classList.contains('expanded-row')) {
+        expandedRow.remove();
+      }
+      row.remove();
+    }
     if (awaitingTbody.children.length === 0) {
       updateEmptyState(awaitingTbody, awaitingEmpty, false);
     }
@@ -535,6 +655,8 @@
 
   tabAwaiting.addEventListener('click', () => switchTab('awaiting'));
   tabReceived.addEventListener('click', () => switchTab('received'));
+  tabDashboard.addEventListener('click', () => switchTab('dashboard'));
+  tabRecord.addEventListener('click', () => switchTab('record'));
   filterForm.addEventListener('submit', handleFilterSubmit);
   clearFiltersBtn.addEventListener('click', clearFilters);
 

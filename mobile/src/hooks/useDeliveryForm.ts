@@ -13,7 +13,7 @@ const initialValues: DeliveryFormValues = {
   fullName: '',
   phone: '',
   email: '',
-  recipientPosition: '',
+  recipient: '',
 };
 
 export function useDeliveryForm(onSubmit: (payload: CreateDeliveryRequest) => Promise<void>) {
@@ -42,7 +42,7 @@ export function useDeliveryForm(onSubmit: (payload: CreateDeliveryRequest) => Pr
           fullName: typeof parsed.fullName === 'string' ? parsed.fullName : prev.fullName,
           phone: typeof parsed.phone === 'string' ? parsed.phone : prev.phone,
           email: typeof parsed.email === 'string' ? parsed.email : prev.email,
-          recipientPosition: typeof parsed.recipientPosition === 'string' ? parsed.recipientPosition : prev.recipientPosition,
+          recipient: typeof parsed.recipient === 'string' ? parsed.recipient : prev.recipient,
         }));
       } catch {
         // A missing or corrupt draft simply means an empty form.
@@ -96,17 +96,20 @@ export function useDeliveryForm(onSubmit: (payload: CreateDeliveryRequest) => Pr
       newErrors.email = 'Enter a valid email address';
     }
 
-    // recipientPosition is optional in current API contract - not validated as required
-    // but if provided, it must be a valid value
-    if (formValues.recipientPosition && formValues.recipientPosition.length > 160) {
-      newErrors.recipientPosition = 'Position is too long (max 160 characters)';
+    // recipient is optional - validate length if provided
+    if (formValues.recipient && formValues.recipient.length > 160) {
+      newErrors.recipient = 'Recipient is too long (max 160 characters)';
     }
 
     return newErrors;
   }, []);
 
-  const handleChange = useCallback((field: keyof DeliveryFormValues, value: string) => {
-    setValues((prev) => ({ ...prev, [field]: value }));
+  const handleChange = useCallback((field: keyof DeliveryFormValues, value: string | ((prev: string) => string)) => {
+    console.log('[DeliveryForm] handleChange:', field, value);
+    setValues((prev) => ({
+      ...prev,
+      [field]: typeof value === 'function' ? value(prev[field]) : value
+    }));
     setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
   }, []);
 
@@ -121,16 +124,19 @@ export function useDeliveryForm(onSubmit: (payload: CreateDeliveryRequest) => Pr
     [validate, values]
   );
 
-  const handleSubmit = useCallback(async () => {
+const handleSubmit = useCallback(async () => {
     if (submittingRef.current) return;
 
+    console.log('[DeliveryForm] handleSubmit - current values:', values);
+
     const newErrors = validate(values);
-    if (Object.keys(newErrors).length > 0) {
+if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setTouched({
         fullName: true,
         phone: true,
         email: true,
+        recipient: true,
       });
       return;
     }
@@ -144,8 +150,10 @@ export function useDeliveryForm(onSubmit: (payload: CreateDeliveryRequest) => Pr
         fullName: values.fullName.trim(),
         phone: values.phone?.trim() || null,
         email: values.email?.trim() || null,
-        recipientPosition: values.recipientPosition?.trim() || null,
+        recipient: values.recipient?.trim() || null,
       };
+
+      console.log('[DeliveryForm] Sending payload:', payload);
 
       await onSubmit(payload);
 

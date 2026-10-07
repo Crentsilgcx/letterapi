@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -53,7 +55,7 @@ class DeliveryServiceTest {
             deliveries, events, users, clock, wsPublisher);
         LetterDelivery delivery = service.create(
             new CreateDeliveryRequest(
-                "Kwame Mensah", "0200000000", null),
+                "Kwame Mensah", "0200000000", null, "CEO"),
             request);
 
         assertTrue(delivery.getTrackingNumber().matches("REF-\\d{4}-[A-Z0-9]{6}.*"), "Tracking number was: " + delivery.getTrackingNumber());
@@ -64,6 +66,45 @@ class DeliveryServiceTest {
         verify(events).save(argThat(event ->
             event.getEventType() == DeliveryEventType.DELIVERED && event.getActorName().equals("Kwame Mensah")));
         verify(wsPublisher).notifyDeliveryCreated(delivery);
+    }
+
+    @Test
+    void createPersistsAllDeliveryFields() {
+        LetterDeliveryRepository deliveries = mock(LetterDeliveryRepository.class);
+        DeliveryEventRepository events = mock(DeliveryEventRepository.class);
+        UserAccountRepository users = mock(UserAccountRepository.class);
+        WebSocketEventPublisher wsPublisher = mock(WebSocketEventPublisher.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+        Clock clock = Clock.fixed(Instant.parse("2026-09-14T10:47:21Z"), ZoneId.of("Africa/Accra"));
+
+        when(deliveries.existsByTrackingNumberIgnoreCase(anyString())).thenReturn(false);
+        when(deliveries.save(any(LetterDelivery.class))).thenAnswer(invocation -> {
+            LetterDelivery delivery = invocation.getArgument(0);
+            delivery.setId(42L);
+            return delivery;
+        });
+
+        DeliveryService service = new DeliveryService(
+            deliveries, events, users, clock, wsPublisher);
+        LetterDelivery delivery = service.create(
+            new CreateDeliveryRequest(
+                "Nana Akufo Addo", "0278921346", "yamoley@hotmail.com", "Chief Executive Officer"),
+            request);
+
+        assertEquals("Nana Akufo Addo", delivery.getDeliveryPersonName());
+        assertEquals("0278921346", delivery.getDeliveryPersonPhone());
+        assertEquals("yamoley@hotmail.com", delivery.getDeliveryPersonEmail());
+        assertEquals("Chief Executive Officer", delivery.getRecipientName());
+        assertEquals("Chief Executive Officer", delivery.getRecipientTitle());
+        assertNull(delivery.getOrganizationName());
+        assertNull(delivery.getOrganizationAddress());
+        assertNull(delivery.getSubject());
+        assertNull(delivery.getReferenceNumber());
+        assertEquals(DeliveryStatus.DELIVERED, delivery.getStatus());
+        assertNotNull(delivery.getTrackingNumber());
+        assertEquals(15, delivery.getTrackingNumber().length(), "Tracking number must be exactly 15 characters");
+        assertFalse(delivery.getTrackingNumber().contains("\u0000"), "Tracking number must not contain null characters");
     }
 
     @Test

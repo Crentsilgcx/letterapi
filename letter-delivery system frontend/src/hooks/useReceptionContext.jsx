@@ -91,8 +91,7 @@ function getCacheState(cache) {
     customDateFrom: cache.customDateFrom || '',
     customDateTo: cache.customDateTo || '',
     showCustomDate: cache.showCustomDate || false,
-    recipientPositionFilter: cache.recipientPositionFilter || '',
-    organizationFilter: cache.organizationFilter || '',
+    recipientFilter: cache.recipientFilter || '',
   };
 }
 
@@ -114,8 +113,7 @@ function buildCacheState(state) {
     customDateFrom: state.customDateFrom,
     customDateTo: state.customDateTo,
     showCustomDate: state.showCustomDate,
-    recipientPositionFilter: state.recipientPositionFilter,
-    organizationFilter: state.organizationFilter,
+    recipientFilter: state.recipientFilter,
   };
 }
 
@@ -137,8 +135,7 @@ export function ReceptionProvider({ children }) {
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
   const [showCustomDate, setShowCustomDate] = useState(false);
-  const [recipientPositionFilter, setRecipientPositionFilter] = useState('');
-  const [organizationFilter, setOrganizationFilter] = useState('');
+  const [recipientFilter, setRecipientFilter] = useState('');
   
   // Timer refs for debouncing
   const searchTimeoutRef = useRef(null);
@@ -184,8 +181,7 @@ export function ReceptionProvider({ children }) {
     dateFilter: '',
     customDateFrom: '',
     customDateTo: '',
-    recipientPositionFilter: '',
-    organizationFilter: '',
+    recipientFilter: '',
   });
 
   // Keep filtersRef in sync with filter state for API calls
@@ -193,8 +189,7 @@ export function ReceptionProvider({ children }) {
   useEffect(() => { filtersRef.current.dateFilter = dateFilter; }, [dateFilter]);
   useEffect(() => { filtersRef.current.customDateFrom = customDateFrom; }, [customDateFrom]);
   useEffect(() => { filtersRef.current.customDateTo = customDateTo; }, [customDateTo]);
-  useEffect(() => { filtersRef.current.recipientPositionFilter = recipientPositionFilter; }, [recipientPositionFilter]);
-  useEffect(() => { filtersRef.current.organizationFilter = organizationFilter; }, [organizationFilter]);
+  useEffect(() => { filtersRef.current.recipientFilter = recipientFilter; }, [recipientFilter]);
   
   // Refs for WebSocket handler to access current state without causing re-renders
   const stateRefs = useRef({
@@ -212,8 +207,7 @@ export function ReceptionProvider({ children }) {
     customDateFrom: '',
     customDateTo: '',
     showCustomDate: false,
-    recipientPositionFilter: '',
-    organizationFilter: '',
+    recipientFilter: '',
     activeTab: 'pending',
   });
 
@@ -232,8 +226,7 @@ export function ReceptionProvider({ children }) {
   useEffect(() => { stateRefs.current.customDateFrom = customDateFrom; }, [customDateFrom]);
   useEffect(() => { stateRefs.current.customDateTo = customDateTo; }, [customDateTo]);
   useEffect(() => { stateRefs.current.showCustomDate = showCustomDate; }, [showCustomDate]);
-  useEffect(() => { stateRefs.current.recipientPositionFilter = recipientPositionFilter; }, [recipientPositionFilter]);
-  useEffect(() => { stateRefs.current.organizationFilter = organizationFilter; }, [organizationFilter]);
+  useEffect(() => { stateRefs.current.recipientFilter = recipientFilter; }, [recipientFilter]);
   useEffect(() => { stateRefs.current.activeTab = activeTab; }, [activeTab]);
 
   const getDateRangeFromRefs = useCallback(() => {
@@ -245,7 +238,7 @@ export function ReceptionProvider({ children }) {
   }, []);
 
 const buildApiParams = useCallback((page = 0) => {
-    const { searchQuery, recipientPositionFilter, organizationFilter } = filtersRef.current;
+    const { searchQuery, recipientFilter } = filtersRef.current;
     const { from, to } = getDateRangeFromRefs();
     const params = new URLSearchParams({ 
       page: String(page), 
@@ -254,8 +247,7 @@ const buildApiParams = useCallback((page = 0) => {
     if (searchQuery) params.append('q', searchQuery);
     if (from) params.append('dateFrom', from);
     if (to) params.append('dateTo', to);
-    if (recipientPositionFilter) params.append('recipientPosition', recipientPositionFilter);
-    if (organizationFilter) params.append('organization', organizationFilter);
+    if (recipientFilter) params.append('recipientPosition', recipientFilter);
     return params.toString();
   }, []);
 
@@ -293,14 +285,13 @@ const buildApiParams = useCallback((page = 0) => {
           customDateFrom: customDateFrom,
           customDateTo: customDateTo,
           showCustomDate: showCustomDate,
-          recipientPositionFilter: recipientPositionFilter,
-          organizationFilter: organizationFilter,
+          recipientFilter: recipientFilter,
         }));
       }
     } catch (err) {
       if (err.name !== 'AbortError') setError(err.message);
     }
-  }, [buildApiParams, received, receivedPage, receivedTotalPages, receivedTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientPositionFilter, organizationFilter]);
+  }, [buildApiParams, received, receivedPage, receivedTotalPages, receivedTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientFilter]);
 
   // Store loadPending in ref for use in setActiveTab (avoids circular dependency)
   useEffect(() => { loadPendingRef.current = loadPending; }, [loadPending]);
@@ -338,14 +329,13 @@ const buildApiParams = useCallback((page = 0) => {
           customDateFrom: customDateFrom,
           customDateTo: customDateTo,
           showCustomDate: showCustomDate,
-          recipientPositionFilter: recipientPositionFilter,
-          organizationFilter: organizationFilter,
+          recipientFilter: recipientFilter,
         }));
       }
     } catch (err) {
       if (err.name !== 'AbortError') setError(err.message);
     }
-  }, [buildApiParams, pending, pendingPage, pendingTotalPages, pendingTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientPositionFilter, organizationFilter]);
+  }, [buildApiParams, pending, pendingPage, pendingTotalPages, pendingTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientFilter]);
 
   // Store loadReceived in ref for use in setActiveTab
   useEffect(() => { loadReceivedRef.current = loadReceived; }, [loadReceived]);
@@ -377,8 +367,7 @@ const buildApiParams = useCallback((page = 0) => {
           setCustomDateFrom(cachedState.customDateFrom);
           setCustomDateTo(cachedState.customDateTo);
           setShowCustomDate(cachedState.showCustomDate);
-          setRecipientPositionFilter(cachedState.recipientPositionFilter);
-          setOrganizationFilter(cachedState.organizationFilter);
+          setRecipientFilter(cachedState.recipientFilter);
           setIsLoading(false);
           
           // Background refresh: always fetch fresh data after cache restore
@@ -502,12 +491,8 @@ const buildApiParams = useCallback((page = 0) => {
     }, 150);
   }, [activeTab]);
 
-  const handleRecipientPositionFilterChange = useCallback((filter) => {
-    handleFilterChange(setRecipientPositionFilter, filter);
-  }, [handleFilterChange]);
-
-  const handleOrganizationFilterChange = useCallback((filter) => {
-    handleFilterChange(setOrganizationFilter, filter);
+  const handleRecipientFilterChange = useCallback((filter) => {
+    handleFilterChange(setRecipientFilter, filter);
   }, [handleFilterChange]);
 
   const handleReceive = useCallback(async (id) => {
@@ -551,15 +536,14 @@ const buildApiParams = useCallback((page = 0) => {
         customDateFrom,
         customDateTo,
         showCustomDate,
-        recipientPositionFilter,
-        organizationFilter,
+        recipientFilter,
       }));
     } catch (err) {
       setError(err.message);
     } finally {
       setReceivingId(null);
     }
-  }, [pending, received, pendingPage, receivedPage, pendingTotalPages, receivedTotalPages, pendingTotalElements, receivedTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientPositionFilter, organizationFilter]);
+  }, [pending, received, pendingPage, receivedPage, pendingTotalPages, receivedTotalPages, pendingTotalElements, receivedTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientFilter]);
 
   const clearMessages = useCallback(() => {
     setError(null);
@@ -591,7 +575,20 @@ const buildApiParams = useCallback((page = 0) => {
         // This is more reliable than trying to manually prepend to the array,
         // especially when filters are active or the user is on a later page.
         if (state.activeTab === 'pending') {
-          loadPendingRef.current?.(0, false);
+          // Build params without recipientFilter to ensure new delivery appears
+          const { searchQuery, dateFilter, customDateFrom, customDateTo } = filtersRef.current;
+          const params = new URLSearchParams({ page: '0', size: String(DEFAULT_PAGE_SIZE) });
+          if (searchQuery) params.append('q', searchQuery);
+          if (dateFilter === 'custom') {
+            if (customDateFrom) params.append('dateFrom', customDateFrom);
+            if (customDateTo) params.append('dateTo', customDateTo);
+          } else if (dateFilter) {
+            const { from, to } = getDateRange(dateFilter);
+            if (from) params.append('dateFrom', from);
+            if (to) params.append('dateTo', to);
+          }
+          // Intentionally omit recipientFilter and organization to show the new delivery
+          loadPendingRef.current?.(0, false, undefined, params.toString());
         } else {
           // Just update totals when not on the pending tab
           setPendingTotalElements(prev => prev + 1);
@@ -614,8 +611,7 @@ const buildApiParams = useCallback((page = 0) => {
           customDateFrom: state.customDateFrom,
           customDateTo: state.customDateTo,
           showCustomDate: state.showCustomDate,
-          recipientPositionFilter: state.recipientPositionFilter,
-          organizationFilter: state.organizationFilter,
+          recipientFilter: state.recipientFilter,
         }));
       }
 
@@ -665,8 +661,7 @@ const buildApiParams = useCallback((page = 0) => {
           customDateFrom: state.customDateFrom,
           customDateTo: state.customDateTo,
           showCustomDate: state.showCustomDate,
-          recipientPositionFilter: state.recipientPositionFilter,
-          organizationFilter: state.organizationFilter,
+          recipientFilter: state.recipientFilter,
         }));
       }
     });
@@ -699,10 +694,9 @@ const buildApiParams = useCallback((page = 0) => {
       customDateFrom,
       customDateTo,
       showCustomDate,
-      recipientPositionFilter,
-      organizationFilter,
+      recipientFilter,
     }));
-  }, [pendingTotalPages, pending, received, pendingPage, receivedPage, pendingTotalPages, receivedTotalPages, pendingTotalElements, receivedTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientPositionFilter, organizationFilter]);
+  }, [pendingTotalPages, pending, received, pendingPage, receivedPage, pendingTotalPages, receivedTotalPages, pendingTotalElements, receivedTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientFilter]);
 
   const goToReceivedPage = useCallback((page) => {
     if (page < 0 || page >= receivedTotalPages) return;
@@ -727,10 +721,9 @@ const buildApiParams = useCallback((page = 0) => {
       customDateFrom,
       customDateTo,
       showCustomDate,
-      recipientPositionFilter,
-      organizationFilter,
+      recipientFilter,
     }));
-  }, [receivedTotalPages, pending, received, pendingPage, receivedPage, pendingTotalPages, receivedTotalPages, pendingTotalElements, receivedTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientPositionFilter, organizationFilter]);
+  }, [receivedTotalPages, pending, received, pendingPage, receivedPage, pendingTotalPages, receivedTotalPages, pendingTotalElements, receivedTotalElements, receivedTodayCount, searchQuery, dateFilter, customDateFrom, customDateTo, showCustomDate, recipientFilter]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -790,10 +783,8 @@ const buildApiParams = useCallback((page = 0) => {
     setCustomDateFrom: (d) => handleCustomDateChange(d, customDateTo),
     setCustomDateTo: (d) => handleCustomDateChange(customDateFrom, d),
     showCustomDate,
-    recipientPositionFilter,
-    setRecipientPositionFilter: handleRecipientPositionFilterChange,
-    organizationFilter,
-    setOrganizationFilter: handleOrganizationFilterChange,
+    recipientFilter,
+    setRecipientFilter: handleRecipientFilterChange,
     refreshActiveTab,
   }), [
     pending,
@@ -817,8 +808,7 @@ const buildApiParams = useCallback((page = 0) => {
     customDateFrom,
     customDateTo,
     showCustomDate,
-    recipientPositionFilter,
-    organizationFilter,
+    recipientFilter,
   ]);
 
   return (

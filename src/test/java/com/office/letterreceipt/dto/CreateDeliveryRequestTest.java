@@ -16,9 +16,10 @@ class CreateDeliveryRequestTest {
     @Test
     void blankEmailIsNormalizedToNullAndPassesValidation() {
         CreateDeliveryRequest request = new CreateDeliveryRequest(
-            "Kwame Mensah", " ", "");
+            "Kwame Mensah", " ", "", "");
         assertNull(request.email());
         assertNull(request.phone());
+        assertNull(request.recipient());
         Set<ConstraintViolation<CreateDeliveryRequest>> violations = validator.validate(request);
         assertTrue(violations.stream().noneMatch(v -> "email".equals(v.getPropertyPath().toString())));
     }
@@ -26,7 +27,7 @@ class CreateDeliveryRequestTest {
     @Test
     void invalidEmailStillFailsValidation() {
         CreateDeliveryRequest request = new CreateDeliveryRequest(
-            "Kwame Mensah", null, "not-an-email");
+            "Kwame Mensah", null, "not-an-email", null);
         Set<ConstraintViolation<CreateDeliveryRequest>> violations = validator.validate(request);
         assertEquals(1, violations.size());
         assertEquals("email", violations.iterator().next().getPropertyPath().toString());
@@ -35,7 +36,7 @@ class CreateDeliveryRequestTest {
     @Test
     void fullNameIsRequired() {
         CreateDeliveryRequest request = new CreateDeliveryRequest(
-            "", "0200000000", "kwame@example.com");
+            "", "0200000000", "kwame@example.com", null);
         Set<ConstraintViolation<CreateDeliveryRequest>> violations = validator.validate(request);
         assertEquals(1, violations.size());
         assertEquals("fullName", violations.iterator().next().getPropertyPath().toString());

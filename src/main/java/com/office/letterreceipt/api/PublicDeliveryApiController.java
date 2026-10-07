@@ -16,6 +16,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,6 +32,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api/public")
 public class PublicDeliveryApiController {
+    private static final Logger log = LoggerFactory.getLogger(PublicDeliveryApiController.class);
     private final DeliveryService service;
     private final RecipientRepository recipients;
     private final OrganizationRepository organizations;
@@ -103,6 +106,8 @@ public class PublicDeliveryApiController {
     public DeliveryResponse create(
             @Valid @RequestBody CreateDeliveryRequest request,
             HttpServletRequest servletRequest) {
+        log.info("CREATE DELIVERY DTO: fullName={}, phone={}, email={}, recipient={}",
+                request.fullName(), request.phone(), request.email(), request.recipient());
         return DeliveryResponse.full(service.create(request, servletRequest));
     }
 

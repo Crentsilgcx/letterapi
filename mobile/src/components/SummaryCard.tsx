@@ -8,15 +8,17 @@ interface SummaryCardProps {
   name: string;
   phone: string;
   email: string;
+  recipient: string;
   testID?: string;
 }
 
-export const SummaryCard: React.FC<SummaryCardProps> = ({ name, phone, email, testID }) => {
+export const SummaryCard: React.FC<SummaryCardProps> = ({ name, phone, email, recipient, testID }) => {
   const theme = useTheme();
 
   const deliveryBy = name || 'Not entered';
   const phoneValue = phone || 'None';
   const emailValue = email || 'None';
+  const recipientValue = recipient || 'None';
 
   return (
     <Card padding="md" style={styles.card} testID={testID}>
@@ -46,6 +48,14 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({ name, phone, email, te
         </AppText>
         <AppText variant="sm" weight="semibold" color={theme.ink} style={styles.value}>
           {emailValue}
+        </AppText>
+      </View>
+      <View style={styles.row}>
+        <AppText variant="xs" weight="medium" color={theme.sub} style={styles.label}>
+          Recipient
+        </AppText>
+        <AppText variant="sm" weight="semibold" color={theme.ink} style={styles.value}>
+          {recipientValue}
         </AppText>
       </View>
     </Card>

@@ -8,13 +8,13 @@ public record CreateDeliveryRequest(
         @NotBlank @Size(max = 160) String fullName,
         @Size(max = 60) String phone,
         @Email @Size(max = 180) String email,
-        @Size(max = 160) String recipientPosition) {
+        @Size(max = 160) String recipient) {
 
     public CreateDeliveryRequest {
         fullName = blankToNull(fullName);
         phone = blankToNull(phone);
         email = blankToNull(email);
-        recipientPosition = blankToNull(recipientPosition);
+        recipient = blankToNull(recipient);
     }
 
     private static String blankToNull(String value) {

@@ -30,6 +30,7 @@ public class WebSocketEventPublisher {
         deliveryData.put("organizationAddress", delivery.getOrganizationAddress());
         deliveryData.put("recipientName", delivery.getRecipientName());
         deliveryData.put("recipientTitle", delivery.getRecipientTitle());
+        deliveryData.put("recipient", delivery.getRecipientName());
         deliveryData.put("subject", delivery.getSubject());
         deliveryData.put("referenceNumber", delivery.getReferenceNumber());
         deliveryData.put("status", delivery.getStatus().name());
@@ -55,6 +56,7 @@ public class WebSocketEventPublisher {
         deliveryData.put("organizationAddress", delivery.getOrganizationAddress());
         deliveryData.put("recipientName", delivery.getRecipientName());
         deliveryData.put("recipientTitle", delivery.getRecipientTitle());
+        deliveryData.put("recipient", delivery.getRecipientName());
         deliveryData.put("subject", delivery.getSubject());
         deliveryData.put("referenceNumber", delivery.getReferenceNumber());
         deliveryData.put("status", delivery.getStatus().name());

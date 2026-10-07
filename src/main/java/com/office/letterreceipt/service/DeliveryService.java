@@ -16,6 +16,8 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 public class DeliveryService {
     private static final char[] TRACKING_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".toCharArray();
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static final Logger log = LoggerFactory.getLogger(DeliveryService.class);
 
     private final LetterDeliveryRepository deliveries;
     private final DeliveryEventRepository events;
@@ -53,6 +56,8 @@ public class DeliveryService {
 
     @Transactional
     public LetterDelivery create(CreateDeliveryRequest request, HttpServletRequest servletRequest) {
+        log.info("SERVICE INPUT: fullName={}, phone={}, email={}, recipient={}",
+                request.fullName(), request.phone(), request.email(), request.recipient());
         // Subject and referenceNumber are legacy fields - not used for new deliveries
         // organizationAddress is no longer captured - leave as null
 
@@ -70,9 +75,9 @@ public class DeliveryService {
         delivery.setOrganizationName(null);
         // organizationAddress is no longer captured - leave as null
         delivery.setOrganizationAddress(null);
-        // recipientPosition captured from mobile - store in recipientTitle
-        delivery.setRecipientName(request.recipientPosition());
-        delivery.setRecipientTitle(request.recipientPosition());
+        // recipient captured from mobile - store in recipientName and recipientTitle
+        delivery.setRecipientName(request.recipient());
+        delivery.setRecipientTitle(request.recipient());
         // Legacy fields - not used for new deliveries
         delivery.setSubject(null);
         delivery.setReferenceNumber(null);
@@ -148,9 +153,9 @@ public class DeliveryService {
         throw new IllegalStateException("Could not allocate a unique tracking number.");
     }
 
-    // Format: REF-2026-7K4P92 (REF-YYYY-XXXXXX)
+    // Format: REF-2026-7K4P92 (REF-YYYY-XXXXXX = 15 chars)
     static String randomTrackingToken(String year) {
-        char[] chars = new char[16]; // REF-YYYY-XXXXXX = 4 + 1 + 4 + 1 + 6 = 16
+        char[] chars = new char[15];
         // REF- prefix (4 chars)
         chars[0] = 'R';
         chars[1] = 'E';
