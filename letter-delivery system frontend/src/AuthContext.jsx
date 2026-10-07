@@ -46,12 +46,14 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authMethod, setAuthMethod] = useState(null);
 
   const checkAuth = useCallback(async () => {
     // 1. Try to restore from sessionStorage first (instant)
     const cachedUser = getCachedUser();
     if (cachedUser) {
       setUser(cachedUser);
+      setAuthMethod(cachedUser.authMethod || 'password');
       setIsAuthenticated(true);
       setIsLoading(false);
     }
@@ -60,10 +62,11 @@ export function AuthProvider({ children }) {
     try {
       const data = await adminApi.checkAuth();
       setUser(data);
+      setAuthMethod(data.authMethod || 'password');
       setIsAuthenticated(true);
       // Update cache with fresh data
       try {
-        sessionStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(data));
+        sessionStorage.setItem(AUTH_CACHE_KEY, JSON.stringify({ ...data, authMethod: data.authMethod || 'password' }));
       } catch {
         // ignore storage errors
       }
@@ -71,6 +74,7 @@ export function AuthProvider({ children }) {
       // Auth failed - clear cache and mark unauthenticated
       clearCachedUser();
       setUser(null);
+      setAuthMethod(null);
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
@@ -84,6 +88,7 @@ export function AuthProvider({ children }) {
       const cachedUser = getCachedUser();
       if (cachedUser && isMounted) {
         setUser(cachedUser);
+        setAuthMethod(cachedUser.authMethod || 'password');
         setIsAuthenticated(true);
         setIsLoading(false);
       }
@@ -102,13 +107,25 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const login = async (username, password) => {
-    const data = await adminApi.login(username, password);
-    setUser(data);
+  const login = async (credentials) => {
+    const { username, password, authMethod: method = 'password', ...extra } = credentials;
+    let data;
+    
+    if (method === 'password') {
+      data = await adminApi.login(username, password);
+    } else {
+      // Future SSO authentication methods can be added here
+      // For now, throw an error if non-password method is used
+      throw new Error(`Authentication method "${method}" is not yet implemented`);
+    }
+    
+    const userData = { ...data, authMethod: method };
+    setUser(userData);
+    setAuthMethod(method);
     setIsAuthenticated(true);
-    // Cache the fresh login
-    setCachedUser(data);
-    return data;
+    // Cache the fresh login with auth method
+    setCachedUser(userData);
+    return userData;
   };
 
   const logout = async () => {
@@ -118,6 +135,7 @@ export function AuthProvider({ children }) {
       clearCachedUser();
       clearReceptionCache();
       setUser(null);
+      setAuthMethod(null);
       setIsAuthenticated(false);
     }
   };
@@ -126,6 +144,7 @@ export function AuthProvider({ children }) {
     user,
     isAuthenticated,
     isLoading,
+    authMethod,
     login,
     logout,
     checkAuth,

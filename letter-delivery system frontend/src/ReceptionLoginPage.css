@@ -358,3 +358,54 @@
   padding-top: 20px;
   border-top: 1px solid var(--line);
 }
+
+/* Divider */
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 20px 0 16px;
+  color: var(--sub);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* SSO Button (placeholder) */
+.login-sso-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 50px;
+  padding: 0 24px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--sub);
+  background: var(--tint);
+  border: 1.5px dashed var(--line);
+  border-radius: 14px;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transition: opacity 150ms ease, border-color 150ms ease;
+  margin-top: 8px;
+}
+
+.login-sso-icon {
+  flex-shrink: 0;
+}
+
+.login-sso-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent);
+}
