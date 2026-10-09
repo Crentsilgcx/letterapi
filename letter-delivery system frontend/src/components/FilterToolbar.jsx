@@ -1,5 +1,5 @@
 import { Search, X } from 'lucide-react';
-import { RECIPIENT_POSITIONS } from '../constants/recipientPositions';
+import { RECIPIENT_FILTER_OPTIONS } from '../constants/recipientRoles';
 import '../tokens.css';
 import './FilterToolbar.css';
 
@@ -111,10 +111,9 @@ function FilterToolbar({
             onChange={(e) => onRecipientPositionFilterChange(e.target.value)}
             className="filter-select"
           >
-            <option value="">All positions</option>
-            {RECIPIENT_POSITIONS.map((position) => (
-              <option key={position} value={position}>
-                {position}
+            {RECIPIENT_FILTER_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
               </option>
             ))}
           </select>

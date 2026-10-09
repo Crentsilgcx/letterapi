@@ -9,6 +9,7 @@ import com.office.letterreceipt.model.Recipient;
 import com.office.letterreceipt.model.Role;
 import com.office.letterreceipt.model.UserAccount;
 import com.office.letterreceipt.repository.DeliveryEventRepository;
+import com.office.letterreceipt.repository.IdempotencyKeyRepository;
 import com.office.letterreceipt.repository.LetterDeliveryRepository;
 import com.office.letterreceipt.repository.UserAccountRepository;
 import com.office.letterreceipt.websocket.WebSocketEventPublisher;
@@ -39,6 +40,7 @@ class DeliveryServiceTest {
         LetterDeliveryRepository deliveries = mock(LetterDeliveryRepository.class);
         DeliveryEventRepository events = mock(DeliveryEventRepository.class);
         UserAccountRepository users = mock(UserAccountRepository.class);
+        IdempotencyKeyRepository idempotencyKeys = mock(IdempotencyKeyRepository.class);
         WebSocketEventPublisher wsPublisher = mock(WebSocketEventPublisher.class);
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
@@ -50,12 +52,14 @@ class DeliveryServiceTest {
             delivery.setId(42L);
             return delivery;
         });
+        when(idempotencyKeys.findByKey(anyString())).thenReturn(Optional.empty());
 
         DeliveryService service = new DeliveryService(
-            deliveries, events, users, clock, wsPublisher);
+            deliveries, events, users, idempotencyKeys, clock, wsPublisher);
         LetterDelivery delivery = service.create(
             new CreateDeliveryRequest(
                 "Kwame Mensah", "0200000000", null, "CEO"),
+            null,
             request);
 
         assertTrue(delivery.getTrackingNumber().matches("REF-\\d{4}-[A-Z0-9]{6}.*"), "Tracking number was: " + delivery.getTrackingNumber());
@@ -73,6 +77,7 @@ class DeliveryServiceTest {
         LetterDeliveryRepository deliveries = mock(LetterDeliveryRepository.class);
         DeliveryEventRepository events = mock(DeliveryEventRepository.class);
         UserAccountRepository users = mock(UserAccountRepository.class);
+        IdempotencyKeyRepository idempotencyKeys = mock(IdempotencyKeyRepository.class);
         WebSocketEventPublisher wsPublisher = mock(WebSocketEventPublisher.class);
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
@@ -84,12 +89,14 @@ class DeliveryServiceTest {
             delivery.setId(42L);
             return delivery;
         });
+        when(idempotencyKeys.findByKey(anyString())).thenReturn(Optional.empty());
 
         DeliveryService service = new DeliveryService(
-            deliveries, events, users, clock, wsPublisher);
+            deliveries, events, users, idempotencyKeys, clock, wsPublisher);
         LetterDelivery delivery = service.create(
             new CreateDeliveryRequest(
                 "Nana Akufo Addo", "0278921346", "yamoley@hotmail.com", "Chief Executive Officer"),
+            null,
             request);
 
         assertEquals("Nana Akufo Addo", delivery.getDeliveryPersonName());
@@ -112,6 +119,7 @@ class DeliveryServiceTest {
         LetterDeliveryRepository deliveries = mock(LetterDeliveryRepository.class);
         DeliveryEventRepository events = mock(DeliveryEventRepository.class);
         UserAccountRepository users = mock(UserAccountRepository.class);
+        IdempotencyKeyRepository idempotencyKeys = mock(IdempotencyKeyRepository.class);
         WebSocketEventPublisher wsPublisher = mock(WebSocketEventPublisher.class);
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
@@ -131,7 +139,7 @@ class DeliveryServiceTest {
         when(deliveries.save(any(LetterDelivery.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         DeliveryService service = new DeliveryService(
-            deliveries, events, users, clock, wsPublisher);
+            deliveries, events, users, idempotencyKeys, clock, wsPublisher);
         LetterDelivery received = service.receive(42L, "reception", null, request);
         assertEquals(DeliveryStatus.RECEIVED, received.getStatus());
         assertSame(receiver, received.getReceivedBy());

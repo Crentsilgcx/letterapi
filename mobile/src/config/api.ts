@@ -1,15 +1,11 @@
 /**
- * API base URL resolution.
+ * API base URL resolution for mobile app.
  *
- * `10.0.2.2` is the Android *emulator* alias for the host machine's loopback
- * interface. It is only routable from an emulator. On a physical handset or
- * tablet the device has to reach the development machine over the LAN, so that
- * address will never connect.
- *
- * `EXPO_PUBLIC_API_URL` is therefore honoured in EVERY mode - including `__DEV__`
- * - instead of being ignored during development. Set it to the LAN address of
- * the machine running the backend (`mobile/.env.local`, which is git-ignored).
- * The emulator alias stays only as a last-resort developer convenience.
+ * Set EXPO_PUBLIC_API_URL in mobile/.env.local to your LAN IP:
+ * EXPO_PUBLIC_API_URL=http://192.168.1.100:8081
+ * 
+ * For development with Android emulator, it falls back to 10.0.2.2:8081
+ * For production/internal server, set EXPO_PUBLIC_API_URL to the server IP.
  */
 
 const EMULATOR_LOOPBACK = 'http://10.0.2.2:8081';
@@ -21,12 +17,15 @@ export const API_BASE_URL = (configuredBaseUrl || (__DEV__ ? EMULATOR_LOOPBACK :
 export const IS_EMULATOR_LOOPBACK = !configuredBaseUrl && Boolean(__DEV__);
 
 export const API_ENDPOINTS = {
+  public: '/api/public',
+  reception: '/api/reception',
+  admin: '/api/admin',
   recipientRoles: '/api/public/recipient-roles',
   createDelivery: '/api/public/deliveries',
 } as const;
 
-export function getApiUrl(endpoint: string): string {
-  return `${API_BASE_URL}${endpoint}`;
+export function getApiUrl(path: string): string {
+  return `${API_BASE_URL}${path}`;
 }
 
 if (__DEV__) {

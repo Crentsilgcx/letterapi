@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Copy, Download, FileText, Loader2, RotateCcw, Search, SearchX, X } from 'lucide-react';
 import { receptionApi } from './api';
 import Pagination from './components/Pagination';
-import { RECIPIENT_POSITIONS } from './constants/recipientPositions';
+import { RECIPIENT_FILTER_OPTIONS } from './constants/recipientRoles';
 import './tokens.css';
 import './ReportsPage.css';
 
@@ -369,9 +369,8 @@ const ReportsPage = () => {
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value)}
                 >
-                  <option value="">All recipients</option>
-                  {RECIPIENT_POSITIONS.map((position) => (
-                    <option key={position} value={position}>{position}</option>
+                  {RECIPIENT_FILTER_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
               </div>

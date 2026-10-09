@@ -93,6 +93,8 @@ export const InputField = forwardRef<TextInput, InputFieldProps>(
               placeholderTextColor={theme.placeholder}
               accessibilityLabel={accessibilityLabel ?? label}
               testID={testID}
+              underlineColorAndroid="transparent"
+              selectionColor={theme.accent}
               style={[
                 styles.input,
                 { color: theme.ink, fontFamily: Typography.fontFamilyMedium, fontSize: Typography.fontSize.lg },

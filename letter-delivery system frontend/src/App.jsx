@@ -1,12 +1,10 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import DeliveryPersonHomepage from './DeliveryPersonHomepage';
 import ReceptionDashboard from './ReceptionDashboard';
 import ReportsPage from './ReportsPage';
 import ProtectedRoute from './ProtectedRoute';
 import { AuthProvider } from './AuthContext';
 import { ReceptionProvider } from './hooks/useReceptionContext';
 import Navbar from './Navbar';
-import HomePage from './HomePage';
 import ReceptionLayout from './ReceptionLayout';
 import ReceptionLoginPage from './ReceptionLoginPage';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -15,10 +13,9 @@ import './index.css';
 function AppRoutes() {
   return (
     <Routes>
-      {/* Public entry point: anyone may choose Delivery or Reception. */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/delivery" element={<DeliveryPersonHomepage />} />
-
+      {/* Public entry point: redirect to Reception. */}
+      <Route path="/" element={<Navigate to="/reception" replace />} />
+      
       {/* Reception login is a standalone login-only interface. ReceptionLayout
           redirects here whenever the visitor has no reception role. */}
       <Route path="/reception/login" element={<ReceptionLoginPage />} />
@@ -43,7 +40,7 @@ function AppRoutes() {
         />
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/reception" replace />} />
     </Routes>
   );
 }

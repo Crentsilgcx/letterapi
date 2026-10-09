@@ -4,10 +4,12 @@ import com.office.letterreceipt.dto.CreateDeliveryRequest;
 import com.office.letterreceipt.model.DeliveryEvent;
 import com.office.letterreceipt.model.DeliveryEventType;
 import com.office.letterreceipt.model.DeliveryStatus;
+import com.office.letterreceipt.model.IdempotencyKey;
 import com.office.letterreceipt.model.LetterDelivery;
 import com.office.letterreceipt.model.UserAccount;
 import com.office.letterreceipt.repository.LetterDeliveryRepository;
 import com.office.letterreceipt.repository.DeliveryEventRepository;
+import com.office.letterreceipt.repository.IdempotencyKeyRepository;
 import com.office.letterreceipt.repository.UserAccountRepository;
 import com.office.letterreceipt.websocket.WebSocketEventPublisher;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,6 +40,7 @@ public class DeliveryService {
     private final LetterDeliveryRepository deliveries;
     private final DeliveryEventRepository events;
     private final UserAccountRepository users;
+    private final IdempotencyKeyRepository idempotencyKeys;
     private final Clock clock;
     private final WebSocketEventPublisher wsPublisher;
 
@@ -45,19 +48,33 @@ public class DeliveryService {
             LetterDeliveryRepository deliveries,
             DeliveryEventRepository events,
             UserAccountRepository users,
+            IdempotencyKeyRepository idempotencyKeys,
             Clock clock,
             WebSocketEventPublisher wsPublisher) {
         this.deliveries = deliveries;
         this.events = events;
         this.users = users;
+        this.idempotencyKeys = idempotencyKeys;
         this.clock = clock;
         this.wsPublisher = wsPublisher;
     }
 
-    @Transactional
-    public LetterDelivery create(CreateDeliveryRequest request, HttpServletRequest servletRequest) {
-        log.info("SERVICE INPUT: fullName={}, phone={}, email={}, recipient={}",
-                request.fullName(), request.phone(), request.email(), request.recipient());
+@Transactional
+    public LetterDelivery create(CreateDeliveryRequest request, String idempotencyKey, HttpServletRequest servletRequest) {
+        log.info("SERVICE INPUT: fullName={}, phone={}, email={}, recipient={}, idempotencyKey={}",
+                request.fullName(), request.phone(), request.email(), request.recipient(), idempotencyKey);
+
+        // Check idempotency key if provided
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            var existingKey = idempotencyKeys.findByKey(idempotencyKey.trim());
+            if (existingKey.isPresent()) {
+                log.info("IDEMPOTENCY KEY already used: {}, returning existing delivery with tracking: {}",
+                        idempotencyKey, existingKey.get().getTrackingNumber());
+                return deliveries.findByTrackingNumberIgnoreCase(existingKey.get().getTrackingNumber())
+                        .orElseThrow(() -> new IllegalStateException("Idempotency key exists but delivery not found: " + existingKey.get().getTrackingNumber()));
+            }
+        }
+
         // Subject and referenceNumber are legacy fields - not used for new deliveries
         // organizationAddress is no longer captured - leave as null
 
@@ -87,8 +104,20 @@ public class DeliveryService {
         delivery.setTrackingNumber(newTrackingNumber());
         delivery = deliveries.save(delivery);
         addEvent(delivery, DeliveryEventType.DELIVERED, request.fullName(),
-            "Letter submitted for receipt confirmation", servletRequest, now);
+                "Letter submitted for receipt confirmation", servletRequest, now);
         wsPublisher.notifyDeliveryCreated(delivery);
+
+        // Store idempotency key after successful creation
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            var keyEntity = new IdempotencyKey(
+                    idempotencyKey.trim(),
+                    delivery.getTrackingNumber(),
+                    now,
+                    now.plusHours(24) // 24-hour TTL
+            );
+            idempotencyKeys.save(keyEntity);
+        }
+
         return delivery;
     }
 

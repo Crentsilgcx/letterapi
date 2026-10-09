@@ -6,6 +6,7 @@ import {
   SubmitMessage,
   CreateDeliveryRequest,
 } from '../types';
+import { validateGhanaMobilePhone } from '../utils/phoneValidation';
 
 const DRAFT_STORAGE_KEY = 'delivery-form-draft';
 
@@ -82,18 +83,20 @@ export function useDeliveryForm(onSubmit: (payload: CreateDeliveryRequest) => Pr
       newErrors.phone = 'Phone is too long (max 60 characters)';
     }
 
-    // Validate phone number if provided - allow common international formats
+    // Validate phone number if provided - Ghanaian mobile validation
     if (formValues.phone && formValues.phone.trim()) {
-      const phone = formValues.phone.trim();
-      // Accept formats like +233XXXXXXXXX, 0XXXXXXXXX, and other reasonable international formats
-      // Reject obviously invalid alphabetic/random input
-      if (!/^[\d\s+\-()]{7,}$/.test(phone)) {
-        newErrors.phone = 'Enter a valid phone number';
+      const phoneValidation = validateGhanaMobilePhone(formValues.phone.trim());
+      if (!phoneValidation.valid) {
+        newErrors.phone = phoneValidation.error;
       }
     }
 
-    if (formValues.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formValues.email.trim())) {
-      newErrors.email = 'Enter a valid email address';
+    // Validate email - simple validation: must contain @ and .com
+    if (formValues.email && formValues.email.trim()) {
+      const email = formValues.email.trim().toLowerCase();
+      if (!email.includes('@') || !email.includes('.com')) {
+        newErrors.email = 'Enter a valid email address (must contain @ and .com)';
+      }
     }
 
     // recipient is optional - validate length if provided

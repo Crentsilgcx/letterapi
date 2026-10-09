@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { receptionApi } from '../api';
 import { useStomp } from './useStomp';
-import { ReceptionStaffContext } from '../context/ReceptionStaffContext';
+import { ReceptionContext } from '../contexts/ReceptionContext';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -786,6 +786,7 @@ const buildApiParams = useCallback((page = 0) => {
     recipientFilter,
     setRecipientFilter: handleRecipientFilterChange,
     refreshActiveTab,
+    subscribe,
   }), [
     pending,
     received,
@@ -809,11 +810,12 @@ const buildApiParams = useCallback((page = 0) => {
     customDateTo,
     showCustomDate,
     recipientFilter,
+    subscribe,
   ]);
 
   return (
-    <ReceptionStaffContext.Provider value={value}>
+    <ReceptionContext.Provider value={value}>
       {children}
-    </ReceptionStaffContext.Provider>
+    </ReceptionContext.Provider>
   );
 }

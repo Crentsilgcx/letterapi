@@ -7,6 +7,7 @@ import com.office.letterreceipt.dto.OrganizationResponse;
 import com.office.letterreceipt.model.DeliveryPerson;
 import com.office.letterreceipt.model.Organization;
 import com.office.letterreceipt.repository.DeliveryPersonRepository;
+import com.office.letterreceipt.repository.IdempotencyKeyRepository;
 import com.office.letterreceipt.repository.OrganizationRepository;
 import com.office.letterreceipt.repository.RecipientRepository;
 import com.office.letterreceipt.service.DeliveryService;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -37,16 +39,19 @@ public class PublicDeliveryApiController {
     private final RecipientRepository recipients;
     private final OrganizationRepository organizations;
     private final DeliveryPersonRepository people;
+    private final IdempotencyKeyRepository idempotencyKeys;
 
     public PublicDeliveryApiController(
             DeliveryService service,
             RecipientRepository recipients,
             OrganizationRepository organizations,
-            DeliveryPersonRepository people) {
+            DeliveryPersonRepository people,
+            IdempotencyKeyRepository idempotencyKeys) {
         this.service = service;
         this.recipients = recipients;
         this.organizations = organizations;
         this.people = people;
+        this.idempotencyKeys = idempotencyKeys;
     }
 
     @GetMapping("/recipients")
@@ -105,10 +110,11 @@ public class PublicDeliveryApiController {
     @ResponseStatus(HttpStatus.CREATED)
     public DeliveryResponse create(
             @Valid @RequestBody CreateDeliveryRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             HttpServletRequest servletRequest) {
-        log.info("CREATE DELIVERY DTO: fullName={}, phone={}, email={}, recipient={}",
-                request.fullName(), request.phone(), request.email(), request.recipient());
-        return DeliveryResponse.full(service.create(request, servletRequest));
+        log.info("CREATE DELIVERY DTO: fullName={}, phone={}, email={}, recipient={}, idempotencyKey={}",
+                request.fullName(), request.phone(), request.email(), request.recipient(), idempotencyKey);
+        return DeliveryResponse.full(service.create(request, idempotencyKey, servletRequest));
     }
 
     @GetMapping("/deliveries/{tracking}")

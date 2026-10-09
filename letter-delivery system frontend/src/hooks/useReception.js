@@ -1,8 +1,8 @@
 import { useContext } from 'react';
-import { ReceptionStaffContext } from '../context/ReceptionStaffContext';
+import { ReceptionContext } from '../contexts/ReceptionContext';
 
 export function useReception() {
-  const context = useContext(ReceptionStaffContext);
+  const context = useContext(ReceptionContext);
   if (!context) {
     throw new Error('useReception must be used within a ReceptionProvider');
   }

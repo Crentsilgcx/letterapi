@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Client } from '@stomp/stompjs';
-
-const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
+import { getWsUrl } from '../config/env';
 
 let stompClient = null;
 let mountCount = 0;
@@ -11,10 +10,11 @@ const activeSubscriptions = new Map();
 const connectionListeners = new Set();
 
 function createClient() {
+  const wsUrl = getWsUrl();
+  console.log('Connecting STOMP WebSocket to:', wsUrl);
   const client = new Client({
     webSocketFactory: () => {
-      console.log('Connecting STOMP WebSocket to:', WS_URL);
-      return new WebSocket(WS_URL);
+      return new WebSocket(wsUrl);
     },
 
     reconnectDelay: 0,

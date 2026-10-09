@@ -1,7 +1,9 @@
 import { getApiUrl, API_BASE_URL, API_ENDPOINTS } from '../config/api';
 import { CreateDeliveryRequest, DeliveryResponse, RecipientPosition } from '../types';
+import { generateIdempotencyKey } from '../utils/idempotency';
 
-const REQUEST_TIMEOUT = 30000;
+const DEFAULT_REQUEST_TIMEOUT = 30000;
+const CREATE_DELIVERY_TIMEOUT = 60000;
 
 export class ApiError extends Error {
   constructor(
@@ -32,13 +34,13 @@ export function isAbortError(error: unknown): boolean {
   return false;
 }
 
-async function fetchJson<T>(url: string, options?: RequestInit, debugLabel = 'api', timeoutMs = REQUEST_TIMEOUT): Promise<T> {
+async function fetchJson<T>(url: string, options?: RequestInit, debugLabel = 'api', timeoutMs = DEFAULT_REQUEST_TIMEOUT): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     if (__DEV__) {
       console.log(`[Delivery] ${debugLabel} request TIMEOUT (${timeoutMs}ms) -> aborting`);
     }
-    controller.abort();
+    controller.abort('timeout');
   }, timeoutMs);
 
   if (__DEV__) {
@@ -104,10 +106,15 @@ async function fetchJson<T>(url: string, options?: RequestInit, debugLabel = 'ap
       throw error;
     }
     if (isAbortError(error)) {
+      const abortReason = error instanceof Error && 'cause' in error ? error.cause : undefined;
+      const isTimeout = abortReason === 'timeout' || (error instanceof Error && error.message.toLowerCase().includes('timeout'));
       if (__DEV__) {
-        console.error(`[Delivery] ${debugLabel} request ABORTED:`, error);
+        console.error(`[Delivery] ${debugLabel} request ABORTED (${isTimeout ? 'timeout' : 'cancelled'}):`, error);
       }
-      throw new ApiError('Request timed out. Please try again.', 408);
+      if (isTimeout) {
+        throw new ApiError('Request timed out. The delivery may have been submitted. Please check before retrying.', 408);
+      }
+      throw new ApiError('Request was cancelled. Please try again.', 499);
     }
     if (error instanceof TypeError) {
       if (__DEV__) {
@@ -262,9 +269,13 @@ export const api = {
   },
 
   async createDelivery(payload: CreateDeliveryRequest): Promise<DeliveryResponse> {
+    const idempotencyKey = generateIdempotencyKey();
     return fetchJson<DeliveryResponse>(getApiUrl(API_ENDPOINTS.createDelivery), {
       method: 'POST',
       body: JSON.stringify(payload),
-    }, 'create-delivery');
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+    }, 'create-delivery', CREATE_DELIVERY_TIMEOUT);
   },
 };

@@ -1,3 +1,5 @@
+import { CANONICAL_RECIPIENT_ROLES } from './recipientRoles';
+
 /**
  * Recipient positions - the single local source of truth for the Delivery app.
  *
@@ -14,10 +16,6 @@
  *
  * "Other" is the explicit catch-all and always stays last so it is reachable at
  * the bottom of every grouped list.
- *
- * This list must stay in sync with
- * `letter-delivery system frontend/src/constants/recipientPositions.js`, which
- * groups the same values for the web Delivery form and filters.
  */
 
 export type PositionOption = {
@@ -31,26 +29,37 @@ export type PositionGroup = {
   positions: PositionOption[];
 };
 
-export const POSITIONS: PositionOption[] = [
-  // Executive
-  { value: 'Chief Executive Officer', label: 'Chief Executive Officer', group: 'Executive' },
+function getGroupForRole(role: string): string {
+  switch (role) {
+    case 'Chief Executive Officer':
+    case 'Chief Technology Officer':
+    case 'Managing Director':
+      return 'Executive';
+    case 'Human Resource Manager':
+    case 'Administrative Manager':
+      return 'Management';
+    case 'Finance Manager':
+    case 'Accountant':
+    case 'Procurement Officer':
+      return 'Finance and Admin';
+    case 'HR Officer':
+    case 'IT Officer':
+    case 'Internal Auditor':
+    case 'Risk Manager':
+    case 'Security Manager':
+    case 'Receptionist':
+    case 'Driver':
+      return 'Operations';
+    default:
+      return 'Other';
+  }
+}
 
-  // Management
-  { value: 'Manager', label: 'Manager', group: 'Management' },
-  { value: 'Human Resources', label: 'Human Resources', group: 'Management' },
-
-  // Finance and Admin
-  { value: 'Finance', label: 'Finance', group: 'Finance and Admin' },
-
-  // Support staff
-  { value: 'Secretary', label: 'Secretary', group: 'Support staff' },
-
-  // Legal and Compliance
-  { value: 'Legal', label: 'Legal', group: 'Legal and Compliance' },
-
-  // Other (must be last)
-  { value: 'Other', label: 'Other', group: 'Other' },
-];
+export const POSITIONS: PositionOption[] = CANONICAL_RECIPIENT_ROLES.map(role => ({
+  value: role,
+  label: role,
+  group: getGroupForRole(role),
+}));
 
 export const OTHER_GROUP = 'Other';
 

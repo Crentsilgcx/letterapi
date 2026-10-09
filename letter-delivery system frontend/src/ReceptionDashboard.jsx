@@ -1,8 +1,7 @@
 import { useReception } from './hooks/useReception';
-import { useAuth } from './hooks/useAuth';
-import React, { useState } from 'react';
-import { Search, Package, PackageCheck, Loader2, Inbox, X, LogOut, ChevronDown, User, Phone, Mail, Briefcase } from 'lucide-react';
-import ConnectionStatus from './components/ConnectionStatus';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Search, Package, PackageCheck, Loader2, Inbox, X, ChevronDown, User, Phone, Mail, Briefcase, Bell } from 'lucide-react';
+import { RECIPIENT_FILTER_OPTIONS } from './constants/recipientRoles';
 import './tokens.css';
 import './ReceptionDashboard.css';
 
@@ -100,17 +99,9 @@ const SearchFilterBar = ({
             onChange={(e) => onRecipientFilterChange(e.target.value)}
             className="filter-select"
           >
-            <option value="">All Recipients</option>
-            <option value="HR Officer">HR Officer</option>
-            <option value="IT Officer">IT Officer</option>
-            <option value="Finance Manager">Finance Manager</option>
-            <option value="Human Resources Manager">Human Resources Manager</option>
-            <option value="Chief Executive Officer">Chief Executive Officer</option>
-            <option value="Chief Technology Officer">Chief Technology Officer</option>
-            <option value="Managing Director">Managing Director</option>
-            <option value="Administrative Manager">Administrative Manager</option>
-            <option value="Accountant">Accountant</option>
-            <option value="Procurement Officer">Procurement Officer</option>
+            {RECIPIENT_FILTER_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -392,7 +383,6 @@ const DeliveryTable = ({
 };
 
 const ReceptionDashboard = () => {
-  const { logout } = useAuth();
   const {
     pending,
     received,
@@ -423,11 +413,49 @@ const ReceptionDashboard = () => {
     showCustomDate,
     recipientFilter,
     setRecipientFilter,
-    isConnected
   } = useReception();
 
   const [expandedPendingId, setExpandedPendingId] = useState(null);
   const [expandedReceivedId, setExpandedReceivedId] = useState(null);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [showNotificationPopup, setShowNotificationPopup] = useState(false);
+  const [latestNotification, setLatestNotification] = useState(null);
+  const processedDeliveryIdsRef = useRef(new Set());
+  const notificationTimeoutRef = useRef(null);
+
+  // Reset notification count and clear processed IDs when navigating to Awaiting tab
+  const handleNotificationBellClick = useCallback(() => {
+    setActiveTab('pending');
+    setNotificationCount(0);
+    processedDeliveryIdsRef.current.clear();
+  }, [setActiveTab]);
+
+  // Show notification popup for new delivery
+  const showDeliveryNotification = useCallback((delivery) => {
+    const deliveryId = delivery.id ?? delivery.trackingNumber;
+    if (processedDeliveryIdsRef.current.has(deliveryId)) return;
+    
+    processedDeliveryIdsRef.current.add(deliveryId);
+    setNotificationCount(prev => prev + 1);
+    setLatestNotification(delivery);
+    setShowNotificationPopup(true);
+    
+    if (notificationTimeoutRef.current) clearTimeout(notificationTimeoutRef.current);
+    notificationTimeoutRef.current = setTimeout(() => {
+      setShowNotificationPopup(false);
+    }, 2000);
+  }, []);
+
+  // Listen for real-time deliveries to show notifications
+  const { subscribe } = useReception();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/deliveries', (event) => {
+      if (event.type === 'DELIVERY_CREATED' && event.delivery) {
+        showDeliveryNotification(event.delivery);
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, showDeliveryNotification]);
 
   return (
     <div className="reception-dashboard">
@@ -439,15 +467,16 @@ const ReceptionDashboard = () => {
               <p className="page-subtitle">Manage incoming deliveries and receipt confirmations.</p>
             </div>
             <div className="header-actions">
-              <ConnectionStatus isConnected={isConnected} />
               <button
-                className="reception-dashboard-logout"
-                onClick={logout}
-                aria-label="Logout"
-                title="Logout"
+                className="notification-bell"
+                onClick={handleNotificationBellClick}
+                aria-label={`Notifications${notificationCount > 0 ? `, ${notificationCount} new` : ''}`}
+                title="Notifications"
               >
-                <LogOut size={18} aria-hidden="true" />
-                <span>Logout</span>
+                <Bell size={20} aria-hidden="true" />
+                {notificationCount > 0 && (
+                  <span className="notification-badge">{notificationCount}</span>
+                )}
               </button>
             </div>
           </div>
@@ -558,6 +587,19 @@ const ReceptionDashboard = () => {
           )}
         </div>
       </div>
+      
+      {showNotificationPopup && latestNotification && (
+        <div className="notification-popup" role="alert" aria-live="assertive">
+          <div className="notification-popup-content">
+            <div className="notification-popup-header">
+              <Bell size={18} aria-hidden="true" />
+              <span>New delivery</span>
+            </div>
+            <p className="notification-popup-message">A new letter has arrived.</p>
+            <code className="notification-popup-reference">{latestNotification.trackingNumber}</code>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

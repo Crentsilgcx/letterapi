@@ -100,6 +100,8 @@ export const AppTextInput = React.forwardRef<TextInput, AppTextInputProps>(
               placeholderTextColor={theme.placeholder}
               accessibilityLabel={accessibilityLabel ?? label}
               testID={testID}
+              underlineColorAndroid="transparent"
+              selectionColor={theme.accent}
               style={[styles.input, { color: theme.ink, fontFamily: Typography.fontFamily }, inputStyle]}
               {...props}
             />

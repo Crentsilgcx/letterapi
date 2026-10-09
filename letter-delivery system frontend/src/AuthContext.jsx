@@ -108,7 +108,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (credentials) => {
-    const { username, password, authMethod: method = 'password', ...extra } = credentials;
+    const { username, password, authMethod: method = 'password' } = credentials;
     let data;
     
     if (method === 'password') {

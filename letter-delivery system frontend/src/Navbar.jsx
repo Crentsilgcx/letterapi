@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { Menu, X } from 'lucide-react';
@@ -6,18 +6,12 @@ import './tokens.css';
 import './Navbar.css';
 
 function Navbar() {
-  const location = useLocation();
   const { isAuthenticated, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const navLinks = [
-    { path: '/delivery', label: 'Delivery' },
-    { path: '/reception', label: 'Reception' },
-  ];
-
   return (
     <nav className="navbar" role="navigation" aria-label="Main navigation">
-      <Link to="/" className="nav-brand" aria-label="Letter Delivery Home">Letter Delivery</Link>
+      <Link to="/reception" className="nav-brand" aria-label="Reception Dashboard">Reception</Link>
 
       <button
         className="nav-toggle"
@@ -30,18 +24,6 @@ function Navbar() {
       </button>
 
       <ul className={`nav-links${isMenuOpen ? ' open' : ''}`} id="nav-links" role="menubar">
-        {navLinks.map((link) => (
-          <li key={link.path} role="none">
-            <Link
-              to={link.path}
-              className={location.pathname === link.path || (link.path === '/reception' && location.pathname.startsWith('/reception')) ? 'active' : ''}
-              role="menuitem"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              {link.label}
-            </Link>
-          </li>
-        ))}
         {isAuthenticated && (
           <li role="none">
             <button

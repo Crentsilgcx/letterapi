@@ -278,8 +278,8 @@ public class ReportController {
         response.setContentType("application/pdf");
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"");
 
-        try (var document = new com.itextpdf.kernel.pdf.PdfDocument(new com.itextpdf.kernel.pdf.PdfWriter(response.getOutputStream()));
-             var pdfDoc = new com.itextpdf.layout.Document(document)) {
+        try (var pdfDocument = new com.itextpdf.kernel.pdf.PdfDocument(new com.itextpdf.kernel.pdf.PdfWriter(response.getOutputStream()));
+             var document = new com.itextpdf.layout.Document(pdfDocument)) {
 
             // Font
             var font = com.itextpdf.kernel.font.PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.HELVETICA);
@@ -288,58 +288,72 @@ public class ReportController {
             // Title
             var title = new com.itextpdf.layout.element.Paragraph("INCOMING LETTER REPORT")
                     .setFont(boldFont)
-                    .setFontSize(18)
+                    .setFontSize(16)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                    .setMarginBottom(10);
-            pdfDoc.add(title);
+                    .setMarginBottom(8);
+            document.add(title);
 
             // Period
             var period = new com.itextpdf.layout.element.Paragraph("Period: " + buildPeriodString(request))
                     .setFont(font)
-                    .setFontSize(11)
+                    .setFontSize(10)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                    .setMarginBottom(5);
-            pdfDoc.add(period);
+                    .setMarginBottom(4);
+            document.add(period);
 
             // Generated
             var generated = new com.itextpdf.layout.element.Paragraph("Generated: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
                     .setFont(font)
-                    .setFontSize(11)
+                    .setFontSize(10)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                    .setMarginBottom(20);
-            pdfDoc.add(generated);
+                    .setMarginBottom(16);
+            document.add(generated);
 
-            // Table
-            float[] columnWidths = {30f, 70f, 50f, 70f, 70f, 70f, 100f, 60f, 70f, 70f, 70f};
-            var table = new com.itextpdf.layout.element.Table(columnWidths).useAllAvailableWidth();
+            // Table - use UnitValue for percentage-based column widths to ensure proper fitting
+            // Normalized to sum to 100% for iText7
+            float[] columnWidths = {4.2f, 10f, 6.7f, 10f, 10f, 10f, 12.5f, 6.7f, 10f, 10f, 10f}; // percentages sum to 100
+            var table = new com.itextpdf.layout.element.Table(com.itextpdf.layout.properties.UnitValue.createPercentArray(columnWidths))
+                    .useAllAvailableWidth()
+                    .setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER);
+
+            // Ensure table splits across pages properly
+            table.setKeepTogether(false);
 
             // Header row
             String[] headers = {"ID", "Reference", "Status", "Delivery Person", "Organization",
                     "Recipient", "Subject", "Ref #", "Delivered", "Received", "Received By"};
             for (String header : headers) {
                 table.addHeaderCell(new com.itextpdf.layout.element.Cell()
-                        .add(new com.itextpdf.layout.element.Paragraph(header).setFont(boldFont).setFontSize(8))
+                        .add(new com.itextpdf.layout.element.Paragraph(header).setFont(boldFont).setFontSize(7))
                         .setBackgroundColor(com.itextpdf.kernel.colors.ColorConstants.LIGHT_GRAY)
-                        .setPadding(4));
+                        .setPadding(3)
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
             }
 
             // Data rows
             for (LetterDelivery d : records) {
-                table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.valueOf(d.getId())).setFont(font).setFontSize(7)).setPadding(3));
-                table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(d.getTrackingNumber()).setFont(font).setFontSize(7)).setPadding(3));
-                table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(d.getStatus().name()).setFont(font).setFontSize(7)).setPadding(3));
-                table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(d.getDeliveryPersonName()).setFont(font).setFontSize(7)).setPadding(3));
-                table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(d.getOrganizationName()).setFont(font).setFontSize(7)).setPadding(3));
-                table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(d.getRecipientName() + (d.getRecipientTitle() != null ? " (" + d.getRecipientTitle() + ")" : "")).setFont(font).setFontSize(7)).setPadding(3));
-                table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(d.getSubject()).setFont(font).setFontSize(7)).setPadding(3));
-                table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(d.getReferenceNumber() != null ? d.getReferenceNumber() : "").setFont(font).setFontSize(7)).setPadding(3));
-                table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(d.getDeliveredAt() != null ? d.getDeliveredAt().toString() : "").setFont(font).setFontSize(7)).setPadding(3));
-                table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(d.getReceivedAt() != null ? d.getReceivedAt().toString() : "").setFont(font).setFontSize(7)).setPadding(3));
-                table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(d.getReceivedBy() != null ? d.getReceivedBy().getDisplayName() : "").setFont(font).setFontSize(7)).setPadding(3));
+                table.addCell(createCell(String.valueOf(d.getId()), font));
+                table.addCell(createCell(d.getTrackingNumber(), font));
+                table.addCell(createCell(d.getStatus().name(), font));
+                table.addCell(createCell(d.getDeliveryPersonName(), font));
+                table.addCell(createCell(d.getOrganizationName(), font));
+                table.addCell(createCell(d.getRecipientName() + (d.getRecipientTitle() != null ? " (" + d.getRecipientTitle() + ")" : ""), font));
+                table.addCell(createCell(d.getSubject(), font));
+                table.addCell(createCell(d.getReferenceNumber() != null ? d.getReferenceNumber() : "", font));
+                table.addCell(createCell(d.getDeliveredAt() != null ? d.getDeliveredAt().toString() : "", font));
+                table.addCell(createCell(d.getReceivedAt() != null ? d.getReceivedAt().toString() : "", font));
+                table.addCell(createCell(d.getReceivedBy() != null ? d.getReceivedBy().getDisplayName() : "", font));
             }
 
-            pdfDoc.add(table);
+            document.add(table);
         }
+    }
+
+    private com.itextpdf.layout.element.Cell createCell(String text, com.itextpdf.kernel.font.PdfFont font) {
+        return new com.itextpdf.layout.element.Cell()
+                .add(new com.itextpdf.layout.element.Paragraph(text != null ? text : "").setFont(font).setFontSize(7))
+                .setPadding(3)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.LEFT);
     }
 
     private ReportRequest buildRequest(String dateFrom, String dateTo, String organization, String recipientPosition, String status) {
