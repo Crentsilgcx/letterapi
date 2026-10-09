@@ -332,20 +332,48 @@ public class ReportController {
 
             // Data rows
             for (LetterDelivery d : records) {
-                table.addCell(createCell(String.valueOf(d.getId()), font));
-                table.addCell(createCell(d.getTrackingNumber(), font));
-                table.addCell(createCell(d.getStatus().name(), font));
-                table.addCell(createCell(d.getDeliveryPersonName(), font));
-                table.addCell(createCell(d.getOrganizationName(), font));
-                table.addCell(createCell(d.getRecipientName() + (d.getRecipientTitle() != null ? " (" + d.getRecipientTitle() + ")" : ""), font));
-                table.addCell(createCell(d.getSubject(), font));
-                table.addCell(createCell(d.getReferenceNumber() != null ? d.getReferenceNumber() : "", font));
-                table.addCell(createCell(d.getDeliveredAt() != null ? d.getDeliveredAt().toString() : "", font));
-                table.addCell(createCell(d.getReceivedAt() != null ? d.getReceivedAt().toString() : "", font));
-                table.addCell(createCell(d.getReceivedBy() != null ? d.getReceivedBy().getDisplayName() : "", font));
+                // Explicitly convert all fields to strings with null-safe fallbacks.
+                // Recent deliveries from mobile have null organizationName, subject, referenceNumber.
+                // Defensive conversion prevents any iText7 layout issues with null/empty columns.
+                String id = String.valueOf(d.getId());
+                String tracking = d.getTrackingNumber() != null ? d.getTrackingNumber() : "";
+                String statusStr = d.getStatus() != null ? d.getStatus().name() : "";
+                String deliveryPerson = d.getDeliveryPersonName() != null ? d.getDeliveryPersonName() : "";
+                String organizationName = d.getOrganizationName() != null ? d.getOrganizationName() : "";
+                String recipient = d.getRecipientName() != null ? d.getRecipientName() : "";
+                if (d.getRecipientTitle() != null) {
+                    recipient += " (" + d.getRecipientTitle() + ")";
+                }
+                String subject = d.getSubject() != null ? d.getSubject() : "";
+                String referenceNumber = d.getReferenceNumber() != null ? d.getReferenceNumber() : "";
+                String deliveredAt = d.getDeliveredAt() != null ? d.getDeliveredAt().toString() : "";
+                String receivedAt = d.getReceivedAt() != null ? d.getReceivedAt().toString() : "";
+                String receivedBy = "";
+                if (d.getReceivedBy() != null && d.getReceivedBy().getDisplayName() != null) {
+                    receivedBy = d.getReceivedBy().getDisplayName();
+                }
+
+                table.addCell(createCell(id, font));
+                table.addCell(createCell(tracking, font));
+                table.addCell(createCell(statusStr, font));
+                table.addCell(createCell(deliveryPerson, font));
+                table.addCell(createCell(organizationName, font));
+                table.addCell(createCell(recipient, font));
+                table.addCell(createCell(subject, font));
+                table.addCell(createCell(referenceNumber, font));
+                table.addCell(createCell(deliveredAt, font));
+                table.addCell(createCell(receivedAt, font));
+                table.addCell(createCell(receivedBy, font));
             }
 
             document.add(table);
+            // Explicitly flush to ensure all content is written to the output stream
+            document.flush();
+        } catch (Exception e) {
+            // Log the exception for debugging
+            System.err.println("PDF export failed: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
 
