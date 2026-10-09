@@ -10,5 +10,5 @@ WORKDIR /app
 RUN groupadd --system app && useradd --system --gid app app
 COPY --from=build /workspace/target/letter-receipt-system-1.0.0.jar /app/app.jar
 USER app
-EXPOSE 8080
+EXPOSE 8081
 ENTRYPOINT ["java","-XX:MaxRAMPercentage=75.0","-Djava.security.egd=file:/dev/./urandom","-jar","/app/app.jar"]

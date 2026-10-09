@@ -1,0 +1,114 @@
+/* Recipient position chips - 7 predefined positions as selectable chips */
+
+.position-chips {
+  width: 100%;
+}
+
+.position-chips-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.position-chips-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+  font-size: 13px;
+  font-weight: var(--font-weight-medium);
+  color: var(--ink);
+}
+
+.position-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.position-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.position-chip-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.position-chip-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: var(--font-weight-medium);
+  color: var(--ink);
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-pill);
+  min-height: 44px;
+  min-width: 44px;
+  white-space: nowrap;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.position-chip:hover .position-chip-label {
+  border-color: var(--sub);
+}
+
+.position-chip:focus-within .position-chip-label {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.position-chip-selected .position-chip-label {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.position-chip-selected:hover .position-chip-label {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+/* Invalid state */
+.position-chips-invalid .position-chip-label {
+  border-color: var(--err);
+}
+
+.position-chips-invalid .position-chip:focus-within .position-chip-label {
+  border-color: var(--err);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--err) 20%, transparent);
+}
+
+.position-chips-invalid .position-chip-selected .position-chip-label {
+  background: var(--err);
+  border-color: var(--err);
+  color: var(--accent-ink);
+}
+
+.position-chips-invalid .position-chip-selected:hover .position-chip-label {
+  background: #a02d20;
+  border-color: #a02d20;
+}
+
+/* Disabled state */
+.position-chips-fieldset:disabled .position-chip {
+  opacity: var(--disabled-opacity);
+  cursor: not-allowed;
+}
+
+.position-chips-fieldset:disabled .position-chip-label {
+  background: var(--bg);
+  color: var(--sub);
+  border-color: var(--line);
+}

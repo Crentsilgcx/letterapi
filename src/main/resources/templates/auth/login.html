@@ -23,7 +23,7 @@
     <div class="eyebrow">Staff access</div>
     <h2>Reception login</h2>
     <p class="muted">Authorized reception and administration users only.</p>
-    <div th:if="${param.error}" class="alert error">Invalid username/password or the account is disabled.</div>
+    <div th:if="${param.error}" class="alert error">Invalid username or password.</div>
     <div th:if="${param.logout}" class="alert success">You have signed out.</div>
     <form method="post" action="/login" class="grid">
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
