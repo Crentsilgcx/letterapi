@@ -199,6 +199,7 @@ export const DeliveryScreen: React.FC = () => {
   const renderFormFields = () => (
     <>
       <InputField
+        
         ref={fullNameRef}
         label="Full name"
         value={values.fullName}

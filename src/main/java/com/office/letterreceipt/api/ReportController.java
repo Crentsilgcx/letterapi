@@ -37,45 +37,26 @@ public class ReportController {
     public ReportResponse generateReport(
             @RequestParam(required = false) String dateFrom,
             @RequestParam(required = false) String dateTo,
-            @RequestParam(required = false) String organization,
             @RequestParam(required = false) String recipientPosition,
             @RequestParam(required = false) String status) {
 
-        ReportRequest request = buildRequest(dateFrom, dateTo, organization, recipientPosition, status);
+        ReportRequest request = buildRequest(dateFrom, dateTo, recipientPosition, status);
         LocalDateTime generatedAt = LocalDateTime.now();
 
         // Build pageable for large result set (up to MAX_REPORT_RECORDS)
         var pageable = PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt"));
 
-        List<LetterDelivery> records;
-        long totalRecords;
-        if ("Other".equalsIgnoreCase(organization)) {
-            records = deliveries.findAllForReportOtherOrganizations(
-                    request.status(),
-                    request.recipientPosition(),
-                    request.dateFrom(),
-                    request.dateTo(),
-                    pageable);
-            totalRecords = deliveries.countForReportOtherOrganizations(
-                    request.status(),
-                    request.recipientPosition(),
-                    request.dateFrom(),
-                    request.dateTo());
-        } else {
-            records = deliveries.findAllForReport(
-                    request.status(),
-                    request.recipientPosition(),
-                    request.organization(),
-                    request.dateFrom(),
-                    request.dateTo(),
-                    pageable);
-            totalRecords = deliveries.countForReport(
-                    request.status(),
-                    request.recipientPosition(),
-                    request.organization(),
-                    request.dateFrom(),
-                    request.dateTo());
-        }
+        List<LetterDelivery> records = deliveries.findAllForReport(
+                request.status(),
+                request.recipientPosition(),
+                request.dateFrom(),
+                request.dateTo(),
+                pageable);
+        long totalRecords = deliveries.countForReport(
+                request.status(),
+                request.recipientPosition(),
+                request.dateFrom(),
+                request.dateTo());
 
         List<DeliveryResponse> responseRecords = records.stream()
                 .map(DeliveryResponse::full)
@@ -88,30 +69,18 @@ public class ReportController {
     public void exportCsv(
             @RequestParam(required = false) String dateFrom,
             @RequestParam(required = false) String dateTo,
-            @RequestParam(required = false) String organization,
             @RequestParam(required = false) String recipientPosition,
             @RequestParam(required = false) String status,
             HttpServletResponse response) throws IOException {
 
-        ReportRequest request = buildRequest(dateFrom, dateTo, organization, recipientPosition, status);
+        ReportRequest request = buildRequest(dateFrom, dateTo, recipientPosition, status);
 
-        List<LetterDelivery> records;
-        if ("Other".equalsIgnoreCase(organization)) {
-            records = deliveries.findAllForReportOtherOrganizations(
-                    request.status(),
-                    request.recipientPosition(),
-                    request.dateFrom(),
-                    request.dateTo(),
-                    PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
-        } else {
-            records = deliveries.findAllForReport(
-                    request.status(),
-                    request.recipientPosition(),
-                    request.organization(),
-                    request.dateFrom(),
-                    request.dateTo(),
-                    PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
-        }
+        List<LetterDelivery> records = deliveries.findAllForReport(
+                request.status(),
+                request.recipientPosition(),
+                request.dateFrom(),
+                request.dateTo(),
+                PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
 
         String filename = "incoming-letter-report-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".csv";
 
@@ -119,24 +88,20 @@ public class ReportController {
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"");
 
         try (var writer = new com.opencsv.CSVWriter(response.getWriter())) {
-            // Header
+            // Header - removed Organization, Subject, Reference Number
             writer.writeNext(new String[]{
-                    "ID", "Reference", "Status", "Delivery Person", "Organization",
-                    "Recipient Position", "Subject", "Reference Number",
-                    "Delivered At", "Received At", "Received By"
+                    "ID", "Reference", "Status", "Delivery Person",
+                    "Recipient", "Delivered At", "Received At", "Received By"
             });
 
-            // Data
+            // Data - removed organizationName, subject, referenceNumber
             for (LetterDelivery d : records) {
                 writer.writeNext(new String[]{
                         String.valueOf(d.getId()),
                         d.getTrackingNumber(),
                         d.getStatus().name(),
                         d.getDeliveryPersonName(),
-                        d.getOrganizationName(),
-                        d.getRecipientName() + (d.getRecipientTitle() != null ? " (" + d.getRecipientTitle() + ")" : ""),
-                        d.getSubject(),
-                        d.getReferenceNumber() != null ? d.getReferenceNumber() : "",
+                        d.getRecipientTitle() != null ? d.getRecipientTitle() : "",
                         d.getDeliveredAt() != null ? d.getDeliveredAt().toString() : "",
                         d.getReceivedAt() != null ? d.getReceivedAt().toString() : "",
                         d.getReceivedBy() != null ? d.getReceivedBy().getDisplayName() : ""
@@ -149,30 +114,18 @@ public class ReportController {
     public void exportExcel(
             @RequestParam(required = false) String dateFrom,
             @RequestParam(required = false) String dateTo,
-            @RequestParam(required = false) String organization,
             @RequestParam(required = false) String recipientPosition,
             @RequestParam(required = false) String status,
             HttpServletResponse response) throws IOException {
 
-        ReportRequest request = buildRequest(dateFrom, dateTo, organization, recipientPosition, status);
+        ReportRequest request = buildRequest(dateFrom, dateTo, recipientPosition, status);
 
-        List<LetterDelivery> records;
-        if ("Other".equalsIgnoreCase(organization)) {
-            records = deliveries.findAllForReportOtherOrganizations(
-                    request.status(),
-                    request.recipientPosition(),
-                    request.dateFrom(),
-                    request.dateTo(),
-                    PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
-        } else {
-            records = deliveries.findAllForReport(
-                    request.status(),
-                    request.recipientPosition(),
-                    request.organization(),
-                    request.dateFrom(),
-                    request.dateTo(),
-                    PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
-        }
+        List<LetterDelivery> records = deliveries.findAllForReport(
+                request.status(),
+                request.recipientPosition(),
+                request.dateFrom(),
+                request.dateTo(),
+                PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
 
         String filename = "incoming-letter-report-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".xlsx";
 
@@ -207,18 +160,17 @@ public class ReportController {
             var genCell = genRow.createCell(0);
             genCell.setCellValue("Generated: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
-            // Headers row
+            // Headers row - removed Organization, Subject, Reference Number
             var headerRow = sheet.createRow(4);
-            String[] headers = {"ID", "Reference", "Status", "Delivery Person", "Organization",
-                    "Recipient Position", "Subject", "Reference Number",
-                    "Delivered At", "Received At", "Received By"};
+            String[] headers = {"ID", "Reference", "Status", "Delivery Person",
+                    "Recipient", "Delivered At", "Received At", "Received By"};
             for (int i = 0; i < headers.length; i++) {
                 var cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
                 cell.setCellStyle(headerStyle);
             }
 
-            // Data rows
+            // Data rows - removed organizationName, subject, referenceNumber
             int rowNum = 5;
             for (LetterDelivery d : records) {
                 var row = sheet.createRow(rowNum++);
@@ -226,13 +178,10 @@ public class ReportController {
                 row.createCell(1).setCellValue(d.getTrackingNumber());
                 row.createCell(2).setCellValue(d.getStatus().name());
                 row.createCell(3).setCellValue(d.getDeliveryPersonName());
-                row.createCell(4).setCellValue(d.getOrganizationName());
-                row.createCell(5).setCellValue(d.getRecipientName() + (d.getRecipientTitle() != null ? " (" + d.getRecipientTitle() + ")" : ""));
-                row.createCell(6).setCellValue(d.getSubject());
-                row.createCell(7).setCellValue(d.getReferenceNumber() != null ? d.getReferenceNumber() : "");
-                row.createCell(8).setCellValue(d.getDeliveredAt() != null ? d.getDeliveredAt().toString() : "");
-                row.createCell(9).setCellValue(d.getReceivedAt() != null ? d.getReceivedAt().toString() : "");
-                row.createCell(10).setCellValue(d.getReceivedBy() != null ? d.getReceivedBy().getDisplayName() : "");
+                row.createCell(4).setCellValue(d.getRecipientTitle() != null ? d.getRecipientTitle() : "");
+                row.createCell(5).setCellValue(d.getDeliveredAt() != null ? d.getDeliveredAt().toString() : "");
+                row.createCell(6).setCellValue(d.getReceivedAt() != null ? d.getReceivedAt().toString() : "");
+                row.createCell(7).setCellValue(d.getReceivedBy() != null ? d.getReceivedBy().getDisplayName() : "");
             }
 
             // Auto-size columns
@@ -244,139 +193,6 @@ public class ReportController {
         }
     }
 
-    @GetMapping("/export/pdf")
-    public void exportPdf(
-            @RequestParam(required = false) String dateFrom,
-            @RequestParam(required = false) String dateTo,
-            @RequestParam(required = false) String organization,
-            @RequestParam(required = false) String recipientPosition,
-            @RequestParam(required = false) String status,
-            HttpServletResponse response) throws IOException {
-
-        ReportRequest request = buildRequest(dateFrom, dateTo, organization, recipientPosition, status);
-
-        List<LetterDelivery> records;
-        if ("Other".equalsIgnoreCase(organization)) {
-            records = deliveries.findAllForReportOtherOrganizations(
-                    request.status(),
-                    request.recipientPosition(),
-                    request.dateFrom(),
-                    request.dateTo(),
-                    PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
-        } else {
-            records = deliveries.findAllForReport(
-                    request.status(),
-                    request.recipientPosition(),
-                    request.organization(),
-                    request.dateFrom(),
-                    request.dateTo(),
-                    PageRequest.of(0, MAX_REPORT_RECORDS, Sort.by(Sort.Direction.DESC, "deliveredAt")));
-        }
-
-        String filename = "incoming-letter-report-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".pdf";
-
-        response.setContentType("application/pdf");
-        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"");
-
-        try (var pdfDocument = new com.itextpdf.kernel.pdf.PdfDocument(new com.itextpdf.kernel.pdf.PdfWriter(response.getOutputStream()));
-             var document = new com.itextpdf.layout.Document(pdfDocument)) {
-
-            // Font
-            var font = com.itextpdf.kernel.font.PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.HELVETICA);
-            var boldFont = com.itextpdf.kernel.font.PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.HELVETICA_BOLD);
-
-            // Title
-            var title = new com.itextpdf.layout.element.Paragraph("INCOMING LETTER REPORT")
-                    .setFont(boldFont)
-                    .setFontSize(16)
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                    .setMarginBottom(8);
-            document.add(title);
-
-            // Period
-            var period = new com.itextpdf.layout.element.Paragraph("Period: " + buildPeriodString(request))
-                    .setFont(font)
-                    .setFontSize(10)
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                    .setMarginBottom(4);
-            document.add(period);
-
-            // Generated
-            var generated = new com.itextpdf.layout.element.Paragraph("Generated: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
-                    .setFont(font)
-                    .setFontSize(10)
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                    .setMarginBottom(16);
-            document.add(generated);
-
-            // Table - use UnitValue for percentage-based column widths to ensure proper fitting
-            // Normalized to sum to 100% for iText7
-            float[] columnWidths = {4.2f, 10f, 6.7f, 10f, 10f, 10f, 12.5f, 6.7f, 10f, 10f, 10f}; // percentages sum to 100
-            var table = new com.itextpdf.layout.element.Table(com.itextpdf.layout.properties.UnitValue.createPercentArray(columnWidths))
-                    .useAllAvailableWidth()
-                    .setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER);
-
-            // Ensure table splits across pages properly
-            table.setKeepTogether(false);
-
-            // Header row
-            String[] headers = {"ID", "Reference", "Status", "Delivery Person", "Organization",
-                    "Recipient", "Subject", "Ref #", "Delivered", "Received", "Received By"};
-            for (String header : headers) {
-                table.addHeaderCell(new com.itextpdf.layout.element.Cell()
-                        .add(new com.itextpdf.layout.element.Paragraph(header).setFont(boldFont).setFontSize(7))
-                        .setBackgroundColor(com.itextpdf.kernel.colors.ColorConstants.LIGHT_GRAY)
-                        .setPadding(3)
-                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            }
-
-            // Data rows
-            for (LetterDelivery d : records) {
-                // Explicitly convert all fields to strings with null-safe fallbacks.
-                // Recent deliveries from mobile have null organizationName, subject, referenceNumber.
-                // Defensive conversion prevents any iText7 layout issues with null/empty columns.
-                String id = String.valueOf(d.getId());
-                String tracking = d.getTrackingNumber() != null ? d.getTrackingNumber() : "";
-                String statusStr = d.getStatus() != null ? d.getStatus().name() : "";
-                String deliveryPerson = d.getDeliveryPersonName() != null ? d.getDeliveryPersonName() : "";
-                String organizationName = d.getOrganizationName() != null ? d.getOrganizationName() : "";
-                String recipient = d.getRecipientName() != null ? d.getRecipientName() : "";
-                if (d.getRecipientTitle() != null) {
-                    recipient += " (" + d.getRecipientTitle() + ")";
-                }
-                String subject = d.getSubject() != null ? d.getSubject() : "";
-                String referenceNumber = d.getReferenceNumber() != null ? d.getReferenceNumber() : "";
-                String deliveredAt = d.getDeliveredAt() != null ? d.getDeliveredAt().toString() : "";
-                String receivedAt = d.getReceivedAt() != null ? d.getReceivedAt().toString() : "";
-                String receivedBy = "";
-                if (d.getReceivedBy() != null && d.getReceivedBy().getDisplayName() != null) {
-                    receivedBy = d.getReceivedBy().getDisplayName();
-                }
-
-                table.addCell(createCell(id, font));
-                table.addCell(createCell(tracking, font));
-                table.addCell(createCell(statusStr, font));
-                table.addCell(createCell(deliveryPerson, font));
-                table.addCell(createCell(organizationName, font));
-                table.addCell(createCell(recipient, font));
-                table.addCell(createCell(subject, font));
-                table.addCell(createCell(referenceNumber, font));
-                table.addCell(createCell(deliveredAt, font));
-                table.addCell(createCell(receivedAt, font));
-                table.addCell(createCell(receivedBy, font));
-            }
-
-            document.add(table);
-            // Explicitly flush to ensure all content is written to the output stream
-            document.flush();
-        } catch (Exception e) {
-            // Log the exception for debugging
-            System.err.println("PDF export failed: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
-    }
-
     private com.itextpdf.layout.element.Cell createCell(String text, com.itextpdf.kernel.font.PdfFont font) {
         return new com.itextpdf.layout.element.Cell()
                 .add(new com.itextpdf.layout.element.Paragraph(text != null ? text : "").setFont(font).setFontSize(7))
@@ -384,7 +200,7 @@ public class ReportController {
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.LEFT);
     }
 
-    private ReportRequest buildRequest(String dateFrom, String dateTo, String organization, String recipientPosition, String status) {
+    private ReportRequest buildRequest(String dateFrom, String dateTo, String recipientPosition, String status) {
         LocalDateTime from = parseDate(dateFrom);
         LocalDateTime to = parseDateToEndOfDay(dateTo);
         DeliveryStatus deliveryStatus = null;
@@ -394,7 +210,7 @@ public class ReportController {
             } catch (IllegalArgumentException ignored) {
             }
         }
-        return new ReportRequest(from, to, blankToNull(organization), blankToNull(recipientPosition), deliveryStatus);
+        return new ReportRequest(from, to, blankToNull(recipientPosition), deliveryStatus);
     }
 
     private LocalDateTime parseDate(String dateStr) {
@@ -432,9 +248,6 @@ public class ReportController {
             sb.append(request.dateTo().format(fmt));
         } else {
             sb.append("Present");
-        }
-        if (request.organization() != null) {
-            sb.append(" | Organization: ").append(request.organization());
         }
         if (request.recipientPosition() != null) {
             sb.append(" | Recipient: ").append(request.recipientPosition());

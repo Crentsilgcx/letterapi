@@ -55,15 +55,14 @@ public class ReceptionApiController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String dateFrom,
             @RequestParam(required = false) String dateTo,
-            @RequestParam(required = false) String recipientPosition,
-            @RequestParam(required = false) String organization) {
+            @RequestParam(required = false) String recipientPosition) {
         long start = System.currentTimeMillis();
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "deliveredAt"));
         LocalDateTime from = parseDate(dateFrom);
         LocalDateTime to = parseDateToEndOfDay(dateTo);
         long repoStart = System.currentTimeMillis();
         Page<LetterDelivery> result = deliveries.searchWithFilters(
-                DeliveryStatus.DELIVERED, q, recipientPosition, organization, from, to, pageable);
+                DeliveryStatus.DELIVERED, q, recipientPosition, from, to, pageable);
         long repoTime = System.currentTimeMillis() - repoStart;
         PageResponse<DeliveryResponse> response = PageResponse.from(result.map(DeliveryResponse::full));
         System.out.println("[PERF] pendingPage: repo=" + repoTime + "ms, total=" + (System.currentTimeMillis() - start) + "ms");
@@ -87,15 +86,14 @@ public class ReceptionApiController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String dateFrom,
             @RequestParam(required = false) String dateTo,
-            @RequestParam(required = false) String recipientPosition,
-            @RequestParam(required = false) String organization) {
+            @RequestParam(required = false) String recipientPosition) {
         long start = System.currentTimeMillis();
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "receivedAt"));
         LocalDateTime from = parseDate(dateFrom);
         LocalDateTime to = parseDateToEndOfDay(dateTo);
         long repoStart = System.currentTimeMillis();
         Page<LetterDelivery> result = deliveries.searchWithFilters(
-                DeliveryStatus.RECEIVED, q, recipientPosition, organization, from, to, pageable);
+                DeliveryStatus.RECEIVED, q, recipientPosition, from, to, pageable);
         long repoTime = System.currentTimeMillis() - repoStart;
         PageResponse<DeliveryResponse> response = PageResponse.from(result.map(DeliveryResponse::full));
         System.out.println("[PERF] receivedPage: repo=" + repoTime + "ms, total=" + (System.currentTimeMillis() - start) + "ms");

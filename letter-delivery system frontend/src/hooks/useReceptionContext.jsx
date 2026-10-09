@@ -443,7 +443,7 @@ const buildApiParams = useCallback((page = 0) => {
         loadReceived(0, false, controller.signal);
       }
     }, 150);
-  }, [activeTab]);
+  }, [activeTab, loadPending, loadReceived]);
 
   const handleDateFilterChange = useCallback((filter) => {
     setDateFilter(filter);
@@ -468,7 +468,7 @@ const buildApiParams = useCallback((page = 0) => {
         loadReceived(0, false, controller.signal);
       }
     }, 150);
-  }, [activeTab]);
+  }, [activeTab, loadPending, loadReceived]);
 
   const handleCustomDateChange = useCallback((from, to) => {
     setCustomDateFrom(from);
@@ -489,7 +489,7 @@ const buildApiParams = useCallback((page = 0) => {
         loadReceived(0, false, controller.signal);
       }
     }, 150);
-  }, [activeTab]);
+  }, [activeTab, loadPending, loadReceived]);
 
   const handleRecipientFilterChange = useCallback((filter) => {
     handleFilterChange(setRecipientFilter, filter);
@@ -502,35 +502,25 @@ const buildApiParams = useCallback((page = 0) => {
       const updatedDelivery = await receptionApi.receiveDelivery(id, 'Physical letter verified at reception');
       setSuccess('Receipted successfully.');
       
-      // Optimistic update
+      // Optimistic update for local arrays only (counts will be updated via WebSocket event)
       setPending(prev => prev.filter(d => d.id !== id));
-      setPendingTotalElements(prev => Math.max(0, prev - 1));
-      
       setReceived(prev => {
         const exists = prev.some(d => d.id === id);
         if (exists) return prev;
         return [updatedDelivery, ...prev];
       });
-      setReceivedTotalElements(prev => prev + 1);
-      setReceivedTodayCount(prev => prev + 1);
       
-      // Update total pages for consistency
-      const newPendingTotalElements = Math.max(0, pendingTotalElements - 1);
-      const newReceivedTotalElements = receivedTotalElements + 1;
-      setPendingTotalPages(Math.max(1, Math.ceil(newPendingTotalElements / DEFAULT_PAGE_SIZE)));
-      setReceivedTotalPages(Math.max(1, Math.ceil(newReceivedTotalElements / DEFAULT_PAGE_SIZE)));
-      
-      // Update cache after successful receive
+      // Update cache with updated arrays (counts will be synced via WebSocket)
       setCache(buildCacheState({
         pending: pending.filter(d => d.id !== id),
         received: [...received, updatedDelivery],
         pendingPage,
         receivedPage,
-        pendingTotalPages: Math.max(1, Math.ceil(newPendingTotalElements / DEFAULT_PAGE_SIZE)),
-        receivedTotalPages: Math.max(1, Math.ceil(newReceivedTotalElements / DEFAULT_PAGE_SIZE)),
-        pendingTotalElements: newPendingTotalElements,
-        receivedTotalElements: newReceivedTotalElements,
-        receivedTodayCount: receivedTodayCount + 1,
+        pendingTotalPages,
+        receivedTotalPages,
+        pendingTotalElements,
+        receivedTotalElements,
+        receivedTodayCount,
         searchQuery,
         dateFilter,
         customDateFrom,
@@ -571,11 +561,22 @@ const buildApiParams = useCallback((page = 0) => {
 
         pendingRealtimeRevisionRef.current += 1;
 
-        // If we're viewing the pending tab, refetch page 0 to get the new delivery.
-        // This is more reliable than trying to manually prepend to the array,
-        // especially when filters are active or the user is on a later page.
+        // If we're viewing the pending tab, optimistically prepend the new delivery
+        // and also refetch in background for consistency with filters
         if (state.activeTab === 'pending') {
-          // Build params without recipientFilter to ensure new delivery appears
+          // Optimistic update: prepend new delivery to pending array
+          setPending(prev => {
+            // Avoid duplicates
+            if (prev.some(d => d.id === delivery.id || d.trackingNumber === delivery.trackingNumber)) {
+              return prev;
+            }
+            return [delivery, ...prev];
+          });
+          // Update totals immediately
+          setPendingTotalElements(prev => prev + 1);
+          setPendingTotalPages(prev => Math.max(1, Math.ceil((prev + 1) / DEFAULT_PAGE_SIZE)));
+
+          // Background refetch for filter consistency
           const { searchQuery, dateFilter, customDateFrom, customDateTo } = filtersRef.current;
           const params = new URLSearchParams({ page: '0', size: String(DEFAULT_PAGE_SIZE) });
           if (searchQuery) params.append('q', searchQuery);
@@ -587,7 +588,6 @@ const buildApiParams = useCallback((page = 0) => {
             if (from) params.append('dateFrom', from);
             if (to) params.append('dateTo', to);
           }
-          // Intentionally omit recipientFilter and organization to show the new delivery
           loadPendingRef.current?.(0, false, undefined, params.toString());
         } else {
           // Just update totals when not on the pending tab
@@ -595,9 +595,9 @@ const buildApiParams = useCallback((page = 0) => {
           setPendingTotalPages(prev => Math.max(1, Math.ceil((prev + 1) / DEFAULT_PAGE_SIZE)));
         }
 
-        // Update cache with new totals (pending array will be refreshed by loadPending if on that tab)
+        // Update cache with new totals
         setCache(buildCacheState({
-          pending: state.pending,
+          pending: state.activeTab === 'pending' ? [delivery, ...state.pending] : state.pending,
           received: state.received,
           pendingPage: state.pendingPage,
           receivedPage: state.receivedPage,
@@ -624,31 +624,36 @@ const buildApiParams = useCallback((page = 0) => {
         pendingRealtimeRevisionRef.current += 1;
         receivedRealtimeRevisionRef.current += 1;
 
-        // If viewing pending tab, refetch to remove the received delivery
+        // Optimistic updates for arrays (immediate UI feedback)
+        // Remove from pending
+        setPending(prev => prev.filter(d => d.id !== id));
+        // Add to received (prepend)
+        setReceived(prev => {
+          if (prev.some(d => d.id === id)) return prev;
+          return [delivery, ...prev];
+        });
+
+        // Immediate count updates
+        setPendingTotalElements(prev => Math.max(0, prev - 1));
+        setPendingTotalPages(prev => Math.max(1, Math.ceil(Math.max(0, prev - 1) / DEFAULT_PAGE_SIZE)));
+        setReceivedTotalElements(prev => prev + 1);
+        setReceivedTodayCount(prev => prev + 1);
+        setReceivedTotalPages(prev => Math.max(1, Math.ceil((prev + 1) / DEFAULT_PAGE_SIZE)));
+
+        // Background refetch for consistency (only if viewing the relevant tab)
         if (state.activeTab === 'pending') {
           loadPendingRef.current?.(0, false);
-        } else {
-          // Optimistic update for totals when not on pending tab
-          setPendingTotalElements(prev => Math.max(0, prev - 1));
-          setPendingTotalPages(prev => Math.max(1, Math.ceil(Math.max(0, prev - 1) / DEFAULT_PAGE_SIZE)));
         }
-
-        // If viewing received tab, refetch to add the received delivery
         if (state.activeTab === 'received') {
           loadReceivedRef.current?.(0, false);
-        } else {
-          // Optimistic update for totals when not on received tab
-          setReceivedTotalElements(prev => prev + 1);
-          setReceivedTodayCount(prev => prev + 1);
-          setReceivedTotalPages(prev => Math.max(1, Math.ceil((prev + 1) / DEFAULT_PAGE_SIZE)));
         }
 
-        // Update cache
+        // Update cache with optimistic changes
         const newPendingTotalElements = Math.max(0, state.pendingTotalElements - 1);
         const newReceivedTotalElements = state.receivedTotalElements + 1;
         setCache(buildCacheState({
-          pending: state.pending,
-          received: state.received,
+          pending: state.pending.filter(d => d.id !== id),
+          received: state.received.some(d => d.id === id) ? state.received : [delivery, ...state.received],
           pendingPage: state.pendingPage,
           receivedPage: state.receivedPage,
           pendingTotalPages: Math.max(1, Math.ceil(newPendingTotalElements / DEFAULT_PAGE_SIZE)),

@@ -26,13 +26,7 @@ public class WebSocketEventPublisher {
         deliveryData.put("deliveryPersonName", delivery.getDeliveryPersonName());
         deliveryData.put("deliveryPersonPhone", delivery.getDeliveryPersonPhone());
         deliveryData.put("deliveryPersonEmail", delivery.getDeliveryPersonEmail());
-        deliveryData.put("organizationName", delivery.getOrganizationName());
-        deliveryData.put("organizationAddress", delivery.getOrganizationAddress());
-        deliveryData.put("recipientName", delivery.getRecipientName());
         deliveryData.put("recipientTitle", delivery.getRecipientTitle());
-        deliveryData.put("recipient", delivery.getRecipientName());
-        deliveryData.put("subject", delivery.getSubject());
-        deliveryData.put("referenceNumber", delivery.getReferenceNumber());
         deliveryData.put("status", delivery.getStatus().name());
         deliveryData.put("deliveredAt", delivery.getDeliveredAt().toString());
 
@@ -52,13 +46,7 @@ public class WebSocketEventPublisher {
         deliveryData.put("deliveryPersonName", delivery.getDeliveryPersonName());
         deliveryData.put("deliveryPersonPhone", delivery.getDeliveryPersonPhone());
         deliveryData.put("deliveryPersonEmail", delivery.getDeliveryPersonEmail());
-        deliveryData.put("organizationName", delivery.getOrganizationName());
-        deliveryData.put("organizationAddress", delivery.getOrganizationAddress());
-        deliveryData.put("recipientName", delivery.getRecipientName());
         deliveryData.put("recipientTitle", delivery.getRecipientTitle());
-        deliveryData.put("recipient", delivery.getRecipientName());
-        deliveryData.put("subject", delivery.getSubject());
-        deliveryData.put("referenceNumber", delivery.getReferenceNumber());
         deliveryData.put("status", delivery.getStatus().name());
         deliveryData.put("deliveredAt", delivery.getDeliveredAt().toString());
         deliveryData.put("receivedAt", delivery.getReceivedAt() != null ? delivery.getReceivedAt().toString() : null);

@@ -2,21 +2,11 @@ package com.office.letterreceipt.api;
 
 import com.office.letterreceipt.dto.CreateDeliveryRequest;
 import com.office.letterreceipt.dto.DeliveryResponse;
-import com.office.letterreceipt.dto.OrganizationRequest;
-import com.office.letterreceipt.dto.OrganizationResponse;
-import com.office.letterreceipt.model.DeliveryPerson;
-import com.office.letterreceipt.model.Organization;
-import com.office.letterreceipt.repository.DeliveryPersonRepository;
 import com.office.letterreceipt.repository.IdempotencyKeyRepository;
-import com.office.letterreceipt.repository.OrganizationRepository;
-import com.office.letterreceipt.repository.RecipientRepository;
 import com.office.letterreceipt.service.DeliveryService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -26,7 +16,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -36,74 +25,37 @@ import org.springframework.web.server.ResponseStatusException;
 public class PublicDeliveryApiController {
     private static final Logger log = LoggerFactory.getLogger(PublicDeliveryApiController.class);
     private final DeliveryService service;
-    private final RecipientRepository recipients;
-    private final OrganizationRepository organizations;
-    private final DeliveryPersonRepository people;
     private final IdempotencyKeyRepository idempotencyKeys;
+
+    // Canonical recipient roles - matches mobile app constants
+    private static final List<String> RECIPIENT_ROLES = List.of(
+        "HR Officer",
+        "IT Officer",
+        "Finance Manager",
+        "Human Resource Manager",
+        "Chief Executive Officer",
+        "Chief Technology Officer",
+        "Managing Director",
+        "Administrative Manager",
+        "Accountant",
+        "Procurement Officer",
+        "Internal Auditor",
+        "Risk Manager",
+        "Security Manager",
+        "Receptionist",
+        "Driver"
+    );
 
     public PublicDeliveryApiController(
             DeliveryService service,
-            RecipientRepository recipients,
-            OrganizationRepository organizations,
-            DeliveryPersonRepository people,
             IdempotencyKeyRepository idempotencyKeys) {
         this.service = service;
-        this.recipients = recipients;
-        this.organizations = organizations;
-        this.people = people;
         this.idempotencyKeys = idempotencyKeys;
-    }
-
-    @GetMapping("/recipients")
-    public List<Map<String, Object>> recipients() {
-        return recipients.findByActiveTrueOrderByFullNameAsc().stream()
-            .map(recipient -> Map.<String, Object>of(
-                "id", recipient.getId(),
-                "name", recipient.getFullName(),
-                "title", Objects.toString(recipient.getJobTitle(), ""),
-                "department", Objects.toString(recipient.getDepartment(), "")))
-            .toList();
     }
 
     @GetMapping("/recipient-roles")
     public List<String> recipientRoles() {
-        return recipients.findDistinctActiveJobTitles();
-    }
-
-    @GetMapping("/organizations")
-    public List<Map<String, Object>> organizations() {
-        return organizations.findByActiveTrueOrderByNameAsc().stream()
-            .map(organization -> Map.<String, Object>of("id", organization.getId(), "name", organization.getName()))
-            .toList();
-    }
-
-    @PostMapping("/organizations")
-    @ResponseStatus(HttpStatus.CREATED)
-    public OrganizationResponse createOrganization(@Valid @RequestBody OrganizationRequest request) {
-        String name = request.name().trim();
-        organizations.findByNameIgnoreCase(name)
-            .ifPresent(existing -> {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Organization already exists.");
-            });
-        Organization organization = new Organization();
-        organization.setName(name);
-        organization.setActive(true);
-        return OrganizationResponse.from(organizations.save(organization));
-    }
-
-    @GetMapping("/delivery-persons")
-    public List<Map<String, Object>> people(@RequestParam(defaultValue = "") String q) {
-        List<DeliveryPerson> result = q.isBlank()
-            ? people.findTop100ByActiveTrueOrderByFullNameAsc()
-            : people.findTop20ByActiveTrueAndFullNameContainingIgnoreCaseOrderByFullNameAsc(q.trim());
-        return result.stream().map(person -> {
-            Map<String, Object> body = new LinkedHashMap<>();
-            body.put("id", person.getId());
-            body.put("name", person.getFullName());
-            body.put("organizationId", person.getOrganization() == null ? null : person.getOrganization().getId());
-            body.put("organizationName", person.getOrganization() == null ? "" : person.getOrganization().getName());
-            return body;
-        }).toList();
+        return RECIPIENT_ROLES;
     }
 
     @PostMapping("/deliveries")

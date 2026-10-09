@@ -30,7 +30,6 @@ const STATUS_PRESENTATION = {
 const EXPORT_OPTIONS = [
   { type: 'csv', label: 'CSV', extension: 'csv' },
   { type: 'excel', label: 'Excel', extension: 'xlsx' },
-  { type: 'pdf', label: 'PDF', extension: 'pdf' },
 ];
 
 function getDateRange(preset) {
@@ -248,8 +247,6 @@ const ReportsPage = () => {
         blob = await receptionApi.exportCsv(filters);
       } else if (type === 'excel') {
         blob = await receptionApi.exportExcel(filters);
-      } else {
-        blob = await receptionApi.exportPdf(filters);
       }
       downloadBlob(blob, filename);
     } catch (err) {

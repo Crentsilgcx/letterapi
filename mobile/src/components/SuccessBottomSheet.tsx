@@ -111,7 +111,7 @@ export const SuccessBottomSheet: React.FC<SuccessBottomSheetProps> = ({
             testID="log-another-button"
           >
             <Text style={[styles.buttonText, { color: theme.accentText, fontFamily: Typography.fontFamilyBold }]}>
-              Log another delivery
+              OK
             </Text>
           </Pressable>
         </View>

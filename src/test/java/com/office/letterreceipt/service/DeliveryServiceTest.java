@@ -4,8 +4,6 @@ import com.office.letterreceipt.dto.CreateDeliveryRequest;
 import com.office.letterreceipt.model.DeliveryEventType;
 import com.office.letterreceipt.model.DeliveryStatus;
 import com.office.letterreceipt.model.LetterDelivery;
-import com.office.letterreceipt.model.Organization;
-import com.office.letterreceipt.model.Recipient;
 import com.office.letterreceipt.model.Role;
 import com.office.letterreceipt.model.UserAccount;
 import com.office.letterreceipt.repository.DeliveryEventRepository;
@@ -52,7 +50,7 @@ class DeliveryServiceTest {
             delivery.setId(42L);
             return delivery;
         });
-        when(idempotencyKeys.findByKey(anyString())).thenReturn(Optional.empty());
+        when(idempotencyKeys.findByIdempotencyKey(anyString())).thenReturn(Optional.empty());
 
         DeliveryService service = new DeliveryService(
             deliveries, events, users, idempotencyKeys, clock, wsPublisher);
@@ -89,7 +87,7 @@ class DeliveryServiceTest {
             delivery.setId(42L);
             return delivery;
         });
-        when(idempotencyKeys.findByKey(anyString())).thenReturn(Optional.empty());
+        when(idempotencyKeys.findByIdempotencyKey(anyString())).thenReturn(Optional.empty());
 
         DeliveryService service = new DeliveryService(
             deliveries, events, users, idempotencyKeys, clock, wsPublisher);
@@ -102,12 +100,7 @@ class DeliveryServiceTest {
         assertEquals("Nana Akufo Addo", delivery.getDeliveryPersonName());
         assertEquals("0278921346", delivery.getDeliveryPersonPhone());
         assertEquals("yamoley@hotmail.com", delivery.getDeliveryPersonEmail());
-        assertEquals("Chief Executive Officer", delivery.getRecipientName());
         assertEquals("Chief Executive Officer", delivery.getRecipientTitle());
-        assertNull(delivery.getOrganizationName());
-        assertNull(delivery.getOrganizationAddress());
-        assertNull(delivery.getSubject());
-        assertNull(delivery.getReferenceNumber());
         assertEquals(DeliveryStatus.DELIVERED, delivery.getStatus());
         assertNotNull(delivery.getTrackingNumber());
         assertEquals(15, delivery.getTrackingNumber().length(), "Tracking number must be exactly 15 characters");

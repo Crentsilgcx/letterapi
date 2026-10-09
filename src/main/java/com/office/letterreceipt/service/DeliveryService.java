@@ -59,14 +59,14 @@ public class DeliveryService {
         this.wsPublisher = wsPublisher;
     }
 
-@Transactional
+    @Transactional
     public LetterDelivery create(CreateDeliveryRequest request, String idempotencyKey, HttpServletRequest servletRequest) {
         log.info("SERVICE INPUT: fullName={}, phone={}, email={}, recipient={}, idempotencyKey={}",
                 request.fullName(), request.phone(), request.email(), request.recipient(), idempotencyKey);
 
         // Check idempotency key if provided
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-            var existingKey = idempotencyKeys.findByKey(idempotencyKey.trim());
+            var existingKey = idempotencyKeys.findByIdempotencyKey(idempotencyKey.trim());
             if (existingKey.isPresent()) {
                 log.info("IDEMPOTENCY KEY already used: {}, returning existing delivery with tracking: {}",
                         idempotencyKey, existingKey.get().getTrackingNumber());
@@ -75,30 +75,13 @@ public class DeliveryService {
             }
         }
 
-        // Subject and referenceNumber are legacy fields - not used for new deliveries
-        // organizationAddress is no longer captured - leave as null
-
         LocalDateTime now = LocalDateTime.now(clock);
 
         LetterDelivery delivery = new LetterDelivery();
-        // Store denormalized data directly - no entity creation
-        delivery.setDeliveryPerson(null);
-        delivery.setOrganization(null);
-        delivery.setRecipient(null);
         delivery.setDeliveryPersonName(request.fullName());
         delivery.setDeliveryPersonPhone(request.phone());
         delivery.setDeliveryPersonEmail(request.email());
-        // organizationName is no longer captured - leave as null
-        delivery.setOrganizationName(null);
-        // organizationAddress is no longer captured - leave as null
-        delivery.setOrganizationAddress(null);
-        // recipient captured from mobile - store in recipientName and recipientTitle
-        delivery.setRecipientName(request.recipient());
         delivery.setRecipientTitle(request.recipient());
-        // Legacy fields - not used for new deliveries
-        delivery.setSubject(null);
-        delivery.setReferenceNumber(null);
-        delivery.setDescription(null);
         delivery.setStatus(DeliveryStatus.DELIVERED);
         delivery.setDeliveredAt(now);
         delivery.setTrackingNumber(newTrackingNumber());

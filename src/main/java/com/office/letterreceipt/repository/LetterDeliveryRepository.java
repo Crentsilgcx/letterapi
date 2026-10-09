@@ -37,10 +37,9 @@ public interface LetterDeliveryRepository extends JpaRepository<LetterDelivery, 
             :q is null or :q = ''
             or lower(d.trackingNumber) like lower(concat('%', :q, '%'))
             or lower(d.deliveryPersonName) like lower(concat('%', :q, '%'))
-            or lower(d.organizationName) like lower(concat('%', :q, '%'))
-            or lower(d.recipientName) like lower(concat('%', :q, '%'))
-            or lower(coalesce(d.referenceNumber, '')) like lower(concat('%', :q, '%'))
-            or lower(d.subject) like lower(concat('%', :q, '%'))
+            or lower(d.deliveryPersonPhone) like lower(concat('%', :q, '%'))
+            or lower(d.deliveryPersonEmail) like lower(concat('%', :q, '%'))
+            or lower(d.recipientTitle) like lower(concat('%', :q, '%'))
           )
         """)
     Page<LetterDelivery> search(@Param("status") DeliveryStatus status, @Param("q") String q, Pageable pageable);
@@ -52,10 +51,9 @@ public interface LetterDeliveryRepository extends JpaRepository<LetterDelivery, 
             :q is null or :q = ''
             or lower(d.trackingNumber) like lower(concat('%', :q, '%'))
             or lower(d.deliveryPersonName) like lower(concat('%', :q, '%'))
-            or lower(d.organizationName) like lower(concat('%', :q, '%'))
-            or lower(d.recipientName) like lower(concat('%', :q, '%'))
-            or lower(coalesce(d.referenceNumber, '')) like lower(concat('%', :q, '%'))
-            or lower(d.subject) like lower(concat('%', :q, '%'))
+            or lower(d.deliveryPersonPhone) like lower(concat('%', :q, '%'))
+            or lower(d.deliveryPersonEmail) like lower(concat('%', :q, '%'))
+            or lower(d.recipientTitle) like lower(concat('%', :q, '%'))
           )
           and (:dateFrom is null or d.deliveredAt >= :dateFrom)
           and (:dateTo is null or d.deliveredAt <= :dateTo)
@@ -75,13 +73,11 @@ public interface LetterDeliveryRepository extends JpaRepository<LetterDelivery, 
             :q is null or :q = ''
             or lower(d.trackingNumber) like lower(concat('%', :q, '%'))
             or lower(d.deliveryPersonName) like lower(concat('%', :q, '%'))
-            or lower(d.organizationName) like lower(concat('%', :q, '%'))
-            or lower(d.recipientName) like lower(concat('%', :q, '%'))
-            or lower(coalesce(d.referenceNumber, '')) like lower(concat('%', :q, '%'))
-            or lower(d.subject) like lower(concat('%', :q, '%'))
+            or lower(d.deliveryPersonPhone) like lower(concat('%', :q, '%'))
+            or lower(d.deliveryPersonEmail) like lower(concat('%', :q, '%'))
+            or lower(d.recipientTitle) like lower(concat('%', :q, '%'))
           )
-          and (:recipientPosition is null or :recipientPosition = '' or lower(d.recipientName) = lower(:recipientPosition))
-          and (:organization is null or :organization = '' or lower(d.organizationName) = lower(:organization))
+          and (:recipientPosition is null or :recipientPosition = '' or lower(d.recipientTitle) = lower(:recipientPosition))
           and (:dateFrom is null or d.deliveredAt >= :dateFrom)
           and (:dateTo is null or d.deliveredAt <= :dateTo)
         order by d.deliveredAt desc
@@ -90,7 +86,6 @@ public interface LetterDeliveryRepository extends JpaRepository<LetterDelivery, 
         @Param("status") DeliveryStatus status,
         @Param("q") String q,
         @Param("recipientPosition") String recipientPosition,
-        @Param("organization") String organization,
         @Param("dateFrom") LocalDateTime dateFrom,
         @Param("dateTo") LocalDateTime dateTo,
         Pageable pageable);
@@ -99,8 +94,7 @@ public interface LetterDeliveryRepository extends JpaRepository<LetterDelivery, 
     @Query("""
         select d from LetterDelivery d
         where (:status is null or d.status = :status)
-          and (:recipientPosition is null or :recipientPosition = '' or lower(d.recipientName) = lower(:recipientPosition))
-          and (:organization is null or :organization = '' or lower(d.organizationName) = lower(:organization))
+          and (:recipientPosition is null or :recipientPosition = '' or lower(d.recipientTitle) = lower(:recipientPosition))
           and (:dateFrom is null or d.deliveredAt >= :dateFrom)
           and (:dateTo is null or d.deliveredAt <= :dateTo)
         order by d.deliveredAt desc
@@ -108,7 +102,6 @@ public interface LetterDeliveryRepository extends JpaRepository<LetterDelivery, 
     List<LetterDelivery> findAllForReport(
         @Param("status") DeliveryStatus status,
         @Param("recipientPosition") String recipientPosition,
-        @Param("organization") String organization,
         @Param("dateFrom") LocalDateTime dateFrom,
         @Param("dateTo") LocalDateTime dateTo,
         Pageable pageable);
@@ -116,44 +109,11 @@ public interface LetterDeliveryRepository extends JpaRepository<LetterDelivery, 
     @Query("""
         select count(d) from LetterDelivery d
         where (:status is null or d.status = :status)
-          and (:recipientPosition is null or :recipientPosition = '' or lower(d.recipientName) = lower(:recipientPosition))
-          and (:organization is null or :organization = '' or lower(d.organizationName) = lower(:organization))
+          and (:recipientPosition is null or :recipientPosition = '' or lower(d.recipientTitle) = lower(:recipientPosition))
           and (:dateFrom is null or d.deliveredAt >= :dateFrom)
           and (:dateTo is null or d.deliveredAt <= :dateTo)
         """)
     long countForReport(
-        @Param("status") DeliveryStatus status,
-        @Param("recipientPosition") String recipientPosition,
-        @Param("organization") String organization,
-        @Param("dateFrom") LocalDateTime dateFrom,
-        @Param("dateTo") LocalDateTime dateTo);
-
-    // Report queries for "Other" organizations (not in predefined list)
-    @Query("""
-        select d from LetterDelivery d
-        where (:status is null or d.status = :status)
-          and (:recipientPosition is null or :recipientPosition = '' or lower(d.recipientName) = lower(:recipientPosition))
-          and lower(d.organizationName) not in ('gra', 'nca', 'bog')
-          and (:dateFrom is null or d.deliveredAt >= :dateFrom)
-          and (:dateTo is null or d.deliveredAt <= :dateTo)
-        order by d.deliveredAt desc
-        """)
-    List<LetterDelivery> findAllForReportOtherOrganizations(
-        @Param("status") DeliveryStatus status,
-        @Param("recipientPosition") String recipientPosition,
-        @Param("dateFrom") LocalDateTime dateFrom,
-        @Param("dateTo") LocalDateTime dateTo,
-        Pageable pageable);
-
-    @Query("""
-        select count(d) from LetterDelivery d
-        where (:status is null or d.status = :status)
-          and (:recipientPosition is null or :recipientPosition = '' or lower(d.recipientName) = lower(:recipientPosition))
-          and lower(d.organizationName) not in ('gra', 'nca', 'bog')
-          and (:dateFrom is null or d.deliveredAt >= :dateFrom)
-          and (:dateTo is null or d.deliveredAt <= :dateTo)
-        """)
-    long countForReportOtherOrganizations(
         @Param("status") DeliveryStatus status,
         @Param("recipientPosition") String recipientPosition,
         @Param("dateFrom") LocalDateTime dateFrom,
