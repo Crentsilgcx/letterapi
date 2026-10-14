@@ -17,11 +17,20 @@ function staffAuthHeader(mode) {
   return 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64')
 }
 
+function getBackendTarget(mode) {
+  // Allow override via VITE_API_BASE_URL in frontend .env, fallback to localhost:8081
+  const env = loadEnv(mode, projectRoot, 'VITE_')
+  return env.VITE_API_BASE_URL || 'http://localhost:8081'
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   if (!staffAuthHeader(mode)) {
     console.warn(`[letterapi] No ADMIN_PASSWORD found in ${projectRoot}.env - reception/admin API calls will be rejected.`)
   }
+
+  const backendTarget = getBackendTarget(mode)
+  console.log(`[letterapi] Dev proxy target: ${backendTarget}`)
 
   return {
     plugins: [
@@ -31,7 +40,7 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: 'http://localhost:8081',
+          target: backendTarget,
           changeOrigin: true,
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq, req) => {
@@ -42,7 +51,7 @@ export default defineConfig(({ mode }) => {
           },
         },
         '/ws': {
-          target: 'http://localhost:8081',
+          target: backendTarget,
           changeOrigin: true,
           ws: true,
           configure: (proxy) => {

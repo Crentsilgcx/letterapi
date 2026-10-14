@@ -1,4 +1,4 @@
-import { API_PATHS } from './config/env';
+import { API_PATHS, getApiUrl } from './config/env';
 
 // Staff credentials are added by the Vite dev proxy from the project .env (see vite.config.js).
 
@@ -27,9 +27,9 @@ async function fetchJson(url, options = {}) {
   }
 }
 
-const API_BASE = API_PATHS.public;
-const RECEPTION_BASE = API_PATHS.reception;
-const ADMIN_BASE = API_PATHS.admin;
+const API_BASE = getApiUrl(API_PATHS.public);
+const RECEPTION_BASE = getApiUrl(API_PATHS.reception);
+const ADMIN_BASE = getApiUrl(API_PATHS.admin);
 
 export const deliveryApi = {
   getRecipients: () => fetchJson(`${API_BASE}/recipients`),
