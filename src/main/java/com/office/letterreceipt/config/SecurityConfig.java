@@ -68,8 +68,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/reception/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                 .anyRequest().authenticated())
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers("/api/public/**", "/api/admin/login")
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .formLogin(form -> form
+                .loginPage("/login")
+                .permitAll())
             .httpBasic(Customizer.withDefaults());
             
             // FUTURE SSO: When OIDC is configured, replace .httpBasic() with:
@@ -87,37 +92,32 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/",
-                    "/deliver",
-                    "/track",
-                    "/track/**",
-                    "/css/**",
-                    "/js/**",
+                    "/index.html",
+                    "/reception/login",
+                    "/reception/dashboard",
+                    "/reception/record",
+                    "/reception",
+                    "/assets/**",
+                    "/fonts/**",
                     "/favicon.svg",
                     "/error",
-                    "/actuator/health")
+                    "/actuator/health",
+                    "/login")
                 .permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/reception/**", "/operations/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                 .anyRequest().authenticated())
             .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .ignoringRequestMatchers("/api/**"))
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/operations", true)
+                .defaultSuccessUrl("/admin", true)
                 .permitAll())
             .logout(logout -> logout
                 .logoutSuccessUrl("/")
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID", "XSRF-TOKEN"));
-            
-            // FUTURE SSO: When OIDC is configured for Reception, add:
-            // .oauth2Login(oauth2 -> oauth2
-            //     .loginPage("/reception/login")
-            //     .authorizationEndpoint(auth -> auth.baseUri("/oauth2/authorize"))
-            //     .redirectionEndpoint(redir -> redir.baseUri("/login/oauth2/code/*"))
-            //     .userInfoEndpoint(userInfo -> userInfo.oidcUserService(customOidcUserService()))
-            //     .successHandler(oauth2AuthenticationSuccessHandler()))
-            // And implement CustomOidcUserService and OAuth2AuthenticationSuccessHandler.
         return http.build();
     }
     

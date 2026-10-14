@@ -6,6 +6,7 @@ async function fetchJson(url, options = {}) {
   try {
     const res = await fetch(url, {
       ...options,
+      credentials: 'include',
       // X-Requested-With makes Spring answer 401 without the browser's Basic-auth popup.
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...options.headers },
     });
