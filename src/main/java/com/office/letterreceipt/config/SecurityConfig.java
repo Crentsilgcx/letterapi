@@ -69,7 +69,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/reception/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                 .anyRequest().authenticated())
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/api/public/**", "/api/admin/login")
+                .ignoringRequestMatchers("/api/public/**", "/api/admin/login", "/api/reception/**")
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .formLogin(form -> form

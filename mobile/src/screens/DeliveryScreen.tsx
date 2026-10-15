@@ -66,6 +66,16 @@ export const DeliveryScreen: React.FC = () => {
   const phoneRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
 
+  const setFullNameRef = useCallback((node: TextInput | null) => {
+    fullNameRef.current = node;
+  }, []);
+  const setPhoneRef = useCallback((node: TextInput | null) => {
+    phoneRef.current = node;
+  }, []);
+  const setEmailRef = useCallback((node: TextInput | null) => {
+    emailRef.current = node;
+  }, []);
+
   const positionOptions = useMemo(() => POSITIONS.filter(p => p.value !== 'Other'), []);
 
   const scrollToInput = useCallback((ref: React.RefObject<TextInput | null>) => {
@@ -94,46 +104,57 @@ export const DeliveryScreen: React.FC = () => {
   const handlePhoneFocus = useCallback(() => scrollToInput(phoneRef), [scrollToInput]);
   const handleEmailFocus = useCallback(() => scrollToInput(emailRef), [scrollToInput]);
 
-  const renderPositionChips = () => (
-    <View style={styles.positionChipsContainer}>
-      <AppText variant="sm" weight="semibold" color={theme.ink} style={styles.positionLabel}>
-        Recipient
-      </AppText>
-      <View style={styles.positionChipsWrapper}>
-        {positionOptions.map((option) => (
-          <Pressable
-            key={option.value}
-            onPress={() => handleChange('recipient', (prev) => prev === option.value ? '' : option.value)}
-            style={({ pressed }) => [
-              styles.positionChip,
+  const renderPositionChips = () =>
+    React.createElement(
+      View,
+      { style: styles.positionChipsContainer },
+      React.createElement(
+        AppText,
+        { variant: 'sm', weight: 'semibold', color: theme.ink, style: styles.positionLabel },
+        'Recipient'
+      ),
+      React.createElement(
+        View,
+        { style: styles.positionChipsWrapper },
+        positionOptions.map((option) =>
+          React.createElement(
+            Pressable,
+            {
+              key: option.value,
+              onPress: () => handleChange('recipient', (prev) => (prev === option.value ? '' : option.value)),
+              style: ({ pressed }) => [
+                styles.positionChip,
+                {
+                  backgroundColor: values.recipient === option.value ? theme.tint : theme.field,
+                  borderColor: values.recipient === option.value ? theme.accent : theme.line,
+                },
+                pressed && styles.positionChipPressed,
+              ],
+              accessibilityRole: 'radio',
+              accessibilityState: { selected: values.recipient === option.value },
+              accessibilityLabel: option.label,
+              testID: `position-chip-${option.value}`,
+            },
+            React.createElement(
+              AppText,
               {
-                backgroundColor: values.recipient === option.value ? theme.tint : theme.field,
-                borderColor: values.recipient === option.value ? theme.accent : theme.line,
+                variant: 'sm',
+                weight: values.recipient === option.value ? 'semibold' : 'medium',
+                color: values.recipient === option.value ? theme.accent : theme.ink,
               },
-              pressed && styles.positionChipPressed,
-            ]}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: values.recipient === option.value }}
-            accessibilityLabel={option.label}
-            testID={`position-chip-${option.value}`}
-          >
-            <AppText
-              variant="sm"
-              weight={values.recipient === option.value ? 'semibold' : 'medium'}
-              color={values.recipient === option.value ? theme.accent : theme.ink}
-            >
-              {option.label}
-            </AppText>
-          </Pressable>
-        ))}
-      </View>
-      {touched.recipient && errors.recipient && (
-        <AppText variant="xs" weight="medium" color={theme.error} style={styles.positionError}>
-          {errors.recipient}
-        </AppText>
-      )}
-    </View>
-  );
+              option.label
+            )
+          )
+        )
+      ),
+      touched.recipient && errors.recipient
+        ? React.createElement(
+            AppText,
+            { variant: 'xs', weight: 'medium', color: theme.error, style: styles.positionError },
+            errors.recipient
+          )
+        : null
+    );
 
   if (__DEV__ && IS_EMULATOR_LOOPBACK) {
     console.warn('[Delivery] Using the Android emulator loopback - unreachable from a physical device.');
@@ -196,213 +217,251 @@ export const DeliveryScreen: React.FC = () => {
 
   const showSuccessBanner = showSuccess && submittedName;
 
-  const renderFormFields = () => (
-    <>
-      <InputField
-        
-        ref={fullNameRef}
-        label="Full name"
-        value={values.fullName}
-        onChangeText={(text) => handleChange('fullName', text)}
-        onBlur={() => handleBlur('fullName')}
-        onFocus={handleFullNameFocus}
-        error={touched.fullName ? errors.fullName : undefined}
-        required
-        placeholder="e.g. Kwame Mensah"
-        maxLength={160}
-        autoCapitalize="words"
-        iconLeft="user"
-        accessibilityLabel="Delivery person name, required"
-        testID="fullName-input"
-      />
+  const renderFormFields = () =>
+    React.createElement(
+      React.Fragment,
+      null,
+      React.createElement(InputField, {
+        ref: fullNameRef,
+        label: 'Full name',
+        value: values.fullName,
+        onChangeText: (text) => handleChange('fullName', text),
+        onBlur: () => handleBlur('fullName'),
+        onFocus: handleFullNameFocus,
+        error: touched.fullName ? errors.fullName : undefined,
+        required: true,
+        placeholder: 'e.g. Kwame Mensah',
+        maxLength: 160,
+        autoCapitalize: 'words',
+        iconLeft: 'user',
+        accessibilityLabel: 'Delivery person name, required',
+        testID: 'fullName-input',
+      }),
+      isTablet
+        ? React.createElement(
+            View,
+            { style: styles.tabletRow },
+            React.createElement(
+              View,
+              { style: styles.tabletColumn },
+              React.createElement(InputField, {
+                ref: phoneRef,
+                label: 'Phone',
+                value: values.phone,
+                onChangeText: (text) => handleChange('phone', text),
+                onBlur: () => handleBlur('phone'),
+                onFocus: handlePhoneFocus,
+                error: touched.phone ? errors.phone : undefined,
+                optional: true,
+                placeholder: '024 000 0000',
+                keyboardType: 'phone-pad',
+                maxLength: 60,
+                iconLeft: 'phone',
+                accessibilityLabel: 'Phone number, optional',
+                testID: 'phone-input',
+              })
+            ),
+            React.createElement(
+              View,
+              { style: styles.tabletColumn },
+              React.createElement(InputField, {
+                ref: emailRef,
+                label: 'Email',
+                value: values.email,
+                onChangeText: (text) => handleChange('email', text),
+                onBlur: () => handleBlur('email'),
+                onFocus: handleEmailFocus,
+                error: touched.email ? errors.email : undefined,
+                optional: true,
+                placeholder: 'name@mail.com',
+                keyboardType: 'email-address',
+                autoCapitalize: 'none',
+                autoCorrect: false,
+                maxLength: 180,
+                iconLeft: 'mail',
+                accessibilityLabel: 'Email address, optional',
+                testID: 'email-input',
+              })
+            )
+          )
+        : React.createElement(
+            React.Fragment,
+            null,
+            React.createElement(InputField, {
+              ref: phoneRef,
+              label: 'Phone',
+              value: values.phone,
+              onChangeText: (text) => handleChange('phone', text),
+              onBlur: () => handleBlur('phone'),
+              onFocus: handlePhoneFocus,
+              error: touched.phone ? errors.phone : undefined,
+              optional: true,
+              placeholder: '024 000 0000',
+              keyboardType: 'phone-pad',
+              maxLength: 60,
+              iconLeft: 'phone',
+              accessibilityLabel: 'Phone number, optional',
+              testID: 'phone-input',
+            }),
+            React.createElement(InputField, {
+              ref: emailRef,
+              label: 'Email',
+              value: values.email,
+              onChangeText: (text) => handleChange('email', text),
+              onBlur: () => handleBlur('email'),
+              onFocus: handleEmailFocus,
+              error: touched.email ? errors.email : undefined,
+              optional: true,
+              placeholder: 'name@mail.com',
+              keyboardType: 'email-address',
+              autoCapitalize: 'none',
+              autoCorrect: false,
+              maxLength: 180,
+              iconLeft: 'mail',
+              accessibilityLabel: 'Email address, optional',
+              testID: 'email-input',
+            })
+          ),
+      renderPositionChips()
+    );
 
-      {isTablet ? (
-        <View style={styles.tabletRow}>
-          <View style={styles.tabletColumn}>
-            <InputField
-              ref={phoneRef}
-              label="Phone"
-              value={values.phone}
-              onChangeText={(text) => handleChange('phone', text)}
-              onBlur={() => handleBlur('phone')}
-              onFocus={handlePhoneFocus}
-              error={touched.phone ? errors.phone : undefined}
-              optional
-              placeholder="024 000 0000"
-              keyboardType="phone-pad"
-              maxLength={60}
-              iconLeft="phone"
-              accessibilityLabel="Phone number, optional"
-              testID="phone-input"
-            />
-          </View>
-          <View style={styles.tabletColumn}>
-            <InputField
-              ref={emailRef}
-              label="Email"
-              value={values.email}
-              onChangeText={(text) => handleChange('email', text)}
-              onBlur={() => handleBlur('email')}
-              onFocus={handleEmailFocus}
-              error={touched.email ? errors.email : undefined}
-              optional
-              placeholder="name@mail.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              maxLength={180}
-              iconLeft="mail"
-              accessibilityLabel="Email address, optional"
-              testID="email-input"
-            />
-          </View>
-        </View>
-      ) : (
-        <>
-          <InputField
-            ref={phoneRef}
-            label="Phone"
-            value={values.phone}
-            onChangeText={(text) => handleChange('phone', text)}
-            onBlur={() => handleBlur('phone')}
-            onFocus={handlePhoneFocus}
-            error={touched.phone ? errors.phone : undefined}
-            optional
-            placeholder="024 000 0000"
-            keyboardType="phone-pad"
-            maxLength={60}
-            iconLeft="phone"
-            accessibilityLabel="Phone number, optional"
-            testID="phone-input"
-          />
-
-          <InputField 
-            ref={emailRef}
-            label="Email"
-            value={values.email}
-            onChangeText={(text) => handleChange('email', text)}
-            onBlur={() => handleBlur('email')}
-            onFocus={handleEmailFocus}
-            error={touched.email ? errors.email : undefined}
-            optional
-            placeholder="name@mail.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            maxLength={180}
-            iconLeft="mail"
-            accessibilityLabel="Email address, optional"
-            testID="email-input"
-          />
-        </>
-      )}
-      {renderPositionChips()}
-    </>
-  );
-
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: theme.page }]}
-      keyboardVerticalOffset={insets.top}
-    >
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        <ScrollView
-          ref={scrollViewRef}
-          contentContainerStyle={[
+  return React.createElement(
+    KeyboardAvoidingView,
+    {
+      behavior: Platform.OS === 'ios' ? 'padding' : 'height',
+      style: [styles.container, { backgroundColor: theme.page }],
+      keyboardVerticalOffset: insets.top,
+    },
+    React.createElement(
+      SafeAreaView,
+      { style: styles.safeArea, edges: ['top', 'left', 'right'] },
+      React.createElement(
+        ScrollView,
+        {
+          ref: scrollViewRef,
+          contentContainerStyle: [
             styles.scrollContent,
             {
               paddingHorizontal: horizontalPadding,
-              // Account for bottom action bar + safe area + extra space for keyboard
               paddingBottom: BOTTOM_ACTION_BAR_HEIGHT + insets.bottom + KEYBOARD_GAP + 40,
             },
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          testID="delivery-scroll-view"
-        >
-          <View style={[styles.pageHeader, { width: contentWidth }]}>
-            <View style={styles.headerLeft}>
-              <View style={[
-                styles.headerIcon,
-                { backgroundColor: theme.tint, width: 40, height: 40, borderRadius: 12 },
-              ]}>
-                <Feather name="mail" size={20} color={theme.accent} />
-              </View>
-              <View style={styles.headerText}>
-                <AppText
-                  variant={isTablet ? 'pageTitleTablet' : 'pageTitlePhone'}
-                  weight="extrabold"
-                  color={theme.ink}
-                  letterSpacing="tightTitle"
-                  style={styles.pageTitle}
-                >
-                  New delivery
-                </AppText>
-                <AppText
-                  variant="sm"
-                  weight="regular"
-                  color={theme.sub}
-                  style={styles.pageSubtitle}
-                >
-                  Log a letter dropped off at the desk
-                </AppText>
-              </View>
-            </View>
-
-          </View>
-
-          {isLargeTablet ? (
-            <View style={[styles.largeTabletLayout, { width: contentWidth }]}>
-              <View style={styles.formColumn}>
-                <Card style={styles.formCard} padding="none" testID="delivery-form-card">
-                  <CardHeader title="Delivery person" subtitle="Who is dropping off the letter?" icon="user" />
-                  <View style={styles.cardBody}>
-                    {showSuccessBanner && <SuccessBanner name={submittedName} testID="success-banner" />}
-                    {submitMessage?.type === 'error' && (
-                      <ErrorBanner
-                        message={submitMessage.text}
-                        onDismiss={() => setSubmitMessage(null)}
-                        testID="delivery-error-banner"
-                      />
-                    )}
-                    {renderFormFields()}
-                  </View>
-                </Card>
-              </View>
-
-              <View style={styles.summaryColumn}>
-                <SummaryCard
-                  name={values.fullName}
-                  phone={values.phone}
-                  email={values.email}
-                  recipient={values.recipient}
-                  testID="summary-card"
-                />
-              </View>
-            </View>
-          ) : (
-            <View style={[styles.formCardWrapper, { width: contentWidth }]}>
-              <Card style={styles.formCard} padding="none" testID="delivery-form-card">
-                <CardHeader title="Delivery person" subtitle="Who is dropping off the letter?" icon="user" />
-                <View style={styles.cardBody}>
-                  {showSuccessBanner && <SuccessBanner name={submittedName} testID="success-banner" />}
-                  {submitMessage?.type === 'error' && (
-                    <ErrorBanner
-                      message={submitMessage.text}
-                      onDismiss={() => setSubmitMessage(null)}
-                      testID="delivery-error-banner"
-                    />
-                  )}
-                  {renderFormFields()}
-                </View>
-              </Card>
-            </View>
-          )}
-        </ScrollView>
-
-        <View
-          style={[
+          ],
+          showsVerticalScrollIndicator: false,
+          keyboardShouldPersistTaps: 'handled',
+          testID: 'delivery-scroll-view',
+        },
+        React.createElement(
+          View,
+          { style: [styles.pageHeader, { width: contentWidth }] },
+          React.createElement(
+            View,
+            { style: styles.headerLeft },
+            React.createElement(
+              View,
+              {
+                style: [styles.headerIcon, { backgroundColor: theme.tint, width: 40, height: 40, borderRadius: 12 }],
+              },
+              React.createElement(Feather, { name: 'mail', size: 20, color: theme.accent })
+            ),
+            React.createElement(
+              View,
+              { style: styles.headerText },
+              React.createElement(
+                AppText,
+                {
+                  variant: isTablet ? 'pageTitleTablet' : 'pageTitlePhone',
+                  weight: 'extrabold',
+                  color: theme.ink,
+                  letterSpacing: 'tightTitle',
+                  style: styles.pageTitle,
+                },
+                'New delivery'
+              ),
+              React.createElement(
+                AppText,
+                { variant: 'sm', weight: 'regular', color: theme.sub, style: styles.pageSubtitle },
+                'Log a letter dropped off at the desk'
+              )
+            )
+          )
+        ),
+        isLargeTablet
+          ? React.createElement(
+              View,
+              { style: [styles.largeTabletLayout, { width: contentWidth }] },
+              React.createElement(
+                View,
+                { style: styles.formColumn },
+                React.createElement(
+                  Card,
+                  { style: styles.formCard, padding: 'none', testID: 'delivery-form-card' },
+                  React.createElement(CardHeader, {
+                    title: 'Delivery person',
+                    subtitle: 'Who is dropping off the letter?',
+                    icon: 'user',
+                  }),
+                  React.createElement(
+                    View,
+                    { style: styles.cardBody },
+                    showSuccessBanner
+                      ? React.createElement(SuccessBanner, { name: submittedName, testID: 'success-banner' })
+                      : null,
+                    submitMessage?.type === 'error'
+                      ? React.createElement(ErrorBanner, {
+                          message: submitMessage.text,
+                          onDismiss: () => setSubmitMessage(null),
+                          testID: 'delivery-error-banner',
+                        })
+                      : null,
+                    renderFormFields()
+                  )
+                )
+              ),
+              React.createElement(
+                View,
+                { style: styles.summaryColumn },
+                React.createElement(SummaryCard, {
+                  name: values.fullName,
+                  phone: values.phone,
+                  email: values.email,
+                  recipient: values.recipient,
+                  testID: 'summary-card',
+                })
+              )
+            )
+          : React.createElement(
+              View,
+              { style: [styles.formCardWrapper, { width: contentWidth }] },
+              React.createElement(
+                Card,
+                { style: styles.formCard, padding: 'none', testID: 'delivery-form-card' },
+                React.createElement(CardHeader, {
+                  title: 'Delivery person',
+                  subtitle: 'Who is dropping off the letter?',
+                  icon: 'user',
+                }),
+                React.createElement(
+                  View,
+                  { style: styles.cardBody },
+                  showSuccessBanner
+                    ? React.createElement(SuccessBanner, { name: submittedName, testID: 'success-banner' })
+                    : null,
+                  submitMessage?.type === 'error'
+                    ? React.createElement(ErrorBanner, {
+                        message: submitMessage.text,
+                        onDismiss: () => setSubmitMessage(null),
+                        testID: 'delivery-error-banner',
+                      })
+                    : null,
+                  renderFormFields()
+                )
+              )
+            )
+      ),
+      React.createElement(
+        View,
+        {
+          style: [
             styles.bottomActionBar,
             {
               backgroundColor: theme.page,
@@ -411,33 +470,33 @@ export const DeliveryScreen: React.FC = () => {
               paddingTop: Spacing.sm,
               borderTopColor: theme.line,
             },
-          ]}
-        >
-          <View style={[styles.bottomActionContent, { width: contentWidth }]}>
-            <Button
-              title="Deliver letter"
-              onPress={handleSubmit}
-              disabled={!canSubmit}
-              variant={isTablet ? 'primary' : 'full'}
-              loading={isSubmitting}
-              iconLeft="send"
-              accessibilityLabel="Deliver letter"
-              accessibilityHint="Logs this letter and shows its reference code"
-              testID="submit-button"
-              style={isTablet ? styles.tabletButton : undefined}
-            />
-          </View>
-        </View>
-      </SafeAreaView>
-
-      <SuccessBottomSheet
-        visible={showSuccess}
-        onClose={handleStartNewDelivery}
-        position={submittedName}
-        trackingNumber={lastReference}
-        testID="success-bottom-sheet"
-      />
-    </KeyboardAvoidingView>
+          ],
+        },
+        React.createElement(
+          View,
+          { style: [styles.bottomActionContent, { width: contentWidth }] },
+          React.createElement(Button, {
+            title: 'Deliver letter',
+            onPress: handleSubmit,
+            disabled: !canSubmit,
+            variant: isTablet ? 'primary' : 'full',
+            loading: isSubmitting,
+            iconLeft: 'send',
+            accessibilityLabel: 'Deliver letter',
+            accessibilityHint: 'Logs this letter and shows its reference code',
+            testID: 'submit-button',
+            style: isTablet ? styles.tabletButton : undefined,
+          })
+        )
+      )
+    ),
+    React.createElement(SuccessBottomSheet, {
+      visible: showSuccess,
+      onClose: handleStartNewDelivery,
+      position: submittedName,
+      trackingNumber: lastReference,
+      testID: 'success-bottom-sheet',
+    })
   );
 };
 

@@ -19,18 +19,19 @@ export class ApiError extends Error {
  * Determines if an error is caused by request cancellation (AbortController).
  * React Native's fetch may report cancellation as AbortError (DOMException)
  * or as a TypeError/Error with message containing "cancel" / "abort".
+ *
+ * IMPORTANT: React Native's fetch can misleadingly report "Fetch request has been canceled"
+ * for actual network failures (DNS resolution, connection refused, etc.), not just
+ * deliberate AbortController cancellations. We check for the specific AbortError name
+ * and our own timeout cause to avoid misclassifying network errors.
  */
 export function isAbortError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
+  // Genuine AbortError from AbortController (DOMException)
   if ('name' in error && error.name === 'AbortError') return true;
-  if (error instanceof TypeError) {
-    const message = error.message?.toLowerCase() || '';
-    return message.includes('abort') || message.includes('cancel');
-  }
-  if (error instanceof Error) {
-    const message = error.message?.toLowerCase() || '';
-    return message.includes('abort') || message.includes('cancel');
-  }
+  // Our own timeout abort includes a cause of 'timeout'
+  if (error instanceof Error && 'cause' in error && error.cause === 'timeout') return true;
+  // Do NOT classify TypeError with "canceled"/"cancelled" as abort - these are often network failures
   return false;
 }
 
@@ -118,7 +119,11 @@ async function fetchJson<T>(url: string, options?: RequestInit, debugLabel = 'ap
     }
     if (error instanceof TypeError) {
       if (__DEV__) {
-        console.error(`[Delivery] ${debugLabel} transport failure for ${url}:`, error.message);
+        console.error(`[Delivery] ${debugLabel} transport failure for ${url}:`, {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        });
       }
       throw new ApiError(
         `Could not reach ${API_BASE_URL || 'the server'}. Check the API URL and that the device is on the same network.`,
@@ -210,7 +215,11 @@ async function fetchJsonNoTimeout<T>(url: string, options?: RequestInit, debugLa
     }
     if (error instanceof TypeError) {
       if (__DEV__) {
-        console.error(`[Delivery] ${debugLabel} transport failure for ${url}:`, error.message);
+        console.error(`[Delivery] ${debugLabel} transport failure for ${url}:`, {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        });
       }
       throw new ApiError(
         `Could not reach ${API_BASE_URL || 'the server'}. Check the API URL and that the device is on the same network.`,
