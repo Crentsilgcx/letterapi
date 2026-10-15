@@ -11,6 +11,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
+import org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 
 /**
  * Security configuration for the Letter Receipt System.
@@ -19,7 +22,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
  * maintaining the current username/password authentication.
  * 
  * Current authentication methods:
- * - API endpoints (/api/**): HTTP Basic authentication (stateless)
+ * - API endpoints (/api/**): Session-based authentication with CSRF protection
  * - Web endpoints (/**): Form-based login with session
  * 
  * Future SSO/OIDC integration points (not yet implemented):
@@ -46,6 +49,11 @@ public class SecurityConfig {
     }
 
     @Bean
+    HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new HttpSessionEventPublisher();
+    }
+
+    @Bean
     @Order(1)
     SecurityFilterChain websocketSecurity(HttpSecurity http) throws Exception {
         http
@@ -69,18 +77,27 @@ public class SecurityConfig {
                 .requestMatchers("/api/reception/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                 .anyRequest().authenticated())
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/api/public/**", "/api/admin/login", "/api/reception/**")
+                .ignoringRequestMatchers("/api/public/**")
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                .maximumSessions(1)
+                .maxSessionsPreventsLogin(false))
             .formLogin(form -> form
                 .loginPage("/login")
                 .permitAll())
-            .httpBasic(Customizer.withDefaults());
-            
-            // FUTURE SSO: When OIDC is configured, replace .httpBasic() with:
-            // .oauth2ResourceServer(oauth2 -> oauth2
-            //     .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
-            // And add a JwtAuthenticationConverter bean to map JWT claims to authorities.
+            .headers(headers -> headers
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000)
+                    .preload(true))
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'"))
+                .frameOptions(frame -> frame.sameOrigin())
+                .addHeaderWriter(new StaticHeadersWriter("X-Content-Type-Options", "nosniff"))
+                .addHeaderWriter(new StaticHeadersWriter("Referrer-Policy", "strict-origin-when-cross-origin"))
+                .addHeaderWriter(new StaticHeadersWriter("Permissions-Policy", "geolocation=(), microphone=(), camera=()")));
+        
         return http.build();
     }
 
@@ -117,7 +134,21 @@ public class SecurityConfig {
             .logout(logout -> logout
                 .logoutSuccessUrl("/")
                 .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID", "XSRF-TOKEN"));
+                .deleteCookies("JSESSIONID", "XSRF-TOKEN"))
+            .sessionManagement(session -> session
+                .maximumSessions(1)
+                .maxSessionsPreventsLogin(false))
+            .headers(headers -> headers
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000)
+                    .preload(true))
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'"))
+                .frameOptions(frame -> frame.sameOrigin())
+                .addHeaderWriter(new StaticHeadersWriter("X-Content-Type-Options", "nosniff"))
+                .addHeaderWriter(new StaticHeadersWriter("Referrer-Policy", "strict-origin-when-cross-origin"))
+                .addHeaderWriter(new StaticHeadersWriter("Permissions-Policy", "geolocation=(), microphone=(), camera=()")));
         return http.build();
     }
     

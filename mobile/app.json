@@ -1,10 +1,16 @@
+
 {
   "expo": {
-    "name": "mobile",
+    "name": "Drop",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/drop-icon.png",
+    "splash": {
+      "image": "./assets/drop-splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#0F6E56"
+    },
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
@@ -15,10 +21,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/drop-adaptive-foreground.png",
+        "backgroundColor": "#0F6E56"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.eugy1.mobile"

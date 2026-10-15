@@ -9,6 +9,10 @@ const pendingSubscriptions = new Map();
 const activeSubscriptions = new Map();
 const connectionListeners = new Set();
 
+// Reconnection backoff configuration
+const RECONNECT_DELAYS = [1000, 2000, 5000, 10000, 30000]; // ms
+let reconnectAttempt = 0;
+
 function createClient() {
   const wsUrl = getWsUrl();
   console.log('Connecting STOMP WebSocket to:', wsUrl);
@@ -17,7 +21,7 @@ function createClient() {
       return new WebSocket(wsUrl);
     },
 
-    reconnectDelay: 0,
+    reconnectDelay: 0, // We handle reconnection manually with backoff
 
     heartbeatIncoming: 4000,
     heartbeatOutgoing: 4000,
@@ -28,6 +32,7 @@ function createClient() {
 
     onConnect: (frame) => {
       console.log('STOMP connected:', frame);
+      reconnectAttempt = 0; // Reset on successful connection
       connectionListeners.forEach((listener) => listener(true));
 
       pendingSubscriptions.forEach((handlers, destination) => {
@@ -68,6 +73,18 @@ function createClient() {
     onWebSocketClose: (event) => {
       console.log('WebSocket closed:', event.code, event.reason);
       connectionListeners.forEach((listener) => listener(false));
+      
+      // Attempt reconnection with backoff if not intentionally disconnected
+      if (!pendingDisconnect && stompClient) {
+        const delay = RECONNECT_DELAYS[Math.min(reconnectAttempt, RECONNECT_DELAYS.length - 1)];
+        reconnectAttempt++;
+        console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempt})`);
+        setTimeout(() => {
+          if (stompClient && !pendingDisconnect) {
+            stompClient.activate();
+          }
+        }, delay);
+      }
     },
 
     onDisconnect: () => {

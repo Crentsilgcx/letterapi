@@ -43,7 +43,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         int limit;
         String kind;
-        if ("/login".equals(path)) {
+        if ("/login".equals(path) || "/api/admin/login".equals(path)) {
             limit = loginPerMinute;
             kind = "login";
         } else if ("/api/public/deliveries".equals(path)) {

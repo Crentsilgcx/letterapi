@@ -1,34 +1,21 @@
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
 import { defineConfig, loadEnv } from 'vite'
-import { Buffer } from 'node:buffer'
 import { fileURLToPath } from 'node:url'
 
-// The project .env (shared with docker compose) holds the admin login. Staff API calls get
-// it added here, so it always matches the server and never ships in the browser bundle.
-const projectRoot = fileURLToPath(new URL('..', import.meta.url))
-
-function staffAuthHeader(mode) {
-  // Re-read on every request so a changed .env applies without restarting Vite.
-  const env = loadEnv(mode, projectRoot, '')
-  const username = env.ADMIN_USERNAME || env.APP_BOOTSTRAP_ADMIN_USERNAME || 'admin'
-  const password = env.ADMIN_PASSWORD || env.APP_BOOTSTRAP_ADMIN_PASSWORD
-  if (!password) return null
-  return 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64')
-}
+// Development proxy configuration.
+// In production, the frontend is served by the backend or reverse proxy (same-origin).
+// For development, Vite proxies /api and /ws to the backend.
+// The backend uses cookie-based sessions with CSRF protection.
 
 function getBackendTarget(mode) {
   // Allow override via VITE_API_BASE_URL in frontend .env, fallback to localhost:8081
-  const env = loadEnv(mode, projectRoot, 'VITE_')
+  const env = loadEnv(mode, fileURLToPath(new URL('..', import.meta.url)), 'VITE_')
   return env.VITE_API_BASE_URL || 'http://localhost:8081'
 }
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  if (!staffAuthHeader(mode)) {
-    console.warn(`[letterapi] No ADMIN_PASSWORD found in ${projectRoot}.env - reception/admin API calls will be rejected.`)
-  }
-
   const backendTarget = getBackendTarget(mode)
   console.log(`[letterapi] Dev proxy target: ${backendTarget}`)
 
@@ -42,24 +29,18 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: backendTarget,
           changeOrigin: true,
-          configure: (proxy) => {
-            proxy.on('proxyReq', (proxyReq, req) => {
-              if (!/^\/api\/(reception|admin)\//.test(req.url)) return
-              const auth = staffAuthHeader(mode)
-              if (auth) proxyReq.setHeader('Authorization', auth)
-            })
-          },
+          cookieDomainRewrite: { '*': '' }, // Preserve cookies from backend
+configure: (proxy) => {
+              proxy.on('error', (err) => {
+                console.error('[letterapi] Proxy error:', err.message)
+              })
+            },
         },
         '/ws': {
           target: backendTarget,
           changeOrigin: true,
           ws: true,
-          configure: (proxy) => {
-            proxy.on('proxyReqWs', (proxyReq) => {
-              const auth = staffAuthHeader(mode)
-              if (auth) proxyReq.setHeader('Authorization', auth)
-            })
-          },
+          cookieDomainRewrite: { '*': '' },
         }
       }
     }

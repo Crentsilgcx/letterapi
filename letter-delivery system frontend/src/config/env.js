@@ -1,14 +1,14 @@
 // Centralized configuration for API and WebSocket URLs
 // Uses Vite's import.meta.env for environment variables
 // Set these in .env or .env.local:
-// VITE_API_BASE_URL=https://your-ngrok-url.ngrok-free.app (production, different origin)
-// VITE_WS_URL=wss://your-ngrok-url.ngrok-free.app/ws (production, different origin)
+// VITE_API_BASE_URL=https://your-domain.com (production, different origin)
+// VITE_WS_URL=wss://your-domain.com/ws (production, different origin)
 // Leave empty for same-origin deployment (frontend served by backend or reverse proxy)
 
 const isDev = import.meta.env.DEV;
 const isProduction = import.meta.env.PROD;
 
-// API base URL - empty for same-origin, full URL for cross-origin deployments (ngrok, separate hosts)
+// API base URL - empty for same-origin, full URL for cross-origin deployments (separate hosts)
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
 
 // WebSocket URL - defaults to same origin in production, localhost in dev

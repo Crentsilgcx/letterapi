@@ -2,13 +2,34 @@ import { API_PATHS, getApiUrl } from './config/env';
 
 // Staff credentials are added by the Vite dev proxy from the project .env (see vite.config.js).
 
+function getCsrfToken() {
+  const name = 'XSRF-TOKEN=';
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    cookie = cookie.trim();
+    if (cookie.startsWith(name)) {
+      return cookie.substring(name.length);
+    }
+  }
+  return null;
+}
+
 async function fetchJson(url, options = {}) {
   try {
+    const isMutation = options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method.toUpperCase());
+    const headers = { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...options.headers };
+    
+    if (isMutation) {
+      const csrfToken = getCsrfToken();
+      if (csrfToken) {
+        headers['X-XSRF-TOKEN'] = csrfToken;
+      }
+    }
+
     const res = await fetch(url, {
       ...options,
       credentials: 'include',
-      // X-Requested-With makes Spring answer 401 without the browser's Basic-auth popup.
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...options.headers },
+      headers,
     });
     if (res.status === 401) {
       throw new Error('Invalid username or password.');

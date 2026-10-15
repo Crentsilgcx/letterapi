@@ -3,12 +3,13 @@
  *
  * Configure the API URL in the mobile/.env file:
  *
- * EXPO_PUBLIC_API_URL=http://10.55.100.195:8081
+ * EXPO_PUBLIC_API_URL=https://your-domain.com
  *
- * For an Android emulator, use:
- * EXPO_PUBLIC_API_URL=http://10.0.2.2:8081
+ * For development with self-signed certificates, you may need to configure
+ * certificate pinning or trust the certificate. For production, always use HTTPS
+ * with a valid certificate from a trusted CA.
  *
- * If your server computer or network changes, update the IP in .env.
+ * If your server computer or network changes, update the URL in .env.
  */
 
 import Constants from 'expo-constants';
@@ -77,6 +78,11 @@ export const getApiUrl = (path: string): string => {
 
     if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
       throw new Error('The API URL must use HTTP or HTTPS.');
+    }
+
+    // Warn if using HTTP in production (non-development)
+    if (parsedUrl.protocol === 'http:' && !__DEV__) {
+      console.warn('[API Config] WARNING: Using HTTP in production is insecure. Use HTTPS.');
     }
 
     return url;

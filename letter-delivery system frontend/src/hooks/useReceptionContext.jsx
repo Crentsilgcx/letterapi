@@ -370,10 +370,13 @@ const buildApiParams = useCallback((page = 0) => {
           setRecipientFilter(cachedState.recipientFilter);
           setIsLoading(false);
           
-          // Background refresh: always fetch fresh data after cache restore
-          // This ensures received tab has data even if cache was empty
-          loadPending(0, false);
-          loadReceived(0, false);
+          // Only do background refresh if cache is stale (older than 30 seconds)
+          // This avoids double-fetching on every page load
+          const cacheAge = Date.now() - cached.timestamp;
+          if (cacheAge > 30000) {
+            loadPending(0, false);
+            loadReceived(0, false);
+          }
         } else {
           // No valid cache - load from API
           setIsLoading(true);
@@ -562,7 +565,7 @@ const buildApiParams = useCallback((page = 0) => {
         pendingRealtimeRevisionRef.current += 1;
 
         // If we're viewing the pending tab, optimistically prepend the new delivery
-        // and also refetch in background for consistency with filters
+        // No background refetch needed - the optimistic update is authoritative
         if (state.activeTab === 'pending') {
           // Optimistic update: prepend new delivery to pending array
           setPending(prev => {
@@ -575,20 +578,6 @@ const buildApiParams = useCallback((page = 0) => {
           // Update totals immediately
           setPendingTotalElements(prev => prev + 1);
           setPendingTotalPages(prev => Math.max(1, Math.ceil((prev + 1) / DEFAULT_PAGE_SIZE)));
-
-          // Background refetch for filter consistency
-          const { searchQuery, dateFilter, customDateFrom, customDateTo } = filtersRef.current;
-          const params = new URLSearchParams({ page: '0', size: String(DEFAULT_PAGE_SIZE) });
-          if (searchQuery) params.append('q', searchQuery);
-          if (dateFilter === 'custom') {
-            if (customDateFrom) params.append('dateFrom', customDateFrom);
-            if (customDateTo) params.append('dateTo', customDateTo);
-          } else if (dateFilter) {
-            const { from, to } = getDateRange(dateFilter);
-            if (from) params.append('dateFrom', from);
-            if (to) params.append('dateTo', to);
-          }
-          loadPendingRef.current?.(0, false, undefined, params.toString());
         } else {
           // Just update totals when not on the pending tab
           setPendingTotalElements(prev => prev + 1);
@@ -640,13 +629,7 @@ const buildApiParams = useCallback((page = 0) => {
         setReceivedTodayCount(prev => prev + 1);
         setReceivedTotalPages(prev => Math.max(1, Math.ceil((prev + 1) / DEFAULT_PAGE_SIZE)));
 
-        // Background refetch for consistency (only if viewing the relevant tab)
-        if (state.activeTab === 'pending') {
-          loadPendingRef.current?.(0, false);
-        }
-        if (state.activeTab === 'received') {
-          loadReceivedRef.current?.(0, false);
-        }
+        // No background refetch - optimistic updates are authoritative
 
         // Update cache with optimistic changes
         const newPendingTotalElements = Math.max(0, state.pendingTotalElements - 1);
