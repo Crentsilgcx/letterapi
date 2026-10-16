@@ -1,30 +1,8 @@
 import { API_PATHS, getApiUrl } from './config/env';
 
-// Staff credentials are added by the Vite dev proxy from the project .env (see vite.config.js).
-
-function getCsrfToken() {
-  const name = 'XSRF-TOKEN=';
-  const cookies = document.cookie.split(';');
-  for (let cookie of cookies) {
-    cookie = cookie.trim();
-    if (cookie.startsWith(name)) {
-      return cookie.substring(name.length);
-    }
-  }
-  return null;
-}
-
 async function fetchJson(url, options = {}) {
   try {
-    const isMutation = options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method.toUpperCase());
     const headers = { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...options.headers };
-    
-    if (isMutation) {
-      const csrfToken = getCsrfToken();
-      if (csrfToken) {
-        headers['X-XSRF-TOKEN'] = csrfToken;
-      }
-    }
 
     const res = await fetch(url, {
       ...options,
@@ -35,8 +13,21 @@ async function fetchJson(url, options = {}) {
       throw new Error('Invalid username or password.');
     }
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: res.statusText }));
-      throw new Error(err.message || `Request failed: ${res.status}`);
+      const contentType = res.headers.get('content-type') || '';
+      let errMsg = `Request failed: ${res.status}`;
+      if (contentType.includes('application/json')) {
+        const err = await res.json().catch(() => ({}));
+        errMsg = err.message || errMsg;
+      } else {
+        const text = await res.text().catch(() => '');
+        if (text) errMsg = text.slice(0, 200);
+      }
+      throw new Error(errMsg);
+    }
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await res.text().catch(() => '');
+      throw new Error(text.slice(0, 200) || 'Unexpected non-JSON response');
     }
     return res.json();
   } catch (err) {

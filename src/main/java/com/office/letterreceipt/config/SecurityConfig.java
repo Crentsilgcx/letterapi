@@ -4,13 +4,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
@@ -76,16 +74,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/reception/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                 .anyRequest().authenticated())
-            .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/api/public/**")
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
+            .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .maximumSessions(1)
                 .maxSessionsPreventsLogin(false))
-            .formLogin(form -> form
-                .loginPage("/login")
-                .permitAll())
             .headers(headers -> headers
                 .httpStrictTransportSecurity(hsts -> hsts
                     .includeSubDomains(true)
@@ -124,9 +117,7 @@ public class SecurityConfig {
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/reception/**", "/operations/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                 .anyRequest().authenticated())
-            .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                .ignoringRequestMatchers("/api/**"))
+            .csrf(csrf -> csrf.disable())
             .formLogin(form -> form
                 .loginPage("/login")
                 .defaultSuccessUrl("/admin", true)

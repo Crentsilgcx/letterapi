@@ -23,10 +23,10 @@ spring:
     cache: ${THYMELEAF_CACHE:true}
   mvc:
     problemdetails:
-      enabled: true
+      enabled: false
 server:
   port: ${SERVER_PORT:8081}
-  forward-headers-strategy: framework
+  address: 0.0.0.0
   servlet:
     session:
       cookie:
