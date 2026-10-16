@@ -1,0 +1,50 @@
+
+{
+  "expo": {
+    "name": "Drop",
+    "slug": "mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/drop-icon.png",
+    "splash": {
+      "image": "./assets/drop-splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#0F6E56"
+    },
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.eugy1.mobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/drop-adaptive-foreground.png",
+        "backgroundColor": "#0F6E56"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.eugy1.mobile"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f569d29f-474c-461b-bec5-b16036955723"
+      }
+    }
+  }
+}

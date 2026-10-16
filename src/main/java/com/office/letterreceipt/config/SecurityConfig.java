@@ -3,64 +3,187 @@ package com.office.letterreceipt.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.config.Customizer;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
+import org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 
+/**
+ * Security configuration for the Letter Receipt System.
+ * 
+ * This configuration is structured to support future SSO/OIDC integration while
+ * maintaining the current username/password authentication.
+ * 
+ * Current authentication methods:
+ * - API endpoints (/api/**): Session-based authentication with CSRF protection
+ * - Web endpoints (/**): Form-based login with session
+ * 
+ * Future SSO/OIDC integration points (not yet implemented):
+ * - OAuth2/OIDC login for /reception/** endpoints
+ * - JWT token validation for API endpoints
+ * - Identity provider metadata configuration
+ * - User identity mapping from external IdP to application users
+ * 
+ * When the organization's Identity Provider is specified, the following
+ * changes will be needed:
+ * 1. Add spring-boot-starter-oauth2-client dependency
+ * 2. Configure OAuth2 client registration (issuer-uri, client-id, client-secret)
+ * 3. Add OAuth2LoginConfigurer to webSecurity filter chain for /reception/**
+ * 4. Add JwtAuthenticationConverter for API token validation
+ * 5. Implement OAuth2UserService to map external identity to UserAccount
+ * 6. Add optional 'externalId' field to UserAccount for stable IdP subject mapping
+ */
 @Configuration
 public class SecurityConfig {
 
     @Bean
+    AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
+    HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new HttpSessionEventPublisher();
+    }
+
+    @Bean
     @Order(1)
-    SecurityFilterChain staffApiSecurity(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
+    SecurityFilterChain websocketSecurity(HttpSecurity http) throws Exception {
         http
-            .securityMatcher("/api/reception/**", "/api/admin/**")
-            .userDetailsService(userDetailsService)
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/reception/**").hasAnyRole("ADMIN", "RECEPTIONIST")
-                .anyRequest().authenticated())
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .httpBasic(Customizer.withDefaults());
+            .securityMatcher("/ws/**")
+            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+            .csrf(csrf -> csrf.disable());
         return http.build();
     }
 
     @Bean
     @Order(2)
+    SecurityFilterChain apiSecurity(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
+        http
+            .securityMatcher("/api/**")
+            .userDetailsService(userDetailsService)
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/public/**").permitAll()
+                .requestMatchers("/api/admin/login").permitAll()
+                .requestMatchers("/api/admin/me").authenticated()
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/reception/**").hasAnyRole("ADMIN", "RECEPTIONIST")
+                .anyRequest().authenticated())
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                .maximumSessions(1)
+                .maxSessionsPreventsLogin(false))
+            .headers(headers -> headers
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000)
+                    .preload(true))
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'"))
+                .frameOptions(frame -> frame.sameOrigin())
+                .addHeaderWriter(new StaticHeadersWriter("X-Content-Type-Options", "nosniff"))
+                .addHeaderWriter(new StaticHeadersWriter("Referrer-Policy", "strict-origin-when-cross-origin"))
+                .addHeaderWriter(new StaticHeadersWriter("Permissions-Policy", "geolocation=(), microphone=(), camera=()")));
+        
+        return http.build();
+    }
+
+    @Bean
+    @Order(3)
     SecurityFilterChain webSecurity(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
         http
             .userDetailsService(userDetailsService)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/",
-                    "/deliver",
-                    "/track",
-                    "/track/**",
-                    "/api/public/**",
-                    "/css/**",
-                    "/js/**",
+                    "/index.html",
+                    "/reception/login",
+                    "/reception/dashboard",
+                    "/reception/record",
+                    "/reception",
+                    "/assets/**",
+                    "/fonts/**",
                     "/favicon.svg",
                     "/error",
-                    "/actuator/health")
+                    "/actuator/health",
+                    "/login")
                 .permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/reception/**").hasAnyRole("ADMIN", "RECEPTIONIST")
+                .requestMatchers("/reception/**", "/operations/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                 .anyRequest().authenticated())
-            .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                .ignoringRequestMatchers("/api/public/**"))
+            .csrf(csrf -> csrf.disable())
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/reception", true)
+                .defaultSuccessUrl("/admin", true)
                 .permitAll())
             .logout(logout -> logout
                 .logoutSuccessUrl("/")
                 .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID", "XSRF-TOKEN"));
+                .deleteCookies("JSESSIONID", "XSRF-TOKEN"))
+            .sessionManagement(session -> session
+                .maximumSessions(1)
+                .maxSessionsPreventsLogin(false))
+            .headers(headers -> headers
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000)
+                    .preload(true))
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'"))
+                .frameOptions(frame -> frame.sameOrigin())
+                .addHeaderWriter(new StaticHeadersWriter("X-Content-Type-Options", "nosniff"))
+                .addHeaderWriter(new StaticHeadersWriter("Referrer-Policy", "strict-origin-when-cross-origin"))
+                .addHeaderWriter(new StaticHeadersWriter("Permissions-Policy", "geolocation=(), microphone=(), camera=()")));
         return http.build();
     }
+    
+    // FUTURE SSO: Bean for JWT authentication converter when OIDC is enabled
+    /*
+    @Bean
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            // Map JWT claims (e.g., "roles", "groups") to Spring Security authorities
+            Collection<GrantedAuthority> authorities = new ArrayList<>();
+            Claim rolesClaim = jwt.getClaim("roles");
+            if (rolesClaim != null && rolesClaim.isArray()) {
+                rolesClaim.asArray(String.class).forEach(role -> 
+                    authorities.add(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())));
+            }
+            return authorities;
+        });
+        return converter;
+    }
+    */
+    
+    // FUTURE SSO: Bean for custom OIDC user service when OIDC is enabled
+    /*
+    @Bean
+    OAuth2UserService<OidcUserRequest, OidcUser> customOidcUserService() {
+        return userRequest -> {
+            OidcUser oidcUser = new OidcUserService().loadUser(userRequest);
+            // Map external identity (oidcUser.getSubject()) to UserAccount
+            // Create or update UserAccount with externalId = oidcUser.getSubject()
+            // Return mapped user with application roles
+            return oidcUser;
+        };
+    }
+    */
+    
+    // FUTURE SSO: Bean for OAuth2 authentication success handler when OIDC is enabled
+    /*
+    @Bean
+    AuthenticationSuccessHandler oauth2AuthenticationSuccessHandler() {
+        return (request, response, authentication) -> {
+            // Redirect to reception dashboard after successful SSO login
+            response.sendRedirect("/reception/dashboard");
+        };
+    }
+    */
 }
